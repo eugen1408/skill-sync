@@ -2,8 +2,12 @@ import type { Source, RawSkill } from '@shared/domain/source'
 import { DEFAULT_OFFICIAL_URL } from '@shared/domain/source'
 import { makeAppError } from '@shared/domain/error'
 import type { SourceAdapter, IndexContext } from '../types'
+import { Cache } from '../cache'
 
 type FetchFn = typeof fetch
+
+const SEARCH_TTL_MS = 5 * 60_000
+const SEARCH_MAX_ENTRIES = 100
 
 interface ApiSkill {
   id?: string
@@ -35,6 +39,10 @@ const SEARCH_LIMIT = 20
 export class OfficialSourceAdapter implements SourceAdapter {
   readonly type = 'official' as const
   readonly supportsWatch = false
+  private readonly cache = new Cache<ApiSkill[]>({
+    ttlMs: SEARCH_TTL_MS,
+    maxEntries: SEARCH_MAX_ENTRIES
+  })
 
   constructor(private readonly fetchFn: FetchFn = fetch) {}
 
@@ -80,12 +88,18 @@ export class OfficialSourceAdapter implements SourceAdapter {
   }
 
   private async search(base: string, query: string): Promise<ApiSkill[]> {
+    const cacheKey = `${base}::${query.trim().toLowerCase()}`
+    const cached = this.cache.get(cacheKey)
+    if (cached) return cached
+
     const url = `${base.replace(/\/$/, '')}/api/search?q=${encodeURIComponent(query)}&limit=${SEARCH_LIMIT}`
     const res = await this.fetchFn(url, { headers: { Accept: 'application/json' } })
     if (!res.ok) {
       throw makeAppError('SOURCE_UNAVAILABLE', `skills.sh API: HTTP ${res.status}`)
     }
     const body = (await res.json()) as { skills?: ApiSkill[] }
-    return body.skills ?? []
+    const skills = body.skills ?? []
+    this.cache.set(cacheKey, skills)
+    return skills
   }
 }

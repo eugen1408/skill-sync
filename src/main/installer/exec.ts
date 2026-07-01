@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import type { InstallScope } from '@shared/domain/config'
 import type { JobContext } from '../jobs/JobRunner'
 import { makeAppError } from '@shared/domain/error'
+import { cleanCliOutput } from './cleanCliOutput'
 
 /** Зафиксированная версия CLI (Q-03): обновляется осознанно вместе с релизами приложения. */
 export const PINNED_SKILLS_VERSION = '1.5.14'
@@ -70,16 +71,14 @@ export function runCli(
     }
     ctx.signal.addEventListener('abort', onAbort, { once: true })
 
-    child.stdout.on('data', (chunk: Buffer) => {
-      const text = chunk.toString()
-      output += text
-      ctx.log('out', text.trimEnd())
-    })
-    child.stderr.on('data', (chunk: Buffer) => {
-      const text = chunk.toString()
-      output += text
-      ctx.log('err', text.trimEnd())
-    })
+    const onData = (raw: string, stream: 'out' | 'err'): void => {
+      const cleaned = cleanCliOutput(raw)
+      if (!cleaned) return
+      output += cleaned + '\n'
+      ctx.log(stream, cleaned)
+    }
+    child.stdout.on('data', (chunk: Buffer) => onData(chunk.toString(), 'out'))
+    child.stderr.on('data', (chunk: Buffer) => onData(chunk.toString(), 'err'))
     child.on('error', (err) => {
       ctx.signal.removeEventListener('abort', onAbort)
       reject(makeAppError('INSTALL_FAILED', `Не удалось запустить ${command}`, err))

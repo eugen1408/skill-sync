@@ -12,6 +12,7 @@ import type { VersionResolver } from '../version'
 import { findLockEntry } from '../version'
 import type { NotificationCenter } from '../notifications/NotificationCenter'
 import { logger } from '../logger'
+import { mapWithConcurrency } from '../util/pool'
 import { buildResolveContext } from './resolveContext'
 
 export interface UpdateEngineDeps {
@@ -26,6 +27,7 @@ export interface UpdateEngineDeps {
 }
 
 const CHECK_CONCURRENCY = 6
+const RUN_CONCURRENCY = 4
 
 /**
  * Проверка и применение обновлений skills. Режимы: вручную / при запуске / по расписанию /
@@ -100,18 +102,18 @@ export class UpdateEngine {
 
   /** Обновление одного skill (переустановка с force). */
   runOne(skillId: string): string {
-    const { jobId } = this.deps.jobRunner.start('update.run', async () => {
+    const { jobId } = this.deps.jobRunner.start('update.run', async (ctx) => {
       const entry = this.deps.skillRegistry.get(skillId)
-      return entry ? this.runEntries([entry]) : { ok: 0, failed: 0, skipped: 0 }
+      return entry ? this.runEntries([entry], ctx) : { ok: 0, failed: 0, skipped: 0 }
     })
     return jobId
   }
 
   /** Обновление всех skills с доступным обновлением. */
   runAll(): string {
-    const { jobId } = this.deps.jobRunner.start('update.run', async () => {
+    const { jobId } = this.deps.jobRunner.start('update.run', async (ctx) => {
       const targets = this.installedEntries().filter((e) => e.hasUpdate)
-      return this.runEntries(targets)
+      return this.runEntries(targets, ctx)
     })
     return jobId
   }
@@ -135,18 +137,17 @@ export class UpdateEngine {
 
   private async checkEntries(entries: CatalogEntry[], ctx: JobContext): Promise<UpdateCheckResult> {
     const checkedAt = new Date().toISOString()
-    const results: UpdateCheckEntry[] = []
     let done = 0
 
-    for (let i = 0; i < entries.length; i += CHECK_CONCURRENCY) {
-      if (ctx.signal.aborted) break
-      const batch = entries.slice(i, i + CHECK_CONCURRENCY)
-      const batchResults = await Promise.all(batch.map((e) => this.checkEntry(e, checkedAt)))
-      results.push(...batchResults)
-      done += batch.length
+    const raw = await mapWithConcurrency(entries, CHECK_CONCURRENCY, async (entry) => {
+      if (ctx.signal.aborted) return null
+      const result = await this.checkEntry(entry, checkedAt)
+      done += 1
       ctx.progress(Math.round((done / Math.max(1, entries.length)) * 100), `Проверено ${done}`)
-    }
+      return result
+    })
 
+    const results = raw.filter((r): r is UpdateCheckEntry => r !== null)
     const updatesAvailable = results.filter((r) => r.hasUpdate).length
     return { checkedAt, updatesAvailable, entries: results }
   }
@@ -179,11 +180,11 @@ export class UpdateEngine {
     }
   }
 
-  private async runEntries(entries: CatalogEntry[]): Promise<UpdateRunSummary> {
-    const summary: UpdateRunSummary = { ok: 0, failed: 0, skipped: 0 }
+  private async runEntries(entries: CatalogEntry[], ctx: JobContext): Promise<UpdateRunSummary> {
     const config = this.deps.configStore.get().install
+    let done = 0
 
-    for (const entry of entries) {
+    const outcomes = await mapWithConcurrency(entries, RUN_CONCURRENCY, async (entry) => {
       const agents = entry.installations.map((i) => i.agent)
       const request: InstallRequest = {
         skillId: entry.id,
@@ -194,27 +195,33 @@ export class UpdateEngine {
         force: true
       }
       const result = await this.deps.installer.startInstall(request).promise
+      done += 1
+      ctx.progress(
+        Math.round((done / Math.max(1, entries.length)) * 100),
+        `Обновлено ${done}/${entries.length}`
+      )
+
       if (!result || result.status === 'failed') {
-        summary.failed += 1
         this.deps.notifications.add({
           type: 'update_error',
           title: 'Ошибка обновления',
           message: `Не удалось обновить ${entry.name}`,
           skillId: entry.id
         })
-      } else if (result.status === 'skipped') {
-        summary.skipped += 1
-      } else {
-        summary.ok += 1
-        this.deps.notifications.add({
-          type: 'update_success',
-          title: 'Обновление установлено',
-          message: `${entry.name} обновлён`,
-          skillId: entry.id
-        })
+        return 'failed' as const
       }
-    }
+      if (result.status === 'skipped') return 'skipped' as const
+      this.deps.notifications.add({
+        type: 'update_success',
+        title: 'Обновление установлено',
+        message: `${entry.name} обновлён`,
+        skillId: entry.id
+      })
+      return 'ok' as const
+    })
 
+    const summary: UpdateRunSummary = { ok: 0, failed: 0, skipped: 0 }
+    for (const outcome of outcomes) summary[outcome] += 1
     logger.info('Обновление завершено', summary)
     return summary
   }
