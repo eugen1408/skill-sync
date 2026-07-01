@@ -1,0 +1,83 @@
+import type { Source } from './source'
+import { DEFAULT_AGENT_ID } from './agent'
+
+export type InstallScope = 'global' | 'project'
+
+/** Режимы и параметры автообновления skills (Часть 6). */
+export interface UpdateSettings {
+  checkOnLaunch: boolean
+  scheduleEnabled: boolean
+  scheduleIntervalMinutes: number | null
+  scheduleCron: string | null
+  watchLocalSources: boolean
+  /** Авто-применять обновления или только уведомлять. */
+  autoInstallUpdates: boolean
+}
+
+/** Параметры установки (Часть 5/7). */
+export interface InstallSettings {
+  /** Директория установки (переопределяет базовый каталог, где применимо). null → по умолчанию. */
+  installDir: string | null
+  /** Целевые агенты (мультивыбор). */
+  targetAgents: string[]
+  scope: InstallScope
+  /** Явный путь к бинарю `skills` (офлайн/предустановленный CLI). null → npx. */
+  cliPath: string | null
+  /** Корпоративное npm-registry для npx. null → по умолчанию. */
+  npmRegistry: string | null
+}
+
+/** Сетевые настройки (Часть 7). Секреты здесь НЕ хранятся (эпик Q-04). */
+export interface NetworkSettings {
+  /** Режим доступа к git по умолчанию. */
+  gitAuthMode: 'ssh' | 'https'
+  /** Адрес прокси или null. */
+  proxyUrl: string | null
+}
+
+/** Автообновление самого приложения через electron-updater / GitHub (эпик Q-06). */
+export interface AppUpdateSettings {
+  checkOnLaunch: boolean
+  autoDownload: boolean
+}
+
+export interface AppConfig {
+  schemaVersion: number
+  sources: Source[]
+  update: UpdateSettings
+  install: InstallSettings
+  network: NetworkSettings
+  appUpdate: AppUpdateSettings
+}
+
+export const CONFIG_SCHEMA_VERSION = 1
+
+export function defaultConfig(): AppConfig {
+  return {
+    schemaVersion: CONFIG_SCHEMA_VERSION,
+    sources: [],
+    update: {
+      checkOnLaunch: true,
+      scheduleEnabled: false,
+      scheduleIntervalMinutes: null,
+      scheduleCron: null,
+      watchLocalSources: true,
+      autoInstallUpdates: false
+    },
+    install: {
+      installDir: null,
+      targetAgents: [DEFAULT_AGENT_ID],
+      scope: 'global',
+      cliPath: null,
+      npmRegistry: null
+    },
+    network: {
+      gitAuthMode: 'https',
+      proxyUrl: null
+    },
+    appUpdate: {
+      checkOnLaunch: true,
+      autoDownload: false
+    }
+  }
+}

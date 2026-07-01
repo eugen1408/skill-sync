@@ -1,0 +1,46 @@
+import { readFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import type { LockEntry } from './types'
+
+interface LockFile {
+  version?: number
+  skills?: Record<string, LockEntry>
+}
+
+/** Путь глобального lock CLI: $XDG_STATE_HOME/skills/.skill-lock.json или ~/.agents/.skill-lock.json. */
+export function globalLockPath(): string {
+  const xdg = process.env.XDG_STATE_HOME
+  if (xdg) return join(xdg, 'skills', '.skill-lock.json')
+  return join(homedir(), '.agents', '.skill-lock.json')
+}
+
+async function readLockFile(path: string): Promise<Record<string, LockEntry>> {
+  try {
+    const parsed = JSON.parse(await readFile(path, 'utf8')) as LockFile
+    return parsed.skills ?? {}
+  } catch {
+    return {}
+  }
+}
+
+export function readGlobalLock(): Promise<Record<string, LockEntry>> {
+  return readLockFile(globalLockPath())
+}
+
+export function readLocalLock(projectDir: string): Promise<Record<string, LockEntry>> {
+  return readLockFile(join(projectDir, 'skills-lock.json'))
+}
+
+/** Находит запись skill сначала в локальном (если задан projectDir), затем в глобальном lock. */
+export async function findLockEntry(
+  skillName: string,
+  projectDir?: string
+): Promise<LockEntry | null> {
+  if (projectDir) {
+    const local = await readLocalLock(projectDir)
+    if (local[skillName]) return local[skillName]
+  }
+  const global = await readGlobalLock()
+  return global[skillName] ?? null
+}

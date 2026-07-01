@@ -1,0 +1,38 @@
+appId: sh.skills.skillsync
+productName: Skill Sync
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - '!**/*.map'
+publish:
+  provider: github
+  owner: evaganov
+  repo: skill-sync
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.developer-tools
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+linux:
+  target:
+    - AppImage
+  category: Development
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

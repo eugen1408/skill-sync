@@ -1,0 +1,127 @@
+import { homedir } from 'node:os'
+import type {
+  InstallRequest,
+  InstallResult,
+  ReconcileAgentsRequest,
+  ReconcileSummary
+} from '@shared/domain/install'
+import type { AgentInfo } from '@shared/domain/agent'
+import { getAgent } from '@shared/domain/agent'
+import { makeAppError } from '@shared/domain/error'
+import type { ConfigStore } from '../config/ConfigStore'
+import type { JobRunner } from '../jobs/JobRunner'
+import type { SourceManager } from '../sources'
+import type { SkillRegistry } from '../registry'
+import { logger } from '../logger'
+import type { InstallerRegistry } from './registry'
+import type { ResolvedInstall } from './types'
+import { reconcileAgents, type ReconcilableSkill } from './agentReconciler'
+import { defaultPathContext, type PathContext } from './paths'
+
+export interface InstallerServiceDeps {
+  jobRunner: JobRunner
+  sourceManager: SourceManager
+  skillRegistry: SkillRegistry
+  configStore: ConfigStore
+  registry: InstallerRegistry
+  onResult: (result: InstallResult) => void
+}
+
+function agentsFrom(ids: string[]): AgentInfo[] {
+  return ids.map(getAgent).filter((a): a is AgentInfo => Boolean(a))
+}
+
+/** Оркестрация установки и реконсиляции агентов через провайдеры и JobRunner. */
+export class InstallerService {
+  constructor(private readonly deps: InstallerServiceDeps) {}
+
+  /** Запускает установку skill; возвращает jobId (результат — через onResult + job-события). */
+  run(request: InstallRequest): string {
+    return this.startInstall(request).jobId
+  }
+
+  /** Запускает установку и возвращает jobId + промис результата (для Update Engine). */
+  startInstall(request: InstallRequest): {
+    jobId: string
+    promise: Promise<InstallResult | null>
+  } {
+    const started = this.deps.jobRunner.start('install', async (ctx) => {
+      const source = this.deps.sourceManager.get(request.sourceId)
+      if (!source) throw makeAppError('INSTALL_FAILED', 'Источник не найден')
+
+      const entry = this.deps.skillRegistry.get(request.skillId)
+      const config = this.deps.configStore.get().install
+      const resolved: ResolvedInstall = {
+        request,
+        source,
+        skillName: entry?.name ?? request.sourceRef,
+        sourceRef: request.sourceRef,
+        agents: agentsFrom(request.targetAgents),
+        pathCtx: this.pathContext(request.scope),
+        cliPath: config.cliPath,
+        npmRegistry: config.npmRegistry
+      }
+      if (resolved.agents.length === 0) {
+        throw makeAppError('INSTALL_FAILED', 'Не выбран ни один целевой агент')
+      }
+
+      const provider = this.deps.registry.resolve(source.type)
+      const result = await provider.install(resolved, ctx)
+      await this.deps.skillRegistry.rescanInstalled()
+      return result
+    })
+
+    void started.promise.then((result) => {
+      if (result) this.deps.onResult(result)
+    })
+    return started
+  }
+
+  /** Реконсиляция симлинков установленных skills при изменении набора агентов (эпик Q-01). */
+  reconcile(request: ReconcileAgentsRequest): string {
+    const prev = new Set(request.previousAgents)
+    const next = new Set(request.nextAgents)
+    const added = agentsFrom([...next].filter((a) => !prev.has(a)))
+    const removed = agentsFrom([...prev].filter((a) => !next.has(a)))
+
+    const { jobId } = this.deps.jobRunner.start<ReconcileSummary>(
+      'install.reconcileAgents',
+      async (ctx) => {
+        const skills = this.installedSkills()
+        ctx.progress(null, `Реконсиляция: +${added.length} / -${removed.length} агентов`)
+        const summary = await reconcileAgents(
+          skills,
+          added,
+          removed,
+          this.pathContext(request.scope)
+        )
+        await this.deps.skillRegistry.rescanInstalled()
+        logger.info('Реконсиляция агентов завершена', summary)
+        return summary
+      }
+    )
+    return jobId
+  }
+
+  private installedSkills(): ReconcilableSkill[] {
+    const page = this.deps.skillRegistry.query({
+      text: null,
+      sourceIds: null,
+      status: 'installed',
+      sort: 'name-asc',
+      page: 0,
+      pageSize: 100_000
+    })
+    return page.items.map((e) => ({
+      name: e.name,
+      installPaths: e.installations.map((i) => i.installPath)
+    }))
+  }
+
+  private pathContext(scope: InstallRequest['scope']): PathContext {
+    const ctx = defaultPathContext(scope)
+    ctx.home = homedir()
+    ctx.installDir = this.deps.configStore.get().install.installDir
+    return ctx
+  }
+}
