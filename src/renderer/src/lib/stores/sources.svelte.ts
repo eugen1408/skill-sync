@@ -3,14 +3,24 @@ import { api } from '../api'
 
 class SourcesStore {
   items = $state<Source[]>([])
+  private unsubs: Array<() => void> = []
+  private initialized = false
 
   async load(): Promise<void> {
     this.items = await api.source.list()
   }
 
   init(): void {
-    api.events.onSourceIndexed(() => void this.load())
+    if (this.initialized) return
+    this.initialized = true
+    this.unsubs.push(api.events.onSourceIndexed(() => void this.load()))
     void this.load()
+  }
+
+  destroy(): void {
+    this.unsubs.forEach((u) => u())
+    this.unsubs = []
+    this.initialized = false
   }
 
   async add(input: AddSourceInput): Promise<void> {

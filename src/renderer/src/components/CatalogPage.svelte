@@ -5,6 +5,7 @@
   import { catalog } from '../lib/stores/catalog.svelte'
   import { config } from '../lib/stores/config.svelte'
   import { ui } from '../lib/stores/ui.svelte'
+  import { toasts } from '../lib/stores/toasts.svelte'
   import { updateStatusLabel, sourceTypeLabel } from '../lib/labels'
 
   const statusFilters: Array<{ value: CatalogStatusFilter | null; label: string }> = [
@@ -26,17 +27,21 @@
     return 'preset-tonal'
   }
 
-  async function install(entry: CatalogEntry): Promise<void> {
+  function install(entry: CatalogEntry): void {
     const cfg = config.config
     if (!cfg) return
-    await api.install.run({
-      skillId: entry.id,
-      sourceId: entry.sourceId,
-      sourceRef: entry.sourceRef,
-      targetAgents: cfg.install.targetAgents,
-      scope: cfg.install.scope,
-      force: false
-    })
+    void toasts.guard(
+      () =>
+        api.install.run({
+          skillId: entry.id,
+          sourceId: entry.sourceId,
+          sourceRef: entry.sourceRef,
+          targetAgents: cfg.install.targetAgents,
+          scope: cfg.install.scope,
+          force: false
+        }),
+      'Не удалось запустить установку'
+    )
   }
 
   const totalPages = $derived(Math.ceil(catalog.result.total / catalog.pageSize) || 1)
@@ -98,7 +103,11 @@
             {#if entry.hasUpdate}
               <button
                 class="btn btn-sm preset-filled-warning-500"
-                onclick={() => api.update.runOne(entry.id)}
+                onclick={() =>
+                  toasts.guard(
+                    () => api.update.runOne(entry.id),
+                    'Не удалось запустить обновление'
+                  )}
               >
                 Обновить
               </button>

@@ -3,20 +3,23 @@
   import type { UpdateSettings } from '@shared/domain/config'
   import { api } from '../lib/api'
   import { config } from '../lib/stores/config.svelte'
+  import { toasts } from '../lib/stores/toasts.svelte'
 
   const cfg = $derived(config.config)
 
-  async function toggleAgent(id: string): Promise<void> {
+  function toggleAgent(id: string): void {
     if (!cfg) return
     const prev = cfg.install.targetAgents
     const next = prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
-    await config.update({ install: { ...cfg.install, targetAgents: next } })
-    // Реконсиляция симлинков установленных skills под новый набор агентов (эпик Q-01).
-    await api.install.reconcileAgents({
-      previousAgents: prev,
-      nextAgents: next,
-      scope: cfg.install.scope
-    })
+    void toasts.guard(async () => {
+      await config.update({ install: { ...cfg.install, targetAgents: next } })
+      // Реконсиляция симлинков установленных skills под новый набор агентов (эпик Q-01).
+      await api.install.reconcileAgents({
+        previousAgents: prev,
+        nextAgents: next,
+        scope: cfg.install.scope
+      })
+    }, 'Не удалось применить набор агентов')
   }
 
   async function setUpdate(patch: Partial<UpdateSettings>): Promise<void> {
@@ -100,7 +103,10 @@
         />
         <span class="text-sm">Следить за локальными источниками</span>
       </label>
-      <button class="btn btn-sm preset-tonal" onclick={() => api.update.checkAll()}>
+      <button
+        class="btn btn-sm preset-tonal"
+        onclick={() => toasts.guard(() => api.update.checkAll(), 'Не удалось запустить проверку')}
+      >
         Проверить обновления сейчас
       </button>
     </section>

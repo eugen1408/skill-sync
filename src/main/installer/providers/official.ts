@@ -16,7 +16,7 @@ export class OfficialProvider implements InstallerProvider {
   async install(resolved: ResolvedInstall, ctx: JobContext): Promise<InstallResult> {
     const { command, args } = buildOfficialInvocation({
       sourceRef: resolved.sourceRef,
-      agents: resolved.agents.map((a) => a.id),
+      agents: resolved.agents.map((a) => a.cliFlag),
       scope: resolved.request.scope,
       force: resolved.request.force,
       cliPath: resolved.cliPath

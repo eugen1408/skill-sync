@@ -12,6 +12,8 @@ class CatalogStore {
   pageSize = 20
   result = $state<CatalogPage>(EMPTY)
   loading = $state(false)
+  private unsubs: Array<() => void> = []
+  private initialized = false
 
   async load(): Promise<void> {
     this.loading = true
@@ -30,8 +32,16 @@ class CatalogStore {
   }
 
   init(): void {
-    api.events.onCatalogUpdated(() => void this.load())
+    if (this.initialized) return
+    this.initialized = true
+    this.unsubs.push(api.events.onCatalogUpdated(() => void this.load()))
     void this.load()
+  }
+
+  destroy(): void {
+    this.unsubs.forEach((u) => u())
+    this.unsubs = []
+    this.initialized = false
   }
 
   setText(text: string): void {
@@ -48,6 +58,7 @@ class CatalogStore {
 
   setSort(sort: CatalogSort): void {
     this.sort = sort
+    this.page = 0
     void this.load()
   }
 

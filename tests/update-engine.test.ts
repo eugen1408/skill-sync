@@ -170,6 +170,24 @@ describe('UpdateEngine', () => {
     expect(summary.ok).toBe(1)
     expect(emittedNotifs.some((n) => n.type === 'update_success')).toBe(true)
   })
+
+  it('runAll не трогает skills без обновления (фильтр hasUpdate)', async () => {
+    const entry = mkEntry({ installed: true, hasUpdate: false })
+    const info: VersionInfo = {
+      installedVersion: 'v1',
+      latestVersion: 'v1',
+      hasUpdate: false,
+      resolvedBy: 'gitTag',
+      unknown: false
+    }
+    const { engine, runner, emittedNotifs } = build(entry, info, okResult(entry.id))
+
+    engine.runAll()
+    const summary = (await runner.last) as { ok: number; failed: number; skipped: number }
+
+    expect(summary).toEqual({ ok: 0, failed: 0, skipped: 0 })
+    expect(emittedNotifs.some((n) => n.type === 'update_success')).toBe(false)
+  })
 })
 
 // -- helpers --

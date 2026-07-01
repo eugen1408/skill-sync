@@ -3,6 +3,7 @@
   import { api } from '../lib/api'
   import { config } from '../lib/stores/config.svelte'
   import { ui } from '../lib/stores/ui.svelte'
+  import { toasts } from '../lib/stores/toasts.svelte'
   import { updateStatusLabel, sourceTypeLabel } from '../lib/labels'
 
   let entry = $state<CatalogEntry | null>(null)
@@ -16,17 +17,18 @@
     void api.catalog.get(id).then((e) => (entry = e))
   })
 
-  async function install(): Promise<void> {
+  function install(): void {
     const cfg = config.config
     if (!cfg || !entry) return
-    await api.install.run({
+    const req = {
       skillId: entry.id,
       sourceId: entry.sourceId,
       sourceRef: entry.sourceRef,
       targetAgents: cfg.install.targetAgents,
       scope: cfg.install.scope,
       force: false
-    })
+    }
+    void toasts.guard(() => api.install.run(req), 'Не удалось запустить установку')
   }
 </script>
 
@@ -78,13 +80,18 @@
     {/if}
 
     <div class="mt-auto flex flex-wrap gap-2">
-      <button class="btn btn-sm preset-tonal" onclick={() => api.update.checkOne(entry!.id)}>
+      <button
+        class="btn btn-sm preset-tonal"
+        onclick={() =>
+          toasts.guard(() => api.update.checkOne(entry!.id), 'Не удалось запустить проверку')}
+      >
         Проверить
       </button>
       {#if entry.hasUpdate}
         <button
           class="btn btn-sm preset-filled-warning-500"
-          onclick={() => api.update.runOne(entry!.id)}
+          onclick={() =>
+            toasts.guard(() => api.update.runOne(entry!.id), 'Не удалось запустить обновление')}
         >
           Обновить
         </button>

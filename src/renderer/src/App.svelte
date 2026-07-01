@@ -13,6 +13,7 @@
   import SettingsPage from './components/SettingsPage.svelte'
   import SkillDetail from './components/SkillDetail.svelte'
   import JobsBar from './components/JobsBar.svelte'
+  import Toaster from './components/Toaster.svelte'
 
   let version = $state('…')
 
@@ -30,6 +31,13 @@
     sources.init()
     notifications.init()
     void api.app.getVersion().then((v) => (version = v))
+    return () => {
+      jobs.destroy()
+      config.destroy()
+      catalog.destroy()
+      sources.destroy()
+      notifications.destroy()
+    }
   })
 
   const appUpdateReady = $derived(config.appUpdate?.state === 'downloaded')
@@ -88,3 +96,5 @@
 
   <JobsBar />
 </div>
+
+<Toaster />

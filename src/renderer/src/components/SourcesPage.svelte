@@ -1,5 +1,6 @@
 <script lang="ts">
   import { sources } from '../lib/stores/sources.svelte'
+  import { toasts } from '../lib/stores/toasts.svelte'
   import { sourceTypeLabel, sourceStatusLabel } from '../lib/labels'
   import AddSourceForm from './AddSourceForm.svelte'
 
@@ -39,16 +40,28 @@
             {/if}
           </div>
           <div class="flex gap-2">
-            <button class="btn btn-sm preset-tonal" onclick={() => sources.refresh(source.id)}>
+            <button
+              class="btn btn-sm preset-tonal"
+              onclick={() =>
+                toasts.guard(() => sources.refresh(source.id), 'Ошибка обновления источника')}
+            >
               Обновить
             </button>
             <button
               class="btn btn-sm preset-tonal"
-              onclick={() => sources.setEnabled(source.id, !source.enabled)}
+              onclick={() =>
+                toasts.guard(
+                  () => sources.setEnabled(source.id, !source.enabled),
+                  'Не удалось изменить источник'
+                )}
             >
               {source.enabled ? 'Отключить' : 'Включить'}
             </button>
-            <button class="btn btn-sm preset-tonal" onclick={() => sources.remove(source.id)}>
+            <button
+              class="btn btn-sm preset-tonal"
+              onclick={() =>
+                toasts.guard(() => sources.remove(source.id), 'Не удалось удалить источник')}
+            >
               Удалить
             </button>
           </div>
