@@ -48,6 +48,12 @@ export const IpcInvoke = {
     markRead: 'notifications:markRead',
     markAllRead: 'notifications:markAllRead',
     clear: 'notifications:clear'
+  },
+  secrets: {
+    available: 'secrets:available',
+    has: 'secrets:has',
+    set: 'secrets:set',
+    delete: 'secrets:delete'
   }
 } as const
 

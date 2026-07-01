@@ -70,6 +70,12 @@ const api: IpcApi = {
     markAllRead: () => ipcRenderer.invoke(IpcInvoke.notifications.markAllRead),
     clear: () => ipcRenderer.invoke(IpcInvoke.notifications.clear)
   },
+  secrets: {
+    available: () => ipcRenderer.invoke(IpcInvoke.secrets.available),
+    has: (key: string) => ipcRenderer.invoke(IpcInvoke.secrets.has, key),
+    set: (key: string, value: string) => ipcRenderer.invoke(IpcInvoke.secrets.set, key, value),
+    delete: (key: string) => ipcRenderer.invoke(IpcInvoke.secrets.delete, key)
+  },
   events: {
     onJobProgress: (cb) => subscribe<JobProgressEvent>(IpcEvent.jobProgress, cb),
     onJobLog: (cb) => subscribe<JobLogEvent>(IpcEvent.jobLog, cb),

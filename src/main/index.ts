@@ -13,6 +13,8 @@ import { createInstallerService } from './installer'
 import { createDefaultVersionResolver } from './version'
 import { NotificationCenter } from './notifications/NotificationCenter'
 import { createUpdateEngine } from './update'
+import { SecretStore, GITHUB_TOKEN_KEY, applyGithubTokenEnv } from './secrets/SecretStore'
+import { applyProxy } from './net/proxy'
 import { registerIpc } from './ipc/register'
 import { buildCsp } from './csp'
 import { initLogger, logger } from './logger'
@@ -70,6 +72,11 @@ app.whenReady().then(() => {
   const configStore = new ConfigStore(join(app.getPath('userData'), 'config.json'), {
     events: { onError: (message, cause) => logger.error(message, cause) }
   })
+
+  // Секреты (safeStorage) + процессная настройка прокси/токена до сетевых операций.
+  const secretStore = new SecretStore(join(app.getPath('userData'), 'secrets.bin'))
+  applyGithubTokenEnv(secretStore.get(GITHUB_TOKEN_KEY))
+  applyProxy(configStore.get().network.proxyUrl)
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -164,7 +171,8 @@ app.whenReady().then(() => {
     skillRegistry,
     installerService,
     updateEngine,
-    notifications
+    notifications,
+    secretStore
   })
   appUpdater.maybeCheckOnLaunch()
 

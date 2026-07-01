@@ -104,6 +104,13 @@ export interface IpcApi {
     markAllRead(): Promise<void>
     clear(): Promise<void>
   }
+  /** Секреты в OS keychain (safeStorage). Значения наружу не отдаются — только запись/проверка. */
+  secrets: {
+    available(): Promise<boolean>
+    has(key: string): Promise<boolean>
+    set(key: string, value: string): Promise<void>
+    delete(key: string): Promise<void>
+  }
   events: {
     onJobProgress(cb: (e: JobProgressEvent) => void): Unsubscribe
     onJobLog(cb: (e: JobLogEvent) => void): Unsubscribe

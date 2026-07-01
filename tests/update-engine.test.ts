@@ -62,6 +62,29 @@ describe('buildResolveContext', () => {
     expect(ctx.localPath).toBe('/src/alpha')
     expect(ctx.repo.skillPath).toBeNull()
   })
+
+  it('для official берёт репозиторий/путь из lock (CLI-установка)', () => {
+    const entry = mkEntry({ sourceType: 'official', sourceRef: 'vercel-labs/agent-skills@react' })
+    const source = mkSource('official', { url: 'https://skills.sh' })
+    const ctx = buildResolveContext(entry, source, {
+      source: 'vercel-labs/agent-skills',
+      sourceType: 'github',
+      sourceUrl: 'https://github.com/vercel-labs/agent-skills',
+      skillPath: 'skills/react/SKILL.md',
+      ref: 'main',
+      skillFolderHash: 'H'
+    })
+    expect(ctx.repo.url).toBe('https://github.com/vercel-labs/agent-skills')
+    expect(ctx.repo.skillPath).toBe('skills/react/SKILL.md')
+    expect(ctx.repo.ref).toBe('main')
+  })
+
+  it('для official без lock выводит GitHub-URL из sourceRef (owner/repo@slug)', () => {
+    const entry = mkEntry({ sourceType: 'official', sourceRef: 'owner/repo@slug' })
+    const source = mkSource('official', { url: 'https://skills.sh' })
+    const ctx = buildResolveContext(entry, source, null)
+    expect(ctx.repo.url).toBe('https://github.com/owner/repo')
+  })
 })
 
 // -- UpdateEngine --

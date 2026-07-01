@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { KNOWN_AGENTS } from '@shared/domain/agent'
   import type { UpdateSettings } from '@shared/domain/config'
   import { api } from '../lib/api'
@@ -6,6 +7,32 @@
   import { toasts } from '../lib/stores/toasts.svelte'
 
   const cfg = $derived(config.config)
+
+  // Ключ должен совпадать с GITHUB_TOKEN_KEY в main/secrets/SecretStore.
+  const GITHUB_TOKEN_KEY = 'githubToken'
+  let secretsAvailable = $state(true)
+  let tokenSet = $state(false)
+  let tokenInput = $state('')
+
+  onMount(async () => {
+    secretsAvailable = await api.secrets.available()
+    tokenSet = await api.secrets.has(GITHUB_TOKEN_KEY)
+  })
+
+  function saveToken(): void {
+    void toasts.guard(async () => {
+      await api.secrets.set(GITHUB_TOKEN_KEY, tokenInput)
+      tokenInput = ''
+      tokenSet = await api.secrets.has(GITHUB_TOKEN_KEY)
+    }, 'Не удалось сохранить токен')
+  }
+
+  function clearToken(): void {
+    void toasts.guard(async () => {
+      await api.secrets.delete(GITHUB_TOKEN_KEY)
+      tokenSet = false
+    }, 'Не удалось удалить токен')
+  }
 
   function toggleAgent(id: string): void {
     if (!cfg) return
@@ -136,6 +163,42 @@
         onchange={(e) =>
           config.update({ network: { ...cfg.network, proxyUrl: e.currentTarget.value || null } })}
       />
+    </section>
+
+    <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
+      <h3 class="h5">GitHub-токен</h3>
+      <p class="text-sm opacity-60">
+        Для лимитов GitHub API (проверка версий) и приватных репозиториев. Хранится в системном
+        хранилище (safeStorage), не в конфигурации.
+      </p>
+      {#if !secretsAvailable}
+        <p class="text-sm text-error-500">
+          Защищённое хранилище недоступно — токен не будет сохранён между запусками.
+        </p>
+      {/if}
+      <div class="flex items-center gap-2">
+        <span class="badge {tokenSet ? 'preset-filled-success-500' : 'preset-tonal'}">
+          {tokenSet ? 'Задан' : 'Не задан'}
+        </span>
+      </div>
+      <div class="flex gap-2">
+        <input
+          class="input flex-1"
+          type="password"
+          placeholder="Новый токен"
+          bind:value={tokenInput}
+        />
+        <button
+          class="btn btn-sm preset-filled-primary-500"
+          disabled={!tokenInput}
+          onclick={saveToken}
+        >
+          Сохранить
+        </button>
+        {#if tokenSet}
+          <button class="btn btn-sm preset-tonal" onclick={clearToken}>Удалить</button>
+        {/if}
+      </div>
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">

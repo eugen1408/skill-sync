@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "chokidar": "^5.0.0",
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "undici": "^7.0.0"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^4.15.2",

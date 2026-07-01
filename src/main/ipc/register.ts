@@ -12,6 +12,8 @@ import type { SkillRegistry } from '../registry'
 import type { InstallerService } from '../installer'
 import type { UpdateEngine } from '../update'
 import type { NotificationCenter } from '../notifications/NotificationCenter'
+import { SecretStore, GITHUB_TOKEN_KEY, applyGithubTokenEnv } from '../secrets/SecretStore'
+import { applyProxy } from '../net/proxy'
 
 export interface IpcDeps {
   configStore: ConfigStore
@@ -22,6 +24,7 @@ export interface IpcDeps {
   installerService: InstallerService
   updateEngine: UpdateEngine
   notifications: NotificationCenter
+  secretStore: SecretStore
 }
 
 /**
@@ -38,7 +41,8 @@ export function registerIpc(deps: IpcDeps): void {
     skillRegistry,
     installerService,
     updateEngine,
-    notifications
+    notifications,
+    secretStore
   } = deps
 
   ipcMain.handle(IpcInvoke.app.getVersion, () => app.getVersion())
@@ -46,7 +50,12 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.on(IpcInvoke.app.quitAndInstall, () => appUpdater.quitAndInstall())
 
   ipcMain.handle(IpcInvoke.config.get, () => configStore.get())
-  ipcMain.handle(IpcInvoke.config.update, (_e, patch: ConfigPatch) => configStore.update(patch))
+  ipcMain.handle(IpcInvoke.config.update, (_e, patch: ConfigPatch) => {
+    const next = configStore.update(patch)
+    // Настройка прокси применяется процессно (fetch + дочерние процессы).
+    if (patch.network) applyProxy(next.network.proxyUrl)
+    return next
+  })
 
   ipcMain.handle(IpcInvoke.jobs.cancel, (_e, jobId: string) => jobRunner.cancel(jobId))
 
@@ -90,5 +99,16 @@ export function registerIpc(deps: IpcDeps): void {
   })
   ipcMain.handle(IpcInvoke.notifications.clear, () => {
     notifications.clear()
+  })
+
+  ipcMain.handle(IpcInvoke.secrets.available, () => secretStore.isAvailable())
+  ipcMain.handle(IpcInvoke.secrets.has, (_e, key: string) => secretStore.has(key))
+  ipcMain.handle(IpcInvoke.secrets.set, (_e, key: string, value: string) => {
+    secretStore.set(key, value)
+    if (key === GITHUB_TOKEN_KEY) applyGithubTokenEnv(secretStore.get(GITHUB_TOKEN_KEY))
+  })
+  ipcMain.handle(IpcInvoke.secrets.delete, (_e, key: string) => {
+    secretStore.delete(key)
+    if (key === GITHUB_TOKEN_KEY) applyGithubTokenEnv(null)
   })
 }

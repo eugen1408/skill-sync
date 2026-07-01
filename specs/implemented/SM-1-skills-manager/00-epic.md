@@ -142,4 +142,14 @@
 
 ## Заметки по реализации
 
-<!-- Добавляется во время реализации -->
+**Пост-ревью (Opus) + сравнение с reference-installer + добор блокеров:**
+
+- Код-ревью: без Critical; исправлены Important (отписки IPC в renderer, `AgentInfo.cliFlag`, сброс пагинации при сортировке, `toasts.guard` на всех действиях) + добор тестов.
+- Оптимизации из reference: `cleanCliOutput` (ANSI/спиннеры в логах CLI), `mapWithConcurrency` (параллельный `update.runAll`, лимит 4), `Cache` (TTL/LRU для `/api/search`).
+- **Блокер: версии для official-источников** — `buildResolveContext` теперь предпочитает `.skill-lock.json` (реальные `sourceUrl`/`skillPath`/`ref` от CLI), а без lock выводит GitHub-репозиторий из `sourceRef` (`owner/repo@slug`). Раньше `repo.url` = `https://skills.sh` → версии official-скилов не резолвились.
+- **Блокер: прокси (Q-04/FR9)** — `src/main/net/proxy.ts` `applyProxy`: глобальный undici-dispatcher для `fetch` (GitHub API / skills.sh) + переменные `HTTPS_PROXY/HTTP_PROXY` (наследуются git/npx). Применяется при старте и при изменении настроек (`config:update` с секцией `network`).
+- **Блокер: секреты (Q-04)** — `src/main/secrets/SecretStore.ts` на Electron `safeStorage`: GitHub-токен шифруется на диск (`secrets.bin`), значения в renderer не отдаются (IPC `secrets:` — только available/has/set/delete). Токен прокидывается в `GITHUB_TOKEN`/`GH_TOKEN` при старте и при изменении (наследуется fetch-портами и git). UI — поле в Настройках (write-only, статус «задан/не задан»).
+
+Итог проверок после всех правок: typecheck (node+web) 0 ошибок; **70 тестов**; build + smoke-boot чисто; prettier чисто.
+
+**Остаются follow-up** (не блокеры): парсинг `owner/repo` покрывает official, но `repo.localDir` в контексте всё ещё `null` (path-scoped git log/CHANGELOG-из-клона); HTTPS-git-auth токеном (не только GitHub API) — через credential-helper; cron-расписание; трей/фоновые проверки; renderer-тесты; виртуализация; дебаунс поиска; тема-тумблер. Плюс за пользователем — E2E, сверка `cliFlag` с CLI, `npm run dist`/подпись, релиз-пайплайн для electron-updater.
