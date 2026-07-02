@@ -5,6 +5,7 @@ import type { InstallRequest } from '@shared/domain/install'
 import type { JobContext } from '../jobs/JobRunner'
 import type { JobRunner } from '../jobs/JobRunner'
 import type { SourceManager, GitCache } from '../sources'
+import type { OfficialCatalog } from '../sources/officialCatalog'
 import type { SkillRegistry } from '../registry'
 import type { InstallerService } from '../installer'
 import type { ConfigStore } from '../config/ConfigStore'
@@ -25,6 +26,7 @@ export interface UpdateEngineDeps {
   notifications: NotificationCenter
   configStore: ConfigStore
   gitCache: GitCache
+  officialCatalog: OfficialCatalog
   onChecked: (result: UpdateCheckResult) => void
 }
 
@@ -54,15 +56,22 @@ export class UpdateEngine {
 
   constructor(private readonly deps: UpdateEngineDeps) {}
 
-  /** Запускает проверку при старте / расписание / реакцию на локальные изменения. */
-  start(): void {
+  /**
+   * Запускает проверку при старте / расписание / реакцию на локальные изменения.
+   * Проверка при запуске откладывается до готовности реестра (`ready`), иначе она
+   * отработала бы по пустому набору установленных skills, оставив у всех статус «Неизвестно».
+   */
+  start(ready?: Promise<unknown>): void {
     this.reconfigure()
     this.unsubIndexed = this.deps.sourceManager.onIndexed((r) => {
       if (this.settings().watchLocalSources && r.source.type === 'local') {
         this.checkAll()
       }
     })
-    if (this.settings().checkOnLaunch) this.checkAll()
+    if (this.settings().checkOnLaunch) {
+      if (ready) void ready.then(() => this.checkAll())
+      else this.checkAll()
+    }
   }
 
   stop(): void {
@@ -177,6 +186,12 @@ export class UpdateEngine {
     )
     this.deps.skillRegistry.applyVersion(entry.id, info, checkedAt)
 
+    // Свап official→local (Q8-02): если версию official-записи определить не удалось,
+    // а skills.sh определённо не подтверждает наличие репозитория — понижаем в local.
+    if (info.unknown && entry.sourceType === 'official') {
+      await this.maybeDemoteOfficial(entry)
+    }
+
     if (info.hasUpdate) {
       this.deps.notifications.add(
         {
@@ -196,6 +211,17 @@ export class UpdateEngine {
       latestVersion: info.latestVersion,
       hasUpdate: info.hasUpdate,
       resolvedBy: info.resolvedBy
+    }
+  }
+
+  /** Понижает official-запись в local, если skills.sh определённо не знает её репозиторий. */
+  private async maybeDemoteOfficial(entry: CatalogEntry): Promise<void> {
+    const ownerRepo = /^([^@\s]+\/[^@\s]+)@/.exec(entry.sourceRef)?.[1]
+    if (!ownerRepo) return
+    const published = await this.deps.officialCatalog.repoPublished(ownerRepo, entry.name)
+    if (published === false) {
+      logger.info(`Свап official→local: ${entry.name} не найден в skills.sh`)
+      this.deps.skillRegistry.demoteToLocal(entry.id)
     }
   }
 

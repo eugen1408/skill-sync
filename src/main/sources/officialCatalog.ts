@@ -8,6 +8,8 @@ const SEARCH_TTL_MS = 60_000
 const SEARCH_MAX_ENTRIES = 100
 const SEARCH_LIMIT = 50
 const MIN_QUERY = 2
+/** Таймаут проверки принадлежности skills.sh при инициализации (Часть 8), чтобы не подвешивать сидинг. */
+const REPO_CHECK_TIMEOUT_MS = 4000
 
 /** Позиция живого поиска по официальному каталогу skills.sh. */
 export interface OfficialSkill {
@@ -43,6 +45,35 @@ export class OfficialCatalog {
     private readonly baseUrl: () => string = () => DEFAULT_OFFICIAL_URL,
     private readonly fetchFn: FetchFn = fetch
   ) {}
+
+  /**
+   * Проверяет, обслуживается ли репозиторий `owner/repo` каталогом skills.sh.
+   * true — найден; false — точно не найден; null — определить не удалось (сеть/лимит/HTTP-ошибка).
+   * Использует `/api/search` по имени skill с последующим сопоставлением `source`.
+   */
+  async repoPublished(ownerRepo: string, skillName: string): Promise<boolean | null> {
+    const q = skillName.trim()
+    if (q.length < MIN_QUERY) return null
+    const base = this.baseUrl().replace(/\/$/, '')
+    const url = `${base}/api/search?q=${encodeURIComponent(q)}&limit=${SEARCH_LIMIT}`
+    try {
+      const res = await this.fetchFn(url, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(REPO_CHECK_TIMEOUT_MS)
+      })
+      if (!res.ok) {
+        logger.warn(`skills.sh /api/search: HTTP ${res.status}`)
+        return null
+      }
+      const body = (await res.json()) as { skills?: ApiSkill[] }
+      const target = ownerRepo.toLowerCase()
+      const skills = (body.skills ?? []).flatMap(mapApiSkill)
+      return skills.some((s) => s.source.toLowerCase() === target)
+    } catch (err) {
+      logger.warn('skills.sh /api/search недоступен (repoPublished)', err)
+      return null
+    }
+  }
 
   async search(query: string): Promise<OfficialSkill[]> {
     const q = query.trim()

@@ -190,7 +190,119 @@ describe('SkillRegistry', () => {
   })
 })
 
+describe('SkillRegistry — атрибуция из lock (Часть 8)', () => {
+  it('атрибутирует установленный skill к official-источнику по карте', async () => {
+    const { manager } = fakeSourceManager([officialSource()], {})
+    const installed = new Map([['analyst', [inst('claude-code', '/h/.claude/skills/analyst')]]])
+    const reg = new SkillRegistry(
+      store,
+      manager,
+      () => {},
+      async () => installed
+    )
+    reg.setLockAttribution(
+      new Map([
+        [
+          'analyst',
+          { sourceKind: 'official', sourceUrl: null, sourceRef: 'eugen1408/analyst@analyst' }
+        ]
+      ])
+    )
+    await reg.init()
+
+    const entry = reg.get(catalogEntryId('official', 'analyst'))
+    expect(entry?.sourceId).toBe('official')
+    expect(entry?.sourceType).toBe('official')
+    expect(entry?.sourceRef).toBe('eugen1408/analyst@analyst')
+    expect(entry?.installed).toBe(true)
+    // Больше нет локального сироты.
+    expect(reg.get('installed:analyst')).toBeNull()
+  })
+
+  it('атрибутирует к git-источнику при совпадении URL, иначе — local', async () => {
+    const gitSrc = source('g1') // url https://x/g1
+    const { manager } = fakeSourceManager([gitSrc], {})
+    const installed = new Map([
+      ['gitskill', [inst('claude-code', '/h/.claude/skills/gitskill')]],
+      ['nomatch', [inst('claude-code', '/h/.claude/skills/nomatch')]]
+    ])
+    const reg = new SkillRegistry(
+      store,
+      manager,
+      () => {},
+      async () => installed
+    )
+    reg.setLockAttribution(
+      new Map([
+        ['gitskill', { sourceKind: 'git', sourceUrl: 'https://x/g1', sourceRef: 'gitskill' }],
+        ['nomatch', { sourceKind: 'git', sourceUrl: 'https://x/absent', sourceRef: 'nomatch' }]
+      ])
+    )
+    await reg.init()
+
+    expect(reg.get(catalogEntryId('g1', 'gitskill'))?.sourceId).toBe('g1')
+    // URL не совпал с подключённым источником → локальный сирота.
+    expect(reg.get('installed:nomatch')?.sourceType).toBe('local')
+  })
+
+  it('skill без lock-записи остаётся локальным сиротой', async () => {
+    const { manager } = fakeSourceManager([officialSource()], {})
+    const installed = new Map([['loner', [inst('cursor', '/h/.cursor/skills/loner')]]])
+    const reg = new SkillRegistry(
+      store,
+      manager,
+      () => {},
+      async () => installed
+    )
+    reg.setLockAttribution(new Map()) // пустая карта
+    await reg.init()
+    expect(reg.get('installed:loner')?.sourceType).toBe('local')
+  })
+
+  it('demoteToLocal свапает official→local и переживает пересборку', async () => {
+    const { manager } = fakeSourceManager([officialSource()], {})
+    const installed = new Map([['analyst', [inst('claude-code', '/h/.claude/skills/analyst')]]])
+    const attribution = new Map([
+      ['analyst', { sourceKind: 'official' as const, sourceUrl: null, sourceRef: 'o/r@analyst' }]
+    ])
+    const reg = new SkillRegistry(
+      store,
+      manager,
+      () => {},
+      async () => installed
+    )
+    reg.setLockAttribution(attribution)
+    await reg.init()
+
+    const officialId = catalogEntryId('official', 'analyst')
+    expect(reg.get(officialId)?.sourceType).toBe('official')
+
+    reg.demoteToLocal(officialId)
+    expect(reg.get(officialId)).toBeNull()
+    expect(reg.get('installed:analyst')?.sourceType).toBe('local')
+
+    // Пересборка не возвращает запись в official (slug помечен demoted, персист).
+    await reg.refreshIndex()
+    expect(reg.get(officialId)).toBeNull()
+    expect(reg.get('installed:analyst')?.sourceType).toBe('local')
+    expect(store.loadDemoted()).toContain('analyst')
+  })
+})
+
 // -- helpers --
+
+function officialSource(): Source {
+  return {
+    id: 'official',
+    type: 'official',
+    name: 'skills.sh',
+    enabled: true,
+    config: { url: null, ref: null, subpath: null, authMode: null, localPath: null, watch: false },
+    lastIndexedAt: null,
+    status: 'ok',
+    lastError: null
+  }
+}
 
 function q(over: Partial<Parameters<typeof queryCatalog>[1]> = {}) {
   return {

@@ -6,6 +6,13 @@ export { SkillRegistry } from './SkillRegistry'
 export { RegistryStore } from './store'
 export { scanInstalledSkills } from './installedScanner'
 export { queryCatalog } from './query'
+export { buildLockAttribution } from './lockAttribution'
+export type {
+  LockAttributionResult,
+  SkillAttribution,
+  EnsureGitSource,
+  RepoClassifier
+} from './lockAttribution'
 
 export interface SkillRegistryDeps {
   indexPath: string

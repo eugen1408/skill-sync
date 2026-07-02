@@ -81,6 +81,16 @@
     await api.update.setSettings(patch)
     await config.load()
   }
+
+  async function resetApp(): Promise<void> {
+    const ok = await api.dialog.confirm({
+      message: 'Сбросить все настройки и кэш приложения?',
+      detail: 'Будет удалена вся персистентная информация (источники, конфигурация, токены). Текущие установленные skills затронуты не будут. Приложение перезапустится.',
+      confirmLabel: 'Сбросить'
+    })
+    if (!ok) return
+    await api.app.reset()
+  }
 </script>
 
 {#if cfg}
@@ -274,6 +284,16 @@
           Перезапустить и обновить
         </button>
       {/if}
+    </section>
+
+    <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
+      <h3 class="h5 text-error-500">Сброс приложения</h3>
+      <p class="text-sm opacity-60">
+        Удаляет всю персистентную информацию приложения (конфигурацию, секреты, кэш источников). Текущие установленные skills не будут затронуты.
+      </p>
+      <button class="btn btn-sm preset-filled-error-500" onclick={resetApp}>
+        Сбросить настройки и кэш приложения
+      </button>
     </section>
   </div>
 {/if}

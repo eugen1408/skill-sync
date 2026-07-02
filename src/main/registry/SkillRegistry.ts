@@ -10,6 +10,7 @@ import { logger } from '../logger'
 import { RegistryStore } from './store'
 import { queryCatalog } from './query'
 import { scanInstalledSkills } from './installedScanner'
+import type { SkillAttribution } from './lockAttribution'
 
 const ORPHAN_SOURCE_ID = 'installed'
 
@@ -25,6 +26,10 @@ export class SkillRegistry {
   private entries = new Map<string, CatalogEntry>()
   private installed: InstalledMap = new Map()
   private unsub: (() => void) | null = null
+  /** Карта атрибуции установленных skills к источникам из `.skill-lock.json` (Часть 8). */
+  private attribution = new Map<string, SkillAttribution>()
+  /** Slug'и, принудительно понижённые в local (свап official→local при ошибке, Часть 8). */
+  private demoted = new Set<string>()
 
   constructor(
     private readonly store: RegistryStore,
@@ -33,7 +38,13 @@ export class SkillRegistry {
     private readonly scan: InstalledScanner = scanInstalledSkills
   ) {}
 
+  /** Устанавливает карту атрибуции из lock (Часть 8); применяется при следующей пересборке. */
+  setLockAttribution(attribution: Map<string, SkillAttribution>): void {
+    this.attribution = attribution
+  }
+
   async init(): Promise<void> {
+    for (const s of this.store.loadDemoted()) this.demoted.add(s)
     for (const entry of this.store.load()) this.entries.set(entry.id, entry)
     this.unsub = this.sourceManager.onIndexed((r) => {
       void this.onSourceIndexed(r.source, r.skills).catch((err) =>
@@ -131,13 +142,24 @@ export class SkillRegistry {
     this.persist()
   }
 
-  /** Пересканирует установленные и пересобирает признаки установки у всех записей. */
+  /** Пересканирует установленные и пересобирает индекс (включая атрибуцию из lock). */
   async rescanInstalled(): Promise<void> {
-    this.installed = await this.scan()
-    for (const [id, entry] of this.entries) {
-      this.entries.set(id, this.withInstalled(entry))
-    }
-    this.recomputeOrphans()
+    await this.rebuild()
+  }
+
+  /**
+   * Свап official→local при ошибке (Q8-02): помечает skill принудительно локальным
+   * и пересобирает его запись как локальную осиротевшую. Вызывается Update Engine,
+   * когда для official-записи skills.sh определённо не подтверждает наличие.
+   */
+  demoteToLocal(skillId: string): void {
+    const entry = this.entries.get(skillId)
+    if (!entry || entry.sourceId !== OFFICIAL_SOURCE_ID) return
+    const slug = normalizeSkillKey(entry.name)
+    this.demoted.add(slug)
+    this.entries.delete(skillId)
+    const local = this.buildInstalledEntry(slug, entry.installations)
+    this.entries.set(local.id, local)
     this.persist()
   }
 
@@ -155,7 +177,7 @@ export class SkillRegistry {
       }
     }
     this.entries = next
-    this.recomputeOrphans()
+    this.attributeInstalled()
     this.persist()
   }
 
@@ -169,7 +191,7 @@ export class SkillRegistry {
       const entry = this.buildEntry(source, raw)
       this.entries.set(entry.id, entry)
     }
-    this.recomputeOrphans()
+    this.attributeInstalled()
     this.persist()
   }
 
@@ -194,47 +216,100 @@ export class SkillRegistry {
     }
   }
 
-  private withInstalled(entry: CatalogEntry): CatalogEntry {
-    if (entry.sourceId === ORPHAN_SOURCE_ID) return entry
-    const installations = this.installed.get(normalizeSkillKey(entry.name)) ?? []
-    const installed = installations.length > 0
-    return {
-      ...entry,
-      installed,
-      installations,
-      updateStatus: installed ? entry.updateStatus : 'not_installed'
-    }
-  }
-
-  /** Пересобирает «осиротевшие» записи: установлено, но нет в источниках (эпик Q-01/каталог). */
-  private recomputeOrphans(): void {
-    for (const [id, entry] of this.entries) {
-      if (entry.sourceId === ORPHAN_SOURCE_ID) this.entries.delete(id)
-    }
-    const covered = new Set([...this.entries.values()].map((e) => normalizeSkillKey(e.name)))
+  /**
+   * Атрибутирует установленные skills, не покрытые индексированными источниками (Часть 8):
+   * по карте из lock — к git/official-источнику; иначе (нет lock-записи) — локальный осиротевший.
+   * Пересобирает синтетические бакеты `installed`/`official` целиком, сохраняя поля версий.
+   */
+  private attributeInstalled(): void {
+    const covered = new Set(
+      [...this.entries.values()]
+        .filter((e) => e.sourceId !== ORPHAN_SOURCE_ID && e.sourceId !== OFFICIAL_SOURCE_ID)
+        .map((e) => normalizeSkillKey(e.name))
+    )
+    const rebuilt: CatalogEntry[] = []
     for (const [slug, installations] of this.installed) {
       if (covered.has(slug)) continue
-      const name = basename(installations[0]?.installPath ?? slug)
-      const id = `${ORPHAN_SOURCE_ID}:${slug}`
-      this.entries.set(id, {
-        id,
+      rebuilt.push(this.buildInstalledEntry(slug, installations))
+      covered.add(slug)
+    }
+    for (const [id, entry] of this.entries) {
+      if (entry.sourceId === ORPHAN_SOURCE_ID || entry.sourceId === OFFICIAL_SOURCE_ID) {
+        this.entries.delete(id)
+      }
+    }
+    for (const entry of rebuilt) this.entries.set(entry.id, entry)
+  }
+
+  /** Строит запись установленного skill по атрибуции из lock (git/official) или как локальную. */
+  private buildInstalledEntry(slug: string, installations: AgentInstallation[]): CatalogEntry {
+    const name = basename(installations[0]?.installPath ?? slug)
+    const attr = this.demoted.has(slug) ? undefined : this.attribution.get(slug)
+
+    if (attr?.sourceKind === 'official') {
+      return this.installedEntry(
+        catalogEntryId(OFFICIAL_SOURCE_ID, name),
         name,
-        description: null,
-        sourceId: ORPHAN_SOURCE_ID,
-        sourceType: 'local',
-        installed: true,
-        installations,
-        latestVersion: null,
-        hasUpdate: false,
-        lastCheckedAt: null,
-        updateStatus: 'unknown',
-        sourceRef: name
-      })
+        OFFICIAL_SOURCE_ID,
+        'official',
+        attr.sourceRef,
+        installations
+      )
+    }
+    if (attr?.sourceKind === 'git' && attr.sourceUrl) {
+      const source = this.sourceManager
+        .list()
+        .find((s) => s.type === 'git' && s.config.url === attr.sourceUrl)
+      if (source) {
+        return this.installedEntry(
+          catalogEntryId(source.id, name),
+          name,
+          source.id,
+          'git',
+          attr.sourceRef,
+          installations
+        )
+      }
+    }
+    // Нет lock-записи (или git-источник ещё не подключён) → локальный осиротевший.
+    return this.installedEntry(
+      `${ORPHAN_SOURCE_ID}:${slug}`,
+      name,
+      ORPHAN_SOURCE_ID,
+      'local',
+      name,
+      installations
+    )
+  }
+
+  /** Общая сборка записи установленного skill с сохранением полей версий из предыдущей. */
+  private installedEntry(
+    id: string,
+    name: string,
+    sourceId: string,
+    sourceType: CatalogEntry['sourceType'],
+    sourceRef: string,
+    installations: AgentInstallation[]
+  ): CatalogEntry {
+    const prev = this.entries.get(id)
+    return {
+      id,
+      name,
+      description: prev?.description ?? null,
+      sourceId,
+      sourceType,
+      installed: true,
+      installations,
+      latestVersion: prev?.latestVersion ?? null,
+      hasUpdate: prev?.hasUpdate ?? false,
+      lastCheckedAt: prev?.lastCheckedAt ?? null,
+      updateStatus: prev?.updateStatus ?? 'unknown',
+      sourceRef
     }
   }
 
   private persist(): void {
-    this.store.save([...this.entries.values()])
+    this.store.save([...this.entries.values()], [...this.demoted])
     this.emit()
   }
 }

@@ -78,6 +78,7 @@ export interface IpcApi {
      * (holodный старт по `skill://`). Renderer вызывает при монтировании.
      */
     consumePendingDeeplinks(): Promise<DeeplinkEvent[]>
+    reset(): Promise<void>
   }
   config: {
     get(): Promise<AppConfig>

@@ -14,6 +14,9 @@ class SourcesStore {
     if (this.initialized) return
     this.initialized = true
     this.unsubs.push(api.events.onSourceIndexed(() => void this.load()))
+    // Источники могут добавляться в main асинхронно (сидинг из .skill-lock.json, Часть 8) —
+    // пересобранный каталог сигнализирует, что список источников тоже мог измениться.
+    this.unsubs.push(api.events.onCatalogUpdated(() => void this.load()))
     void this.load()
   }
 

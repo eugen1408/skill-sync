@@ -10,7 +10,8 @@ export const IpcInvoke = {
     getVersion: 'app:getVersion',
     checkForUpdates: 'app:checkForUpdates',
     quitAndInstall: 'app:quitAndInstall',
-    consumePendingDeeplinks: 'app:consumePendingDeeplinks'
+    consumePendingDeeplinks: 'app:consumePendingDeeplinks',
+    reset: 'app:reset'
   },
   config: {
     get: 'config:get',

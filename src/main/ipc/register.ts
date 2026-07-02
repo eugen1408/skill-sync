@@ -1,4 +1,6 @@
 import { app, ipcMain, dialog, BrowserWindow, type OpenDialogOptions } from 'electron'
+import { rmSync } from 'node:fs'
+import { join } from 'node:path'
 import { IpcInvoke } from '@shared/ipc/channels'
 import type { ConfigPatch, CatalogQuery } from '@shared/ipc/contract'
 import type { AddSourceInput } from '@shared/domain/source'
@@ -60,6 +62,27 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle(IpcInvoke.app.getVersion, () => app.getVersion())
   ipcMain.handle(IpcInvoke.app.checkForUpdates, () => appUpdater.checkForUpdates())
   ipcMain.on(IpcInvoke.app.quitAndInstall, () => appUpdater.quitAndInstall())
+  ipcMain.handle(IpcInvoke.app.reset, () => {
+    const userData = app.getPath('userData')
+    const files = ['config.json', 'secrets.bin', 'registry.json']
+    const dirs = ['git-cache']
+    for (const file of files) {
+      try {
+        rmSync(join(userData, file), { force: true })
+      } catch (e) {
+        // ignore
+      }
+    }
+    for (const dir of dirs) {
+      try {
+        rmSync(join(userData, dir), { recursive: true, force: true })
+      } catch (e) {
+        // ignore
+      }
+    }
+    app.relaunch()
+    app.quit()
+  })
 
   ipcMain.handle(IpcInvoke.config.get, () => configStore.get())
   ipcMain.handle(IpcInvoke.config.update, (_e, patch: ConfigPatch) => {

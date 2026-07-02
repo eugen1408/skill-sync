@@ -29,7 +29,8 @@ const api: IpcApi = {
     getVersion: () => ipcRenderer.invoke(IpcInvoke.app.getVersion),
     checkForUpdates: () => ipcRenderer.invoke(IpcInvoke.app.checkForUpdates),
     quitAndInstall: () => ipcRenderer.send(IpcInvoke.app.quitAndInstall),
-    consumePendingDeeplinks: () => ipcRenderer.invoke(IpcInvoke.app.consumePendingDeeplinks)
+    consumePendingDeeplinks: () => ipcRenderer.invoke(IpcInvoke.app.consumePendingDeeplinks),
+    reset: () => ipcRenderer.invoke(IpcInvoke.app.reset)
   },
   config: {
     get: () => ipcRenderer.invoke(IpcInvoke.config.get),

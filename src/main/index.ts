@@ -12,8 +12,9 @@ import { AppTray } from './tray'
 import { ConfigStore } from './config/ConfigStore'
 import { JobRunner, type JobEmitter } from './jobs/JobRunner'
 import { AppUpdater } from './appUpdater'
-import { createSourceManager, GitCache } from './sources'
-import { createSkillRegistry } from './registry'
+import { createSourceManager, GitCache, type SourceManager } from './sources'
+import { createSkillRegistry, buildLockAttribution, type SkillRegistry } from './registry'
+import { readGlobalLock } from './version'
 import { createInstallerService } from './installer'
 import { createDefaultVersionResolver } from './version'
 import { NotificationCenter } from './notifications/NotificationCenter'
@@ -54,6 +55,40 @@ function makeJobEmitter(): JobEmitter {
     done: (e) => send(IpcEvent.jobDone, e),
     error: (e) => send(IpcEvent.jobError, e)
   }
+}
+
+/**
+ * Атрибуция установленных skills к источникам по `.skill-lock.json` (Часть 8):
+ * читает глобальный lock, классифицирует источники (custom git vs skills.sh), добавляет
+ * недостающие git-источники, передаёт карту атрибуции в реестр и пересобирает индекс.
+ */
+async function seedSourcesFromLock(
+  sourceManager: SourceManager,
+  skillRegistry: SkillRegistry,
+  officialCatalog: OfficialCatalog
+): Promise<void> {
+  const lock = await readGlobalLock()
+  if (Object.keys(lock).length === 0) return
+
+  const { sourcesToEnsure, attribution } = await buildLockAttribution(lock, (ownerRepo, name) =>
+    officialCatalog.repoPublished(ownerRepo, name)
+  )
+
+  for (const s of sourcesToEnsure) {
+    try {
+      await sourceManager.add({
+        type: 'git',
+        name: s.name,
+        config: { url: s.url, ref: s.ref, authMode: s.authMode }
+      })
+    } catch (err) {
+      // Дубликат/уже подключён/невалидный URL — атрибутируем к существующему, старт не рвём.
+      logger.debug(`Источник из lock не добавлен (${s.url}): ${(err as Error).message}`)
+    }
+  }
+
+  skillRegistry.setLockAttribution(attribution)
+  await skillRegistry.refreshIndex()
 }
 
 function createWindow(): BrowserWindow {
@@ -216,6 +251,13 @@ app.whenReady().then(() => {
     }
   })
 
+  const officialBaseUrl = (): string => {
+    const official = configStore.get().sources.find((s) => s.type === 'official' && s.enabled)
+    return official?.config.url?.trim() || DEFAULT_OFFICIAL_URL
+  }
+  const auditService = new AuditService(officialBaseUrl)
+  const officialCatalog = new OfficialCatalog(officialBaseUrl)
+
   const updateEngine = createUpdateEngine({
     jobRunner,
     sourceManager,
@@ -225,25 +267,26 @@ app.whenReady().then(() => {
     notifications,
     configStore,
     gitCache,
+    officialCatalog,
     onChecked: (result) => {
       send(IpcEvent.updateChecked, result)
       tray?.rebuild()
     }
   })
 
-  const officialBaseUrl = (): string => {
-    const official = configStore.get().sources.find((s) => s.type === 'official' && s.enabled)
-    return official?.config.url?.trim() || DEFAULT_OFFICIAL_URL
-  }
-  const auditService = new AuditService(officialBaseUrl)
-  const officialCatalog = new OfficialCatalog(officialBaseUrl)
-
   sourceManager.init()
-  void skillRegistry.init()
   // skills.sh добавляется по умолчанию как источник, но НЕ индексируется —
   // его каталог живой (OfficialCatalog, поиск по API при запросе).
   sourceManager.ensureDefaultOfficial()
-  updateEngine.start()
+  // Быстрый старт из индекса, затем атрибуция установленных skills к источникам
+  // по `.skill-lock.json` (Часть 8): восстановление источников и переклассификация.
+  const registryReady = skillRegistry
+    .init()
+    .then(() => seedSourcesFromLock(sourceManager, skillRegistry, officialCatalog))
+    .catch((err) => logger.error('Ошибка атрибуции установленных skills из lock', err))
+  // Проверка при запуске стартует только после готовности реестра — иначе она
+  // отработает по пустому набору и все skills останутся в статусе «Неизвестно».
+  updateEngine.start(registryReady)
 
   tray = new AppTray({
     show: showWindow,
