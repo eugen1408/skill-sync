@@ -37,7 +37,8 @@ export const IpcInvoke = {
     get: 'catalog:get',
     refreshIndex: 'catalog:refreshIndex',
     audit: 'catalog:audit',
-    officialUrl: 'catalog:officialUrl'
+    officialUrl: 'catalog:officialUrl',
+    readme: 'catalog:readme'
   },
   install: {
     run: 'install:run',
@@ -46,7 +47,9 @@ export const IpcInvoke = {
     previewReconcile: 'install:previewReconcile'
   },
   shell: {
-    openExternal: 'shell:openExternal'
+    openExternal: 'shell:openExternal',
+    openPath: 'shell:openPath',
+    openInEditor: 'shell:openInEditor'
   },
   update: {
     checkAll: 'update:checkAll',

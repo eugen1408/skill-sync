@@ -1,0 +1,75 @@
+<script lang="ts" module>
+  // Набор SVG-иконок (Lucide-стиль: 24-viewBox, stroke=currentColor). Замена emoji в UI.
+  export type IconName =
+    | 'catalog'
+    | 'sources'
+    | 'bell'
+    | 'settings'
+    | 'refresh'
+    | 'download'
+    | 'close'
+    | 'external'
+    | 'editor'
+    | 'folder'
+    | 'trash'
+    | 'check'
+
+  const PATHS: Record<IconName, string> = {
+    // book-open
+    catalog:
+      'M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z',
+    // cable/plug
+    sources:
+      'M17 21v-2a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1v2M7 3v2a1 1 0 0 0 1 1h0a1 1 0 0 0 1-1V3M15 3v2a1 1 0 0 0-1 1M5 3v2M9 6v4M9 10a5 5 0 0 0 5 5',
+    // bell
+    bell: 'M10.268 21a2 2 0 0 0 3.464 0M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326',
+    // settings gear
+    settings:
+      'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+    // refresh-cw
+    refresh: 'M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5',
+    // download
+    download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
+    // x
+    close: 'M18 6 6 18M6 6l12 12',
+    // external-link
+    external: 'M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
+    // code (</>)
+    editor: 'm16 18 6-6-6-6M8 6l-6 6 6 6',
+    // folder
+    folder:
+      'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z',
+    // trash
+    trash:
+      'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6',
+    // check
+    check: 'M20 6 9 17l-5-5'
+  }
+
+  export const ICON_PATHS = PATHS
+</script>
+
+<script lang="ts">
+  interface Props {
+    name: IconName
+    size?: number
+    class?: string
+  }
+  const { name, size = 16, class: klass = '' }: Props = $props()
+</script>
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class="inline-block shrink-0 {klass}"
+  aria-hidden="true"
+>
+  <path d={ICON_PATHS[name]} />
+</svg>

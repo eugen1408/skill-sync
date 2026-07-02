@@ -322,6 +322,7 @@ app.whenReady().then(() => {
     secretStore,
     auditService,
     officialCatalog,
+    gitCache,
     officialBaseUrl
   })
   appUpdater.maybeCheckOnLaunch()

@@ -16,6 +16,12 @@ export function updateStatusLabel(status: UpdateStatus): string {
   }
 }
 
+/** Тримминг в середине: длинные SHA/версии → «c914440…a0bdfaee» (сохраняет начало и конец). */
+export function truncateMiddle(value: string, head = 7, tail = 8): string {
+  if (value.length <= head + tail + 1) return value
+  return `${value.slice(0, head)}…${value.slice(-tail)}`
+}
+
 /** Компактный формат числа установок: 1_234 → «1.2K», 1_500_000 → «1.5M». */
 export function formatInstalls(n: number): string {
   if (n < 1000) return String(n)

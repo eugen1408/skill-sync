@@ -111,6 +111,8 @@ export interface IpcApi {
     audit(skillId: string): Promise<SecurityAudit | null>
     /** URL карточки skill на skills.sh (только official). null — неприменимо. */
     officialUrl(skillId: string): Promise<string | null>
+    /** Отрендеренный HTML превью README.md/SKILL.md skill. null — файлов нет. */
+    readme(skillId: string): Promise<string | null>
   }
   install: {
     /** Запускает установку skill; возвращает jobId (результат — событие onInstallResult). */
@@ -122,9 +124,14 @@ export interface IpcApi {
     /** Предпросмотр реконсиляции (link/unlink) без изменения ФС. */
     previewReconcile(request: ReconcileAgentsRequest): Promise<ReconcilePreview>
   }
-  /** Внешние ссылки — открытие в системном браузере (только http/https). */
+  /** Открытие внешних ресурсов средствами ОС. */
   shell: {
+    /** Внешняя ссылка в системном браузере (только http/https). */
     openExternal(url: string): Promise<void>
+    /** Открыть путь (файл/папку) в файловом менеджере ОС. */
+    openPath(path: string): Promise<void>
+    /** Открыть путь в VS Code (vscode://file). */
+    openInEditor(path: string): Promise<void>
   }
   update: {
     checkAll(): Promise<string>

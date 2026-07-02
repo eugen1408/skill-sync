@@ -12,6 +12,8 @@ import type { ConfigStore } from '../config/ConfigStore'
 import type { JobRunner } from '../jobs/JobRunner'
 import type { AppUpdater } from '../appUpdater'
 import type { SourceManager } from '../sources'
+import type { GitCache } from '../sources/gitCache'
+import { getSkillReadme } from '../catalog/readmeService'
 import type { SkillRegistry } from '../registry'
 import type { InstallerService } from '../installer'
 import type { UpdateEngine } from '../update'
@@ -31,6 +33,7 @@ export interface IpcDeps {
   secretStore: SecretStore
   auditService: AuditService
   officialCatalog: OfficialCatalog
+  gitCache: GitCache
   /** Базовый URL официального каталога (для ссылок на карточки skills.sh). */
   officialBaseUrl: () => string
 }
@@ -59,6 +62,7 @@ export function registerIpc(deps: IpcDeps): void {
     secretStore,
     auditService,
     officialCatalog,
+    gitCache,
     officialBaseUrl
   } = deps
 
@@ -163,10 +167,22 @@ export function registerIpc(deps: IpcDeps): void {
       .join('/')
     return `${base}/${path}`
   })
+  ipcMain.handle(IpcInvoke.catalog.readme, (_e, skillId: string) => {
+    const entry = skillRegistry.get(skillId)
+    if (!entry) return null
+    return getSkillReadme(entry, sourceManager.get(entry.sourceId), gitCache)
+  })
 
   ipcMain.handle(IpcInvoke.shell.openExternal, (_e, url: string) => {
     // Открываем только http/https — защита от file://, javascript: и прочих схем.
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+  })
+  ipcMain.handle(IpcInvoke.shell.openPath, (_e, path: string) => {
+    if (typeof path === 'string' && path) void shell.openPath(path)
+  })
+  ipcMain.handle(IpcInvoke.shell.openInEditor, (_e, path: string) => {
+    // VS Code открывает локальный путь по схеме vscode://file/<abs-path>.
+    if (typeof path === 'string' && path) void shell.openExternal(`vscode://file${path}`)
   })
 
   ipcMain.handle(IpcInvoke.install.run, (_e, request: InstallRequest) =>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { jobs } from '../lib/stores/jobs.svelte'
+  import Icon from './Icon.svelte'
 
   const kindLabels: Record<string, string> = {
     'source.index': 'Индексация',
@@ -57,8 +58,12 @@
             >
               {statusLabels[job.status]}
             </span>
-            <button class="btn btn-sm preset-tonal" onclick={() => jobs.dismiss(job.jobId)}>
-              ✕
+            <button
+              class="btn btn-sm preset-tonal"
+              title="Скрыть"
+              onclick={() => jobs.dismiss(job.jobId)}
+            >
+              <Icon name="close" />
             </button>
           {/if}
         </div>

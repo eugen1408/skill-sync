@@ -57,7 +57,8 @@ const api: IpcApi = {
     get: (id: string) => ipcRenderer.invoke(IpcInvoke.catalog.get, id),
     refreshIndex: () => ipcRenderer.invoke(IpcInvoke.catalog.refreshIndex),
     audit: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.audit, skillId),
-    officialUrl: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.officialUrl, skillId)
+    officialUrl: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.officialUrl, skillId),
+    readme: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.readme, skillId)
   },
   install: {
     run: (request: InstallRequest) => ipcRenderer.invoke(IpcInvoke.install.run, request),
@@ -68,7 +69,9 @@ const api: IpcApi = {
       ipcRenderer.invoke(IpcInvoke.install.previewReconcile, request)
   },
   shell: {
-    openExternal: (url: string) => ipcRenderer.invoke(IpcInvoke.shell.openExternal, url)
+    openExternal: (url: string) => ipcRenderer.invoke(IpcInvoke.shell.openExternal, url),
+    openPath: (path: string) => ipcRenderer.invoke(IpcInvoke.shell.openPath, path),
+    openInEditor: (path: string) => ipcRenderer.invoke(IpcInvoke.shell.openInEditor, path)
   },
   update: {
     checkAll: () => ipcRenderer.invoke(IpcInvoke.update.checkAll),

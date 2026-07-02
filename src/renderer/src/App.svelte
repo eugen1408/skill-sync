@@ -16,14 +16,15 @@
   import SkillDetail from './components/SkillDetail.svelte'
   import JobsBar from './components/JobsBar.svelte'
   import Toaster from './components/Toaster.svelte'
+  import Icon, { type IconName } from './components/Icon.svelte'
 
   let version = $state('…')
 
-  const nav: Array<{ view: View; label: string; icon: string }> = [
-    { view: 'catalog', label: 'Каталог', icon: '📚' },
-    { view: 'sources', label: 'Источники', icon: '🔌' },
-    { view: 'notifications', label: 'Уведомления', icon: '🔔' },
-    { view: 'settings', label: 'Настройки', icon: '⚙️' }
+  const nav: Array<{ view: View; label: string; icon: IconName }> = [
+    { view: 'catalog', label: 'Каталог', icon: 'catalog' },
+    { view: 'sources', label: 'Источники', icon: 'sources' },
+    { view: 'notifications', label: 'Уведомления', icon: 'bell' },
+    { view: 'settings', label: 'Настройки', icon: 'settings' }
   ]
 
   async function handleDeeplink(e: DeeplinkEvent): Promise<void> {
@@ -116,10 +117,14 @@
             : 'preset-tonal'}"
           onclick={() => ui.go(item.view)}
         >
-          <span>{item.icon}</span>
+          <Icon name={item.icon} size={18} />
           <span class="flex-1 text-left">{item.label}</span>
           {#if item.view === 'notifications' && notifications.unread > 0}
-            <span class="badge preset-filled-error-500">{notifications.unread}</span>
+            <span
+              class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1.5 text-xs font-semibold text-white"
+            >
+              {notifications.unread}
+            </span>
           {/if}
         </button>
       {/each}
