@@ -24,6 +24,10 @@
   let audit = $state<SecurityAudit | null>(null)
   let officialUrl = $state<string | null>(null)
   let readmeHtml = $state<string | null>(null)
+  // Загрузка описания с skills.sh (аудит) завершена (успех или ошибка) — до этого
+  // README-превью не показываем, чтобы не мигать им перед описанием со skills.sh.
+  let auditLoaded = $state(false)
+  let readmeOpen = $state(false)
   // Раскрытые карточки провайдеров аудита (детали доступны при наличии summary).
   let openProviders = $state<Set<string>>(new Set())
 
@@ -47,12 +51,18 @@
     audit = null
     officialUrl = null
     readmeHtml = null
+    auditLoaded = false
+    readmeOpen = false
     // Каждый вызов обёрнут: даже если какой-то IPC-метод недоступен/бросит, эффект не
     // прервётся синхронно и переключение между карточками продолжит работать (стале-гард
     // применяет ответ, только если выбранный skill не сменился за время запроса).
     refetchEntry(id)
     void run(() => api.catalog.audit(id)).then((a) => {
-      if (a !== undefined && ui.detailId === id) audit = a
+      if (ui.detailId !== id) return
+      if (a !== undefined) audit = a
+      auditLoaded = true
+      // README раскрываем сразу, только если описания со skills.sh нет (README — основной контент).
+      readmeOpen = !(entry?.description ?? a?.description)
     })
     void run(() => api.catalog.officialUrl(id)).then((u) => {
       if (u !== undefined && ui.detailId === id) officialUrl = u
@@ -96,6 +106,10 @@
   const installations = $derived(
     [...(entry?.installations ?? [])].sort((a, b) => Number(isPrimary(b)) - Number(isPrimary(a)))
   )
+  // Основная (каноническая) установка ~/.agents/skills — отдельной первой строкой;
+  // остальные — по агентам.
+  const primaryInstall = $derived(installations.find(isPrimary) ?? null)
+  const otherInstalls = $derived(installations.filter((i) => !isPrimary(i)))
 
   function install(): void {
     const cfg = config.config
@@ -145,11 +159,30 @@
           <p class="mt-1 text-xs opacity-40">Описание: skills.sh</p>
         {/if}
       </div>
-    {:else if readmeHtml}
-      <!-- Нет превью skills.sh — показываем отрендеренный README.md/SKILL.md из каталога skill. -->
-      <div class="markdown text-sm opacity-90">
-        <!-- eslint-disable-next-line svelte/no-at-html-tags — HTML санитизирован в main -->
-        {@html readmeHtml}
+    {/if}
+
+    <!-- README-превью показываем только после загрузки описания со skills.sh (успех/ошибка),
+         как раскрываемую секцию — чтобы markdown не мигал перед описанием. -->
+    {#if auditLoaded && readmeHtml}
+      <div>
+        <button
+          class="flex w-full items-center gap-2 text-left text-sm font-semibold"
+          aria-expanded={readmeOpen}
+          onclick={() => (readmeOpen = !readmeOpen)}
+        >
+          <span>README.md / SKILL.md</span>
+          <Icon
+            name="chevron"
+            size={14}
+            class={readmeOpen ? 'opacity-60' : '-rotate-90 opacity-60'}
+          />
+        </button>
+        {#if readmeOpen}
+          <div class="markdown mt-2 text-sm opacity-90">
+            <!-- eslint-disable-next-line svelte/no-at-html-tags — HTML санитизирован в main -->
+            {@html readmeHtml}
+          </div>
+        {/if}
       </div>
     {/if}
 
@@ -247,31 +280,35 @@
       </div>
     {/if}
 
+    {#snippet installRow(label: string, path: string)}
+      <li class="flex items-center gap-2">
+        <span class="shrink-0">{label}</span>
+        <button
+          class="min-w-0 flex-1 truncate text-left text-xs opacity-60 hover:underline"
+          title={path}
+          onclick={() => void api.shell?.openPath(path)}
+        >
+          {path}
+        </button>
+        <button
+          class="shrink-0 text-[#0098ff] opacity-80 hover:opacity-100"
+          title="Открыть в VS Code"
+          onclick={() => void api.shell?.openInEditor(path)}
+        >
+          <Icon name="vscode" size={15} />
+        </button>
+      </li>
+    {/snippet}
+
     {#if installations.length > 0}
       <div>
         <p class="mb-1 text-sm font-semibold">Установлен для агентов</p>
         <ul class="space-y-1 text-sm">
-          {#each installations as inst (inst.agent)}
-            <li class="flex items-center gap-2">
-              <span class="shrink-0">
-                {inst.agent}{#if isPrimary(inst)}<span class="ml-1 opacity-50">· основная</span
-                  >{/if}
-              </span>
-              <button
-                class="min-w-0 flex-1 truncate text-left text-xs opacity-60 hover:underline"
-                title={inst.installPath}
-                onclick={() => void api.shell?.openPath(inst.installPath)}
-              >
-                {inst.installPath}
-              </button>
-              <button
-                class="shrink-0 text-[#0098ff] opacity-80 hover:opacity-100"
-                title="Открыть в VS Code"
-                onclick={() => void api.shell?.openInEditor(inst.installPath)}
-              >
-                <Icon name="vscode" size={15} />
-              </button>
-            </li>
+          {#if primaryInstall}
+            {@render installRow('Основные', primaryInstall.installPath)}
+          {/if}
+          {#each otherInstalls as inst (inst.agent)}
+            {@render installRow(inst.agent, inst.installPath)}
           {/each}
         </ul>
       </div>
