@@ -30,6 +30,11 @@ export class SkillRegistry {
   private attribution = new Map<string, SkillAttribution>()
   /** Slug'и, принудительно понижённые в local (свап official→local при ошибке, Часть 8). */
   private demoted = new Set<string>()
+  /**
+   * Записи последнего живого поиска официального каталога (не индексируются в `entries`).
+   * Нужны, чтобы `get(id)` мог отдать карточку по клику в результат поиска.
+   */
+  private liveOfficial = new Map<string, CatalogEntry>()
 
   constructor(
     private readonly store: RegistryStore,
@@ -111,11 +116,13 @@ export class SkillRegistry {
         sourceRef: s.sourceRef
       })
     }
+    // Кэшируем результаты последнего поиска, чтобы клик по карточке (get/audit) их нашёл.
+    this.liveOfficial = new Map(out.map((e) => [e.id, e]))
     return out
   }
 
   get(id: string): CatalogEntry | null {
-    return this.entries.get(id) ?? null
+    return this.entries.get(id) ?? this.liveOfficial.get(id) ?? null
   }
 
   async refreshIndex(): Promise<void> {

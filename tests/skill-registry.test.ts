@@ -146,6 +146,9 @@ describe('SkillRegistry', () => {
     expect(official[0].sourceRef).toBe('o/r@fresh-one')
     expect(official[0].installed).toBe(false)
     expect(official[0].updateStatus).toBe('not_installed')
+
+    // get() находит запись живого поиска (её нет в индексе) — клик по карточке работает.
+    expect(reg.get(official[0].id)?.name).toBe('Fresh One')
   })
 
   it('applyVersion обновляет статус обновления', async () => {
