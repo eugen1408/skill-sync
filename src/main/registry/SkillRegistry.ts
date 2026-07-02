@@ -164,8 +164,10 @@ export class SkillRegistry {
     if (!entry || entry.sourceId !== OFFICIAL_SOURCE_ID) return
     const slug = normalizeSkillKey(entry.name)
     this.demoted.add(slug)
+    // Снимок до удаления — чтобы локальная запись унаследовала версии из official.
+    const prev = new Map(this.entries)
     this.entries.delete(skillId)
-    const local = this.buildInstalledEntry(slug, entry.installations)
+    const local = this.buildInstalledEntry(slug, entry.installations, prev)
     this.entries.set(local.id, local)
     this.persist()
   }
@@ -173,38 +175,47 @@ export class SkillRegistry {
   // -- внутреннее --
 
   private async rebuild(): Promise<void> {
+    // Снимок прежних записей: из него берём поля версий, т.к. this.entries пересобирается
+    // с нуля (иначе после rescan все записи потеряли бы статус и стали «Неизвестно»).
+    const prev = this.entries
     this.installed = await this.scan()
     const next = new Map<string, CatalogEntry>()
     for (const source of this.sourceManager.list()) {
       // Официальный источник не индексируется — он живой (см. OfficialCatalog).
       if (source.type === 'official') continue
       for (const raw of this.sourceManager.listSkills(source.id)) {
-        const entry = this.buildEntry(source, raw)
+        const entry = this.buildEntry(source, raw, prev)
         next.set(entry.id, entry)
       }
     }
     this.entries = next
-    this.attributeInstalled()
+    this.attributeInstalled(prev)
     this.persist()
   }
 
   private async onSourceIndexed(source: Source, skills: RawSkill[]): Promise<void> {
     if (source.type === 'official') return // официальный источник живой, не индексируется
     this.installed = await this.scan()
+    // Снимок до мутаций — источник версий для пересобираемых записей (иначе статус теряется).
+    const prev = new Map(this.entries)
     for (const [id, entry] of this.entries) {
       if (entry.sourceId === source.id) this.entries.delete(id)
     }
     for (const raw of skills) {
-      const entry = this.buildEntry(source, raw)
+      const entry = this.buildEntry(source, raw, prev)
       this.entries.set(entry.id, entry)
     }
-    this.attributeInstalled()
+    this.attributeInstalled(prev)
     this.persist()
   }
 
-  private buildEntry(source: Source, raw: RawSkill): CatalogEntry {
+  private buildEntry(
+    source: Source,
+    raw: RawSkill,
+    prevEntries: Map<string, CatalogEntry>
+  ): CatalogEntry {
     const id = catalogEntryId(source.id, raw.name)
-    const prev = this.entries.get(id)
+    const prev = prevEntries.get(id)
     const installations = this.installed.get(normalizeSkillKey(raw.name)) ?? []
     const installed = installations.length > 0
     return {
@@ -228,7 +239,7 @@ export class SkillRegistry {
    * по карте из lock — к git/official-источнику; иначе (нет lock-записи) — локальный осиротевший.
    * Пересобирает синтетические бакеты `installed`/`official` целиком, сохраняя поля версий.
    */
-  private attributeInstalled(): void {
+  private attributeInstalled(prevEntries: Map<string, CatalogEntry>): void {
     const covered = new Set(
       [...this.entries.values()]
         .filter((e) => e.sourceId !== ORPHAN_SOURCE_ID && e.sourceId !== OFFICIAL_SOURCE_ID)
@@ -237,7 +248,7 @@ export class SkillRegistry {
     const rebuilt: CatalogEntry[] = []
     for (const [slug, installations] of this.installed) {
       if (covered.has(slug)) continue
-      rebuilt.push(this.buildInstalledEntry(slug, installations))
+      rebuilt.push(this.buildInstalledEntry(slug, installations, prevEntries))
       covered.add(slug)
     }
     for (const [id, entry] of this.entries) {
@@ -249,7 +260,11 @@ export class SkillRegistry {
   }
 
   /** Строит запись установленного skill по атрибуции из lock (git/official) или как локальную. */
-  private buildInstalledEntry(slug: string, installations: AgentInstallation[]): CatalogEntry {
+  private buildInstalledEntry(
+    slug: string,
+    installations: AgentInstallation[],
+    prevEntries: Map<string, CatalogEntry>
+  ): CatalogEntry {
     const name = basename(installations[0]?.installPath ?? slug)
     const attr = this.demoted.has(slug) ? undefined : this.attribution.get(slug)
 
@@ -260,7 +275,8 @@ export class SkillRegistry {
         OFFICIAL_SOURCE_ID,
         'official',
         attr.sourceRef,
-        installations
+        installations,
+        prevEntries
       )
     }
     if (attr?.sourceKind === 'git' && attr.sourceUrl) {
@@ -274,7 +290,8 @@ export class SkillRegistry {
           source.id,
           'git',
           attr.sourceRef,
-          installations
+          installations,
+          prevEntries
         )
       }
     }
@@ -285,7 +302,8 @@ export class SkillRegistry {
       ORPHAN_SOURCE_ID,
       'local',
       name,
-      installations
+      installations,
+      prevEntries
     )
   }
 
@@ -296,9 +314,10 @@ export class SkillRegistry {
     sourceId: string,
     sourceType: CatalogEntry['sourceType'],
     sourceRef: string,
-    installations: AgentInstallation[]
+    installations: AgentInstallation[],
+    prevEntries: Map<string, CatalogEntry>
   ): CatalogEntry {
-    const prev = this.entries.get(id)
+    const prev = prevEntries.get(id)
     return {
       id,
       name,

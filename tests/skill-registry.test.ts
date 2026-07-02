@@ -178,6 +178,38 @@ describe('SkillRegistry', () => {
     expect(reg.query(q({ status: 'update_available' })).total).toBe(1)
   })
 
+  it('пересборка (rescan после install/update) сохраняет статус версии установленных', async () => {
+    // Установлен skill без покрытия источником → orphan-запись (sourceId 'installed').
+    const { manager } = fakeSourceManager([source('s1')], { s1: [raw('Alpha')] })
+    const installed = new Map([['gamma', [inst('cursor', '/h/.cursor/skills/gamma')]]])
+    const reg = new SkillRegistry(
+      store,
+      manager,
+      () => {},
+      async () => installed
+    )
+    await reg.init()
+
+    const id = 'installed:gamma'
+    reg.applyVersion(
+      id,
+      {
+        installedVersion: 'v1',
+        latestVersion: 'v1',
+        hasUpdate: false,
+        resolvedBy: 'skillFolderHash',
+        unknown: false
+      },
+      '2026-07-02T00:00:00Z'
+    )
+    expect(reg.get(id)?.updateStatus).toBe('up_to_date')
+
+    // Пересборка (как после установки/обновления) не должна сбрасывать статус в 'unknown'.
+    await reg.rescanInstalled()
+    expect(reg.get(id)?.updateStatus).toBe('up_to_date')
+    expect(reg.get(id)?.latestVersion).toBe('v1')
+  })
+
   it('скрывает записи отключённых источников, но сохраняет сироты', async () => {
     const { manager } = fakeSourceManager([source('s1', false)], { s1: [raw('Alpha')] })
     const installed = new Map([['gamma', [inst('cursor', '/h/.cursor/skills/gamma')]]])
