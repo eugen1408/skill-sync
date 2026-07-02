@@ -75,7 +75,15 @@
         </button>
       {/each}
     </div>
-    <span class="ml-auto text-sm opacity-60">Всего: {catalog.result.total}</span>
+    <button
+      class="btn btn-sm preset-tonal ml-auto"
+      onclick={() => void catalog.refresh()}
+      disabled={catalog.loading}
+      title="Переинициализировать список (как при запуске)"
+    >
+      ↻ Обновить
+    </button>
+    <span class="text-sm opacity-60">Всего: {catalog.result.total}</span>
   </div>
 
   {#if catalog.loading}

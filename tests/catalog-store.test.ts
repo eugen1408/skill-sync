@@ -4,8 +4,11 @@ import type { CatalogPage, CatalogQuery } from '@shared/ipc/contract'
 
 // window.api-стаб до импорта стора (api.ts захватывает window.api при загрузке).
 const query = vi.fn<(q: CatalogQuery) => Promise<CatalogPage>>()
+const refreshIndex = vi.fn<() => Promise<void>>()
+const checkAll = vi.fn<() => Promise<string>>()
 ;(window as unknown as { api: unknown }).api = {
-  catalog: { query, get: vi.fn() },
+  catalog: { query, get: vi.fn(), refreshIndex },
+  update: { checkAll },
   events: { onCatalogUpdated: () => () => {} }
 }
 
@@ -17,6 +20,8 @@ function page(ids: string[]): CatalogPage {
 
 beforeEach(() => {
   query.mockReset()
+  refreshIndex.mockReset().mockResolvedValue(undefined)
+  checkAll.mockReset().mockResolvedValue('job-1')
   catalog.result = page([])
   catalog.text = ''
 })
@@ -54,5 +59,16 @@ describe('catalog store — стале-гард', () => {
     await Promise.resolve()
 
     expect(catalog.result.items.map((i) => i.id)).toEqual(['B'])
+  })
+})
+
+describe('catalog store — refresh', () => {
+  it('пересобирает индекс, запускает перепроверку версий и перезагружает список', async () => {
+    query.mockResolvedValue(page(['x']))
+    await catalog.refresh()
+    expect(refreshIndex).toHaveBeenCalledOnce()
+    expect(checkAll).toHaveBeenCalledOnce()
+    expect(query).toHaveBeenCalled()
+    expect(catalog.loading).toBe(false)
   })
 })

@@ -47,6 +47,21 @@ class CatalogStore {
     void this.load()
   }
 
+  /**
+   * Переинициализация списка как при запуске приложения: пересканирует установленные
+   * skills и пересобирает индекс, затем запускает фоновую перепроверку версий.
+   */
+  async refresh(): Promise<void> {
+    this.loading = true
+    try {
+      await api.catalog.refreshIndex()
+      void api.update.checkAll()
+      await this.load()
+    } finally {
+      this.loading = false
+    }
+  }
+
   destroy(): void {
     this.unsubs.forEach((u) => u())
     this.unsubs = []
