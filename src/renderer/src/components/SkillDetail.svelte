@@ -28,6 +28,10 @@
   // README-превью не показываем, чтобы не мигать им перед описанием со skills.sh.
   let auditLoaded = $state(false)
   let readmeOpen = $state(false)
+  // Описание по умолчанию обрезано (приоритет метаданным/кнопкам); разворачивается кнопкой.
+  let descExpanded = $state(false)
+  let descEl = $state<HTMLParagraphElement | null>(null)
+  let descOverflow = $state(false)
   // Раскрытые карточки провайдеров аудита (детали доступны при наличии summary).
   let openProviders = $state<Set<string>>(new Set())
 
@@ -53,6 +57,8 @@
     readmeHtml = null
     auditLoaded = false
     readmeOpen = false
+    descExpanded = false
+    descOverflow = false
     // Каждый вызов обёрнут: даже если какой-то IPC-метод недоступен/бросит, эффект не
     // прервётся синхронно и переключение между карточками продолжит работать (стале-гард
     // применяет ответ, только если выбранный skill не сменился за время запроса).
@@ -61,8 +67,6 @@
       if (ui.detailId !== id) return
       if (a !== undefined) audit = a
       auditLoaded = true
-      // README раскрываем сразу, только если описания со skills.sh нет (README — основной контент).
-      readmeOpen = !(entry?.description ?? a?.description)
     })
     void run(() => api.catalog.officialUrl(id)).then((u) => {
       if (u !== undefined && ui.detailId === id) officialUrl = u
@@ -98,6 +102,12 @@
   // Описание: собственное описание записи либо (для official) сводка Agent Trust Hub с skills.sh.
   const description = $derived(entry?.description ?? audit?.description ?? null)
   const descriptionFromOfficial = $derived(!entry?.description && !!audit?.description)
+
+  // Определяем, обрезается ли описание (для показа кнопки «Показать полностью»).
+  $effect(() => {
+    void description // переизмеряем при смене текста
+    if (descEl && !descExpanded) descOverflow = descEl.scrollHeight > descEl.clientHeight + 1
+  })
 
   // Основная установка (.agents/skills) — первой; путь нормализуем для разных ОС.
   function isPrimary(inst: AgentInstallation): boolean {
@@ -154,10 +164,22 @@
 
     {#if description}
       <div>
-        <p class="text-sm opacity-80">{description}</p>
-        {#if descriptionFromOfficial}
-          <p class="mt-1 text-xs opacity-40">Описание: skills.sh</p>
-        {/if}
+        <p bind:this={descEl} class="text-sm opacity-80" class:line-clamp-3={!descExpanded}>
+          {description}
+        </p>
+        <div class="mt-1 flex items-center gap-2">
+          {#if descriptionFromOfficial}
+            <span class="text-xs opacity-40">Описание: skills.sh</span>
+          {/if}
+          {#if descOverflow || descExpanded}
+            <button
+              class="ml-auto text-xs text-primary-500 hover:underline"
+              onclick={() => (descExpanded = !descExpanded)}
+            >
+              {descExpanded ? 'Свернуть' : 'Показать полностью'}
+            </button>
+          {/if}
+        </div>
       </div>
     {/if}
 
