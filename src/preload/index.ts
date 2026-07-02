@@ -6,7 +6,8 @@ import type {
   AppUpdateStatus,
   SourceIndexedEvent,
   CatalogQuery,
-  Unsubscribe
+  Unsubscribe,
+  DeeplinkEvent
 } from '@shared/ipc/contract'
 import type { AddSourceInput } from '@shared/domain/source'
 import type { InstallRequest, InstallResult, ReconcileAgentsRequest } from '@shared/domain/install'
@@ -27,7 +28,8 @@ const api: IpcApi = {
   app: {
     getVersion: () => ipcRenderer.invoke(IpcInvoke.app.getVersion),
     checkForUpdates: () => ipcRenderer.invoke(IpcInvoke.app.checkForUpdates),
-    quitAndInstall: () => ipcRenderer.send(IpcInvoke.app.quitAndInstall)
+    quitAndInstall: () => ipcRenderer.send(IpcInvoke.app.quitAndInstall),
+    consumePendingDeeplinks: () => ipcRenderer.invoke(IpcInvoke.app.consumePendingDeeplinks)
   },
   config: {
     get: () => ipcRenderer.invoke(IpcInvoke.config.get),
@@ -93,7 +95,8 @@ const api: IpcApi = {
     onCatalogUpdated: (cb) => subscribe<void>(IpcEvent.catalogUpdated, () => cb()),
     onInstallResult: (cb) => subscribe<InstallResult>(IpcEvent.installResult, cb),
     onUpdateChecked: (cb) => subscribe<UpdateCheckResult>(IpcEvent.updateChecked, cb),
-    onNotification: (cb) => subscribe<AppNotification>(IpcEvent.notification, cb)
+    onNotification: (cb) => subscribe<AppNotification>(IpcEvent.notification, cb),
+    onDeeplinkReceived: (cb) => subscribe<DeeplinkEvent>(IpcEvent.deeplinkReceived, cb)
   }
 }
 

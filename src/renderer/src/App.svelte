@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import type { DeeplinkEvent } from '@shared/ipc/contract'
   import { api } from './lib/api'
   import { ui, type View } from './lib/stores/ui.svelte'
   import { catalog } from './lib/stores/catalog.svelte'
@@ -25,6 +26,33 @@
     { view: 'settings', label: 'Настройки', icon: '⚙️' }
   ]
 
+  async function handleDeeplink(e: DeeplinkEvent): Promise<void> {
+    if (!e.parsed) {
+      toasts.push(`Не удалось разобрать ссылку: ${e.url}`, 'error')
+      return
+    }
+    const { url, ref, subpath, authMode, name } = e.parsed
+    const confirmed = await api.dialog.confirm({
+      message: 'Добавить источник и открыть каталог?',
+      detail: `Название: ${name}\nURL: ${url}\nРежим: ${authMode}`,
+      confirmLabel: 'Добавить'
+    })
+    if (!confirmed) return
+    try {
+      const source = await api.source.add({
+        type: 'git',
+        name,
+        config: { url, ref, subpath, authMode, localPath: null, watch: false }
+      })
+      ui.go('catalog')
+      catalog.sourceIds = [source.id]
+      catalog.load()
+      toasts.push(`Источник ${name} добавлен`)
+    } catch (err) {
+      toasts.push(`Ошибка добавления: ${err instanceof Error ? err.message : String(err)}`, 'error')
+    }
+  }
+
   onMount(() => {
     jobs.init()
     config.init()
@@ -42,6 +70,13 @@
     const offChecked = api.events.onUpdateChecked((r) => {
       if (r.updatesAvailable > 0) toasts.push(`Доступно обновлений: ${r.updatesAvailable}`)
     })
+    const offDeeplink = api.events.onDeeplinkReceived((e) => void handleDeeplink(e))
+
+    // Диплинки холодного старта копятся в main до готовности renderer'а — забираем их
+    // после регистрации подписки, чтобы не потерять и не продублировать событие.
+    void api.app.consumePendingDeeplinks().then((events) => {
+      for (const e of events) void handleDeeplink(e)
+    })
 
     return () => {
       jobs.destroy()
@@ -51,6 +86,7 @@
       notifications.destroy()
       offInstall()
       offChecked()
+      offDeeplink()
     }
   })
 

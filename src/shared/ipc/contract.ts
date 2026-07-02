@@ -12,6 +12,7 @@ import type { UpdateSettings } from '../domain/config'
 import type { UpdateCheckResult } from '../domain/update'
 import type { AppNotification } from '../domain/notification'
 import type { SecurityAudit } from '../domain/audit'
+import type { ParsedGitSource } from '../domain/gitSource'
 
 /** Частичное обновление верхнеуровневых секций конфигурации (schemaVersion не меняется извне). */
 export type ConfigPatch = Partial<Omit<AppConfig, 'schemaVersion'>>
@@ -22,6 +23,11 @@ export interface SourceIndexedEvent {
   status: SourceStatus
   skillCount: number
   error: string | null
+}
+
+export interface DeeplinkEvent {
+  url: string
+  parsed: ParsedGitSource | null
 }
 
 export type CatalogSort = 'name-asc' | 'name-desc' | 'update-first' | 'installs-desc'
@@ -67,6 +73,11 @@ export interface IpcApi {
     getVersion(): Promise<string>
     checkForUpdates(): Promise<void>
     quitAndInstall(): void
+    /**
+     * Забирает и очищает буфер диплинков, накопленных до готовности renderer'а
+     * (holodный старт по `skill://`). Renderer вызывает при монтировании.
+     */
+    consumePendingDeeplinks(): Promise<DeeplinkEvent[]>
   }
   config: {
     get(): Promise<AppConfig>
@@ -138,5 +149,6 @@ export interface IpcApi {
     onInstallResult(cb: (e: InstallResult) => void): Unsubscribe
     onUpdateChecked(cb: (e: UpdateCheckResult) => void): Unsubscribe
     onNotification(cb: (e: AppNotification) => void): Unsubscribe
+    onDeeplinkReceived(cb: (e: DeeplinkEvent) => void): Unsubscribe
   }
 }

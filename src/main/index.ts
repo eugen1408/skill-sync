@@ -1,13 +1,14 @@
-import { app, BrowserWindow, Notification, session, type Tray } from 'electron'
+import { app, BrowserWindow, Notification, session, ipcMain } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { IpcEvent } from '@shared/ipc/channels'
-import type { AppUpdateStatus } from '@shared/ipc/contract'
+import { IpcEvent, IpcInvoke } from '@shared/ipc/channels'
+import type { AppUpdateStatus, DeeplinkEvent } from '@shared/ipc/contract'
 import type { AppNotification } from '@shared/domain/notification'
 import { DEFAULT_OFFICIAL_URL } from '@shared/domain/source'
 import { AuditService } from './security/AuditService'
 import { OfficialCatalog } from './sources/officialCatalog'
-import { createTray } from './tray'
+import { DeeplinkHandler } from './deeplink'
+import { AppTray } from './tray'
 import { ConfigStore } from './config/ConfigStore'
 import { JobRunner, type JobEmitter } from './jobs/JobRunner'
 import { AppUpdater } from './appUpdater'
@@ -26,7 +27,7 @@ import { initLogger, logger } from './logger'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 let mainWindow: BrowserWindow | null = null
-let tray: Tray | null = null
+let tray: AppTray | null = null
 let isQuitting = false
 
 function send(channel: string, payload: unknown): void {
@@ -56,6 +57,8 @@ function makeJobEmitter(): JobEmitter {
 }
 
 function createWindow(): BrowserWindow {
+  // Новый экземпляр renderer'а ещё не подписан — до его запроса диплинки буферизуем.
+  rendererReady = false
   const window = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -90,6 +93,43 @@ function createWindow(): BrowserWindow {
 
   return window
 }
+
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+  process.exit(0)
+}
+
+// Буфер диплинков, полученных до готовности renderer'а (холодный старт по `skill://`):
+// событие `open-url` на macOS может прийти раньше, чем окно/подписка renderer'а готовы,
+// поэтому такие ссылки копятся здесь и забираются renderer'ом при монтировании.
+let rendererReady = false
+let pendingDeeplinks: DeeplinkEvent[] = []
+
+function deliverDeeplink(url: string, parsed: DeeplinkEvent['parsed']): void {
+  const event: DeeplinkEvent = { url, parsed }
+  // Окно показываем только когда приложение готово (иначе BrowserWindow бросит исключение).
+  if (app.isReady()) showWindow()
+  if (rendererReady && mainWindow && !mainWindow.isDestroyed()) {
+    send(IpcEvent.deeplinkReceived, event)
+  } else {
+    pendingDeeplinks.push(event)
+  }
+}
+
+// Регистрируем обработчик протокола и `open-url` до `whenReady`, чтобы не потерять
+// диплинк холодного старта на macOS.
+const deeplinkHandler = new DeeplinkHandler(deliverDeeplink)
+deeplinkHandler.setup()
+
+// Renderer забирает накопленные диплинки при монтировании и помечает себя готовым;
+// с этого момента последующие ссылки доставляются событием сразу.
+ipcMain.handle(IpcInvoke.app.consumePendingDeeplinks, (): DeeplinkEvent[] => {
+  rendererReady = true
+  const buffered = pendingDeeplinks
+  pendingDeeplinks = []
+  return buffered
+})
 
 app.whenReady().then(() => {
   initLogger(join(app.getPath('userData'), 'logs'))
@@ -151,7 +191,10 @@ app.whenReady().then(() => {
   const skillRegistry = createSkillRegistry({
     indexPath: join(app.getPath('userData'), 'registry.json'),
     sourceManager,
-    onUpdated: () => send(IpcEvent.catalogUpdated, undefined)
+    onUpdated: () => {
+      send(IpcEvent.catalogUpdated, undefined)
+      tray?.rebuild()
+    }
   })
 
   const installerService = createInstallerService({
@@ -182,7 +225,10 @@ app.whenReady().then(() => {
     notifications,
     configStore,
     gitCache,
-    onChecked: (result) => send(IpcEvent.updateChecked, result)
+    onChecked: (result) => {
+      send(IpcEvent.updateChecked, result)
+      tray?.rebuild()
+    }
   })
 
   const officialBaseUrl = (): string => {
@@ -199,13 +245,26 @@ app.whenReady().then(() => {
   sourceManager.ensureDefaultOfficial()
   updateEngine.start()
 
-  tray = createTray({
+  tray = new AppTray({
     show: showWindow,
     checkUpdates: () => updateEngine.checkAll(),
     quit: () => {
       isQuitting = true
       app.quit()
-    }
+    },
+    getUpdatableSkills: () => {
+      return skillRegistry
+        .visibleEntries()
+        .filter((s) => s.updateStatus === 'update_available')
+        .map((s) => ({
+          skillId: s.id,
+          name: s.name,
+          installedVersion: s.installations[0]?.installedVersion ?? null,
+          latestVersion: s.latestVersion
+        }))
+    },
+    updateOne: (skillId) => updateEngine.runOne(skillId),
+    updateAll: () => updateEngine.runAll()
   })
 
   registerIpc({
@@ -236,6 +295,11 @@ app.whenReady().then(() => {
   })
 
   app.on('activate', () => showWindow())
+})
+
+app.on('second-instance', (_event, argv) => {
+  showWindow()
+  deeplinkHandler.handleSecondInstance(argv)
 })
 
 app.on('window-all-closed', () => {

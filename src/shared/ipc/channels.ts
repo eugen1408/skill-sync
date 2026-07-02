@@ -9,7 +9,8 @@ export const IpcInvoke = {
   app: {
     getVersion: 'app:getVersion',
     checkForUpdates: 'app:checkForUpdates',
-    quitAndInstall: 'app:quitAndInstall'
+    quitAndInstall: 'app:quitAndInstall',
+    consumePendingDeeplinks: 'app:consumePendingDeeplinks'
   },
   config: {
     get: 'config:get',
@@ -74,5 +75,6 @@ export const IpcEvent = {
   catalogUpdated: 'catalog:updated',
   installResult: 'install:result',
   updateChecked: 'update:checked',
-  notification: 'notification:new'
+  notification: 'notification:new',
+  deeplinkReceived: 'app:deeplinkReceived'
 } as const

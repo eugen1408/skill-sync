@@ -1,5 +1,9 @@
 appId: sh.skills.skillsync
 productName: Skill Sync
+protocols:
+  - name: 'Skill Sync Deeplink'
+    schemes:
+      - 'skill'
 directories:
   buildResources: build
   output: dist

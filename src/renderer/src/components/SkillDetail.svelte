@@ -40,6 +40,12 @@
     if (!cfg || !entry) return
     void installWithAuditGuard(entry, cfg)
   }
+
+  function reinstall(): void {
+    const cfg = config.config
+    if (!cfg || !entry) return
+    void installWithAuditGuard(entry, cfg, true)
+  }
 </script>
 
 {#if entry}
@@ -127,6 +133,9 @@
         </button>
       {:else if !entry.installed && entry.sourceId !== 'installed'}
         <button class="btn btn-sm preset-filled-primary-500" onclick={install}>Установить</button>
+      {/if}
+      {#if entry.installed}
+        <button class="btn btn-sm preset-tonal-primary" onclick={reinstall}>Переустановить</button>
       {/if}
     </div>
   </aside>
