@@ -15,6 +15,8 @@ export const RISK_SEVERITY: Record<AuditRisk, number> = {
 /** Результат одного провайдера аудита (Agent Trust Hub / Socket / Snyk / Runlayer / ZeroLeaks). */
 export interface AuditProviderResult {
   provider: string
+  /** Идентификатор провайдера для ссылки на подстраницу skills.sh (/security/{slug}). */
+  slug: string
   risk: AuditRisk
   /** Однострочная сводка провайдера (v1 audit API), если есть. */
   summary: string | null

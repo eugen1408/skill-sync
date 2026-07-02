@@ -26,14 +26,17 @@
     { value: 'name-desc', label: 'Имя Я–А' }
   ]
 
-  // Фиксированная высота строки (px) для виртуализации; должна вмещать карточку + отступ.
-  const ROW_H = 96
-
   let scrollTop = $state(0)
   let viewportH = $state(0)
+  let viewportW = $state(0)
+
+  // Узкий список: имя не помещается рядом с кнопкой — переходим на компактную раскладку
+  // (кнопка действия уезжает под текст), строка выше.
+  const compact = $derived(viewportW > 0 && viewportW < 460)
+  const rowH = $derived(compact ? 132 : 96)
 
   const items = $derived(catalog.result.items)
-  const win = $derived(computeWindow(scrollTop, viewportH, ROW_H, items.length))
+  const win = $derived(computeWindow(scrollTop, viewportH, rowH, items.length))
   const visible = $derived(items.slice(win.start, win.end))
 
   // Идёт проверка/обновление версий — статусы «Неизвестно» показываем скелетоном, не текстом.
@@ -59,14 +62,25 @@
 
 <div class="flex h-full flex-col gap-4">
   <div class="flex flex-wrap items-center gap-3">
-    <input
-      class="input max-w-xs"
-      placeholder="Поиск skills…"
-      value={catalog.text}
-      oninput={(e) => catalog.setText(e.currentTarget.value)}
-    />
+    <div class="relative max-w-xs flex-1">
+      <input
+        class="input pr-8"
+        placeholder="Поиск skills…"
+        value={catalog.text}
+        oninput={(e) => catalog.setText(e.currentTarget.value)}
+      />
+      {#if catalog.text}
+        <button
+          class="absolute inset-y-0 right-2 flex items-center opacity-50 hover:opacity-100"
+          title="Очистить"
+          onclick={() => catalog.setText('')}
+        >
+          <Icon name="close" size={14} />
+        </button>
+      {/if}
+    </div>
     <select
-      class="select max-w-48"
+      class="select max-w-48 ps-3"
       value={catalog.sort}
       onchange={(e) => catalog.setSort(e.currentTarget.value as CatalogSort)}
     >
@@ -104,7 +118,7 @@
       {#each Array(6) as _, idx (idx)}
         <div
           class="card preset-outlined-surface-200-800 flex items-center gap-4 px-4"
-          style="height: {ROW_H - 8}px"
+          style="height: {rowH - 8}px"
         >
           <div class="flex-1 space-y-2">
             <div class="h-4 w-40 animate-pulse rounded bg-surface-300-700"></div>
@@ -123,23 +137,29 @@
     <div
       class="min-h-0 flex-1 overflow-y-auto"
       bind:clientHeight={viewportH}
+      bind:clientWidth={viewportW}
       onscroll={(e) => (scrollTop = e.currentTarget.scrollTop)}
     >
       <div class="relative" style="height: {win.totalHeight}px">
         <div style="transform: translateY({win.padTop}px)">
           {#each visible as entry (entry.id)}
-            <div style="height: {ROW_H}px" class="pb-2">
-              <div class="card preset-outlined-surface-200-800 flex h-full items-center gap-4 px-4">
+            <div style="height: {rowH}px" class="pb-2">
+              <div
+                class="card preset-outlined-surface-200-800 flex h-full px-4 {compact
+                  ? 'flex-col justify-center gap-2'
+                  : 'items-center gap-4'}"
+              >
                 <button
-                  class="flex-1 overflow-hidden text-left"
+                  class="overflow-hidden text-left {compact ? 'w-full' : 'flex-1'}"
                   onclick={() => ui.openDetail(entry.id)}
                 >
                   <div class="flex items-center gap-2">
-                    <span class="truncate font-semibold">{entry.name}</span>
+                    <span class="min-w-0 flex-1 truncate font-semibold">{entry.name}</span>
                     {#if pending(entry)}
-                      <span class="h-5 w-16 animate-pulse rounded-full bg-surface-300-700"></span>
+                      <span class="h-5 w-16 shrink-0 animate-pulse rounded-full bg-surface-300-700"
+                      ></span>
                     {:else}
-                      <span class="badge {badgeClass(entry)}"
+                      <span class="badge {badgeClass(entry)} shrink-0"
                         >{updateStatusLabel(entry.updateStatus)}</span
                       >
                     {/if}
@@ -156,7 +176,7 @@
                     {/if}
                   </p>
                 </button>
-                <div class="flex gap-2">
+                <div class="flex gap-2 {compact ? 'w-full' : 'shrink-0'}">
                   {#if entry.hasUpdate}
                     <button
                       class="btn btn-sm preset-filled-warning-500"

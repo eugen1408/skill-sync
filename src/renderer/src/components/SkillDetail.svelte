@@ -35,6 +35,11 @@
   // Раскрытые карточки провайдеров аудита (детали доступны при наличии summary).
   let openProviders = $state<Set<string>>(new Set())
 
+  // Подстраница провайдера на skills.sh с полными результатами: {skillUrl}/security/{slug}.
+  function providerUrl(slug: string): string | null {
+    return officialUrl && slug ? `${officialUrl}/security/${encodeURIComponent(slug)}` : null
+  }
+
   function toggleProvider(name: string): void {
     const next = new Set(openProviders)
     if (next.has(name)) next.delete(name)
@@ -264,10 +269,12 @@
         </div>
         <ul class="space-y-2 text-sm">
           {#each audit.providers as p (p.provider)}
-            {@const hasDetails = !!p.summary || !!p.analyzedAt}
+            {@const secUrl = providerUrl(p.slug)}
+            {@const hasDetails = !!p.summary || !!p.analyzedAt || !!secUrl}
             {@const open = openProviders.has(p.provider)}
             <li class="rounded border border-surface-200-800">
-              <!-- Карточка провайдера раскрывается при наличии деталей (summary/дата). -->
+              <!-- Раскрывается при наличии деталей: краткая сводка API + ссылка на подстраницу
+                   skills.sh (/security/{slug}), где лежат полные результаты проверки. -->
               <button
                 class="flex w-full items-center gap-2 p-2 text-left"
                 class:cursor-default={!hasDetails}
@@ -286,12 +293,21 @@
                 {/if}
               </button>
               {#if open && hasDetails}
-                <div class="border-t border-surface-200-800 p-2">
+                <div class="space-y-1 border-t border-surface-200-800 p-2">
                   {#if p.summary}
                     <p class="text-xs opacity-70">{p.summary}</p>
                   {/if}
                   {#if p.analyzedAt}
-                    <p class="mt-1 text-xs opacity-40">Проверено: {formatDate(p.analyzedAt)}</p>
+                    <p class="text-xs opacity-40">Проверено: {formatDate(p.analyzedAt)}</p>
+                  {/if}
+                  {#if secUrl}
+                    <button
+                      class="inline-flex items-center gap-1 text-xs text-primary-500 hover:underline"
+                      onclick={() => void api.shell?.openExternal(secUrl)}
+                    >
+                      Полные результаты на skills.sh
+                      <Icon name="external" size={12} />
+                    </button>
                   {/if}
                 </div>
               {/if}

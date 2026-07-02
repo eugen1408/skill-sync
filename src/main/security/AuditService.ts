@@ -121,6 +121,7 @@ export function parseAudit(body: V1AuditResponse | undefined): SecurityAudit {
     .filter((a) => a && (a.provider || a.slug))
     .map((a) => ({
       provider: a.provider ?? a.slug ?? 'unknown',
+      slug: a.slug ?? '',
       risk: toRisk(a),
       summary: typeof a.summary === 'string' ? a.summary : null,
       analyzedAt: typeof a.auditedAt === 'string' ? a.auditedAt : null
