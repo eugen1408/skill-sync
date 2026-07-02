@@ -18,7 +18,7 @@ import { logger } from '../logger'
 import type { InstallerRegistry } from './registry'
 import type { ResolvedInstall } from './types'
 import { reconcileAgents, type ReconcilableSkill } from './agentReconciler'
-import { defaultPathContext, type PathContext } from './paths'
+import { defaultPathContext, isCanonicalAgentDir, type PathContext } from './paths'
 
 export interface InstallerServiceDeps {
   jobRunner: JobRunner
@@ -83,15 +83,24 @@ export class InstallerService {
   previewReconcile(request: ReconcileAgentsRequest): ReconcilePreview {
     const prev = new Set(request.previousAgents)
     const next = new Set(request.nextAgents)
-    const added = [...next].filter((a) => !prev.has(a))
-    const removed = [...prev].filter((a) => !next.has(a))
+    const pathCtx = this.pathContext(request.scope)
+    // Универсальные (канонические) агенты не требуют симлинков — исключаем из операций.
+    const nonCanonical = (a: AgentInfo): boolean => !isCanonicalAgentDir(pathCtx, a)
+    const added = agentsFrom([...next].filter((a) => !prev.has(a))).filter(nonCanonical)
+    const removed = agentsFrom([...prev].filter((a) => !next.has(a))).filter(nonCanonical)
     const skills = this.installedSkills()
     const ops: ReconcileOp[] = []
     for (const skill of skills) {
-      for (const agent of added) ops.push({ agent, skill: skill.name, action: 'link' })
-      for (const agent of removed) ops.push({ agent, skill: skill.name, action: 'unlink' })
+      for (const agent of added) ops.push({ agent: agent.id, skill: skill.name, action: 'link' })
+      for (const agent of removed)
+        ops.push({ agent: agent.id, skill: skill.name, action: 'unlink' })
     }
-    return { addedAgents: added, removedAgents: removed, skillCount: skills.length, ops }
+    return {
+      addedAgents: added.map((a) => a.id),
+      removedAgents: removed.map((a) => a.id),
+      skillCount: skills.length,
+      ops
+    }
   }
 
   /** Реконсиляция симлинков установленных skills при изменении набора агентов (эпик Q-01). */

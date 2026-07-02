@@ -2,6 +2,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { InstallScope } from '@shared/domain/config'
 import type { AgentInfo } from '@shared/domain/agent'
+import { agentDir } from '@shared/domain/agent'
 
 export interface PathContext {
   scope: InstallScope
@@ -29,11 +30,19 @@ export function canonicalSkillPath(ctx: PathContext, skillName: string): string 
   return join(canonicalSkillsDir(ctx), skillName)
 }
 
-/** Каталог skills конкретного агента (куда ставится симлинк на канонический путь). */
+/** Каталог skills конкретного агента для scope (куда ставится симлинк на канонический путь). */
 export function agentSkillsDir(ctx: PathContext, agent: AgentInfo): string {
-  return join(baseDir(ctx), agent.dir)
+  return join(baseDir(ctx), agentDir(agent, ctx.scope))
 }
 
 export function agentSkillPath(ctx: PathContext, agent: AgentInfo, skillName: string): string {
   return join(agentSkillsDir(ctx, agent), skillName)
+}
+
+/**
+ * Универсальный агент для текущего scope: его каталог совпадает с каноническим `.agents/skills`.
+ * Для таких агентов симлинк не нужен (skill уже лежит в каноне) и удалять его нельзя.
+ */
+export function isCanonicalAgentDir(ctx: PathContext, agent: AgentInfo): boolean {
+  return agentSkillsDir(ctx, agent) === canonicalSkillsDir(ctx)
 }

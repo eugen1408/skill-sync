@@ -199,7 +199,7 @@ describe('файловая установка и реконсиляция', () =
     // Добавляем cursor.
     const s1 = await reconcileAgents(skills, [CURSOR], [], pathCtx)
     expect(s1.linked).toBe(1)
-    const cursorLink = join(base, CURSOR.dir, 'foo')
+    const cursorLink = join(base, CURSOR.globalDir, 'foo')
     expect(await readFile(join(cursorLink, 'SKILL.md'), 'utf8')).toBe('x')
 
     // Идемпотентность.

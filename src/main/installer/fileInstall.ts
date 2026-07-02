@@ -1,7 +1,7 @@
 import type { InstallResult, AgentInstallOutcome, InstallStatus } from '@shared/domain/install'
 import type { ResolvedInstall } from './types'
 import type { JobContext } from '../jobs/JobRunner'
-import { canonicalSkillPath, agentSkillPath } from './paths'
+import { canonicalSkillPath, agentSkillPath, isCanonicalAgentDir } from './paths'
 import { copyInto, linkOrCopy, pathExists } from './fsLink'
 
 function aggregate(outcomes: AgentInstallOutcome[]): InstallStatus {
@@ -45,12 +45,17 @@ export async function installFromFolder(
   let done = 0
   for (const agent of resolved.agents) {
     ctx.throwIfCancelled()
-    const linkPath = agentSkillPath(resolved.pathCtx, agent, resolved.skillName)
-    try {
-      await linkOrCopy(canonical, linkPath)
-      outcomes.push({ agent: agent.id, status: 'ok', installPath: linkPath })
-    } catch {
-      outcomes.push({ agent: agent.id, status: 'failed', installPath: null })
+    // Универсальный агент: его каталог и есть канон — skill уже на месте, симлинк не нужен.
+    if (isCanonicalAgentDir(resolved.pathCtx, agent)) {
+      outcomes.push({ agent: agent.id, status: 'ok', installPath: canonical })
+    } else {
+      const linkPath = agentSkillPath(resolved.pathCtx, agent, resolved.skillName)
+      try {
+        await linkOrCopy(canonical, linkPath)
+        outcomes.push({ agent: agent.id, status: 'ok', installPath: linkPath })
+      } catch {
+        outcomes.push({ agent: agent.id, status: 'failed', installPath: null })
+      }
     }
     done += 1
     ctx.progress(20 + Math.round((done / resolved.agents.length) * 80), `Агент: ${agent.label}`)

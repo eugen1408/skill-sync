@@ -1,7 +1,7 @@
 import type { AgentInfo } from '@shared/domain/agent'
 import type { ReconcileSummary } from '@shared/domain/install'
 import type { PathContext } from './paths'
-import { canonicalSkillPath, agentSkillPath } from './paths'
+import { canonicalSkillPath, agentSkillPath, isCanonicalAgentDir } from './paths'
 import { linkOrCopy, removePath, copyInto, pathExists } from './fsLink'
 
 /** Установленный skill для реконсиляции: имя + известные пути установок (для «посева» канона). */
@@ -40,10 +40,14 @@ export async function reconcileAgents(
     }
 
     for (const agent of added) {
+      // Универсальный агент читает канон напрямую — симлинк не нужен.
+      if (isCanonicalAgentDir(pathCtx, agent)) continue
       await linkOrCopy(canonical, agentSkillPath(pathCtx, agent, skill.name))
       linked += 1
     }
     for (const agent of removed) {
+      // Нельзя удалять канон (это сам skill, общий для универсальных агентов).
+      if (isCanonicalAgentDir(pathCtx, agent)) continue
       await removePath(agentSkillPath(pathCtx, agent, skill.name))
       unlinked += 1
     }

@@ -21,7 +21,7 @@ afterEach(() => rmSync(base, { recursive: true, force: true }))
 describe('reconcileAgents — граничные случаи', () => {
   it('посевает канон из существующей установки, если канона нет', async () => {
     // Канона нет, но skill установлен у claude (реальные файлы).
-    const existing = join(base, CLAUDE.dir, 'foo')
+    const existing = join(base, CLAUDE.globalDir, 'foo')
     mkdirSync(existing, { recursive: true })
     writeFileSync(join(existing, 'SKILL.md'), 'seed')
 
@@ -37,7 +37,7 @@ describe('reconcileAgents — граничные случаи', () => {
     const canonical = join(base, '.agents', 'skills', 'foo')
     expect((await lstat(canonical)).isDirectory()).toBe(true)
     // Cursor получил рабочую ссылку.
-    expect(await readFile(join(base, CURSOR.dir, 'foo', 'SKILL.md'), 'utf8')).toBe('seed')
+    expect(await readFile(join(base, CURSOR.globalDir, 'foo', 'SKILL.md'), 'utf8')).toBe('seed')
   })
 
   it('пропускает skill без канона и без существующих установок', async () => {
@@ -49,6 +49,30 @@ describe('reconcileAgents — граничные случаи', () => {
     )
     expect(summary.skipped).toBe(1)
     expect(summary.linked).toBe(0)
+  })
+
+  it('универсальный агент в project scope не линкуется и не трогает канон', async () => {
+    const projectCtx: PathContext = { scope: 'project', home: base, cwd: base }
+    const canonical = join(base, '.agents', 'skills', 'foo')
+    mkdirSync(canonical, { recursive: true })
+    writeFileSync(join(canonical, 'SKILL.md'), 'x')
+    // cursor.projectDir === '.agents/skills' — совпадает с каноном, симлинк не нужен.
+    const added = await reconcileAgents(
+      [{ name: 'foo', installPaths: [] }],
+      [CURSOR],
+      [],
+      projectCtx
+    )
+    expect(added.linked).toBe(0)
+    // Снятие тоже не удаляет канон.
+    const removed = await reconcileAgents(
+      [{ name: 'foo', installPaths: [] }],
+      [],
+      [CURSOR],
+      projectCtx
+    )
+    expect(removed.unlinked).toBe(0)
+    expect((await lstat(canonical)).isDirectory()).toBe(true)
   })
 
   it('снятие всех агентов удаляет ссылки, канон остаётся', async () => {
@@ -66,7 +90,7 @@ describe('reconcileAgents — граничные случаи', () => {
       pathCtx
     )
     expect(summary.unlinked).toBe(1)
-    await expect(lstat(join(base, CLAUDE.dir, 'foo'))).rejects.toThrow()
+    await expect(lstat(join(base, CLAUDE.globalDir, 'foo'))).rejects.toThrow()
     expect((await lstat(canonical)).isDirectory()).toBe(true)
   })
 })
