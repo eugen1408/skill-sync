@@ -80,7 +80,7 @@
       {/if}
     </div>
     <select
-      class="select max-w-48 ps-3"
+      class="select max-w-48 ps-3 pr-8"
       value={catalog.sort}
       onchange={(e) => catalog.setSort(e.currentTarget.value as CatalogSort)}
     >
@@ -153,17 +153,7 @@
                   class="overflow-hidden text-left {compact ? 'w-full' : 'flex-1'}"
                   onclick={() => ui.openDetail(entry.id)}
                 >
-                  <div class="flex items-center gap-2">
-                    <span class="min-w-0 flex-1 truncate font-semibold">{entry.name}</span>
-                    {#if pending(entry)}
-                      <span class="h-5 w-16 shrink-0 animate-pulse rounded-full bg-surface-300-700"
-                      ></span>
-                    {:else}
-                      <span class="badge {badgeClass(entry)} shrink-0"
-                        >{updateStatusLabel(entry.updateStatus)}</span
-                      >
-                    {/if}
-                  </div>
+                  <span class="block truncate font-semibold">{entry.name}</span>
                   {#if entry.description}
                     <p class="line-clamp-1 text-sm opacity-70">{entry.description}</p>
                   {/if}
@@ -176,8 +166,12 @@
                     {/if}
                   </p>
                 </button>
-                <div class="flex gap-2 {compact ? 'w-full' : 'shrink-0'}">
-                  {#if entry.hasUpdate}
+                <!-- Статус и действие — в одном месте: кнопка (Обновить/Установить) заменяет
+                     дублирующий бейдж; для состояний без действия показываем бейдж статуса. -->
+                <div class="flex shrink-0 items-center gap-2 {compact ? 'w-full justify-end' : ''}">
+                  {#if pending(entry)}
+                    <span class="h-5 w-20 animate-pulse rounded-full bg-surface-300-700"></span>
+                  {:else if entry.hasUpdate}
                     <button
                       class="btn btn-sm preset-filled-warning-500"
                       onclick={() =>
@@ -195,6 +189,10 @@
                     >
                       Установить
                     </button>
+                  {:else}
+                    <span class="badge {badgeClass(entry)}"
+                      >{updateStatusLabel(entry.updateStatus)}</span
+                    >
                   {/if}
                 </div>
               </div>

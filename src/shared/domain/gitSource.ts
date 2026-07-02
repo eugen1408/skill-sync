@@ -24,6 +24,19 @@ function basename(url: string): string {
 }
 
 /**
+ * Веб-URL git-репозитория для открытия в браузере: SSH (`git@host:owner/repo.git`,
+ * `ssh://git@host/owner/repo.git`) → `https://host/owner/repo`. HTTPS — как есть (без .git).
+ * Возвращает null, если распознать не удалось.
+ */
+export function gitRepoWebUrl(raw: string): string | null {
+  const s = raw.trim()
+  if (!s) return null
+  if (/^https?:\/\//i.test(s)) return s.replace(/\.git$/i, '').replace(/\/+$/, '')
+  const m = /^(?:ssh:\/\/)?(?:[^@/]+@)?([^:/]+)[:/](.+?)(?:\.git)?\/?$/.exec(s)
+  return m ? `https://${m[1]}/${m[2]}` : null
+}
+
+/**
  * Разбирает вставленную пользователем git-ссылку в параметры источника
  * (url/ref/subpath/authMode/name). Поддерживает HTTPS, SSH (scp-подобный и ssh://),
  * GitHub/GitLab tree/blob-ссылки и shorthand `owner/repo` (→ GitHub HTTPS).

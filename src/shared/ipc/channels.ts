@@ -38,7 +38,9 @@ export const IpcInvoke = {
     refreshIndex: 'catalog:refreshIndex',
     audit: 'catalog:audit',
     officialUrl: 'catalog:officialUrl',
-    readme: 'catalog:readme'
+    readme: 'catalog:readme',
+    canonicalPath: 'catalog:canonicalPath',
+    repoUrl: 'catalog:repoUrl'
   },
   install: {
     run: 'install:run',

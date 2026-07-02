@@ -58,7 +58,10 @@ const api: IpcApi = {
     refreshIndex: () => ipcRenderer.invoke(IpcInvoke.catalog.refreshIndex),
     audit: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.audit, skillId),
     officialUrl: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.officialUrl, skillId),
-    readme: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.readme, skillId)
+    readme: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.readme, skillId),
+    canonicalPath: (skillId: string) =>
+      ipcRenderer.invoke(IpcInvoke.catalog.canonicalPath, skillId),
+    repoUrl: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.repoUrl, skillId)
   },
   install: {
     run: (request: InstallRequest) => ipcRenderer.invoke(IpcInvoke.install.run, request),

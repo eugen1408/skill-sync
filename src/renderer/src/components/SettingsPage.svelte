@@ -132,7 +132,7 @@
       <label class="flex items-center gap-2">
         <span class="text-sm">Область установки</span>
         <select
-          class="select max-w-40 ps-3"
+          class="select max-w-40 ps-3 pr-8"
           value={cfg.install.scope}
           onchange={(e) =>
             config.update({

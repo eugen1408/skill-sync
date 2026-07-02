@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CatalogEntry, AgentInstallation } from '@shared/domain/skill'
+  import type { CatalogEntry } from '@shared/domain/skill'
   import type { SecurityAudit } from '@shared/domain/audit'
   import { hasAuditData } from '@shared/domain/audit'
   import { api } from '../lib/api'
@@ -23,6 +23,8 @@
   let entry = $state<CatalogEntry | null>(null)
   let audit = $state<SecurityAudit | null>(null)
   let officialUrl = $state<string | null>(null)
+  let repoUrl = $state<string | null>(null)
+  let canonicalPath = $state<string | null>(null)
   let readmeHtml = $state<string | null>(null)
   // Загрузка описания с skills.sh (аудит) завершена (успех или ошибка) — до этого
   // README-превью не показываем, чтобы не мигать им перед описанием со skills.sh.
@@ -53,12 +55,16 @@
       entry = null
       audit = null
       officialUrl = null
+      repoUrl = null
+      canonicalPath = null
       readmeHtml = null
       return
     }
     openProviders = new Set()
     audit = null
     officialUrl = null
+    repoUrl = null
+    canonicalPath = null
     readmeHtml = null
     auditLoaded = false
     readmeOpen = false
@@ -75,6 +81,12 @@
     })
     void run(() => api.catalog.officialUrl(id)).then((u) => {
       if (u !== undefined && ui.detailId === id) officialUrl = u
+    })
+    void run(() => api.catalog.repoUrl(id)).then((u) => {
+      if (u !== undefined && ui.detailId === id) repoUrl = u
+    })
+    void run(() => api.catalog.canonicalPath(id)).then((p) => {
+      if (p !== undefined && ui.detailId === id) canonicalPath = p
     })
     void run(() => api.catalog.readme(id)).then((h) => {
       if (h !== undefined && ui.detailId === id) readmeHtml = h
@@ -114,17 +126,19 @@
     if (descEl && !descExpanded) descOverflow = descEl.scrollHeight > descEl.clientHeight + 1
   })
 
-  // Основная установка (.agents/skills) — первой; путь нормализуем для разных ОС.
-  function isPrimary(inst: AgentInstallation): boolean {
-    return /[\\/]\.agents[\\/]skills[\\/]/.test(inst.installPath)
+  const installations = $derived(entry?.installations ?? [])
+  // Общий каталог .agents/skills — отдельной первой строкой «Основные» (canonicalPath из main);
+  // агентские симлинки, совпадающие с ним, не дублируем.
+  const otherInstalls = $derived(installations.filter((i) => i.installPath !== canonicalPath))
+
+  async function copyText(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text)
+      toasts.push('Скопировано')
+    } catch {
+      toasts.push('Не удалось скопировать', 'error')
+    }
   }
-  const installations = $derived(
-    [...(entry?.installations ?? [])].sort((a, b) => Number(isPrimary(b)) - Number(isPrimary(a)))
-  )
-  // Основная (каноническая) установка ~/.agents/skills — отдельной первой строкой;
-  // остальные — по агентам.
-  const primaryInstall = $derived(installations.find(isPrimary) ?? null)
-  const otherInstalls = $derived(installations.filter((i) => !isPrimary(i)))
 
   function install(): void {
     const cfg = config.config
@@ -230,20 +244,11 @@
       </div>
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">Установленная версия</dt>
-        <dd
-          class="min-w-0 truncate text-right font-mono text-xs"
-          title={entry.installations[0]?.installedVersion ?? ''}
-        >
-          {entry.installations[0]?.installedVersion
-            ? truncateMiddle(entry.installations[0].installedVersion)
-            : '—'}
-        </dd>
+        {@render versionCell(entry.installations[0]?.installedVersion ?? null)}
       </div>
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">Последняя версия</dt>
-        <dd class="min-w-0 truncate text-right font-mono text-xs" title={entry.latestVersion ?? ''}>
-          {entry.latestVersion ? truncateMiddle(entry.latestVersion) : '—'}
-        </dd>
+        {@render versionCell(entry.latestVersion)}
       </div>
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">Проверено</dt>
@@ -251,15 +256,26 @@
       </div>
     </dl>
 
-    {#if officialUrl}
-      <button
-        class="btn btn-sm preset-tonal gap-1 self-start"
-        onclick={() => void api.shell?.openExternal(officialUrl!)}
-      >
-        <Icon name="external" />
-        Открыть на skills.sh
-      </button>
-    {/if}
+    <div class="flex flex-wrap gap-2">
+      {#if officialUrl}
+        <button
+          class="btn btn-sm preset-tonal gap-1"
+          onclick={() => void api.shell?.openExternal(officialUrl!)}
+        >
+          <Icon name="external" />
+          Открыть на skills.sh
+        </button>
+      {/if}
+      {#if repoUrl}
+        <button
+          class="btn btn-sm preset-tonal gap-1"
+          onclick={() => void api.shell?.openExternal(repoUrl!)}
+        >
+          <Icon name="external" />
+          Открыть репозиторий
+        </button>
+      {/if}
+    </div>
 
     {#if hasAuditData(audit) && audit}
       <div>
@@ -318,32 +334,51 @@
       </div>
     {/if}
 
+    {#snippet versionCell(value: string | null)}
+      {#if value}
+        <dd class="min-w-0 text-right">
+          <button
+            class="max-w-full truncate font-mono text-xs hover:underline"
+            title="Скопировать: {value}"
+            onclick={() => void copyText(value)}
+          >
+            {truncateMiddle(value)}
+          </button>
+        </dd>
+      {:else}
+        <dd class="text-right font-mono text-xs">—</dd>
+      {/if}
+    {/snippet}
+
     {#snippet installRow(label: string, path: string)}
       <li class="flex items-center gap-2">
         <span class="shrink-0">{label}</span>
-        <button
-          class="min-w-0 flex-1 truncate text-left text-xs opacity-60 hover:underline"
-          title={path}
-          onclick={() => void api.shell?.openPath(path)}
-        >
-          {path}
-        </button>
-        <button
-          class="shrink-0 text-[#0098ff] opacity-80 hover:opacity-100"
-          title="Открыть в VS Code"
-          onclick={() => void api.shell?.openInEditor(path)}
-        >
-          <Icon name="vscode" size={15} />
-        </button>
+        <!-- Путь + кнопка VS Code рядом (группа хагает контент, не растягиваясь на всю ширину). -->
+        <span class="flex min-w-0 items-center gap-1">
+          <button
+            class="truncate text-left text-xs opacity-60 hover:underline"
+            title={path}
+            onclick={() => void api.shell?.openPath(path)}
+          >
+            {path}
+          </button>
+          <button
+            class="shrink-0 text-[#0098ff] opacity-80 hover:opacity-100"
+            title="Открыть в VS Code"
+            onclick={() => void api.shell?.openInEditor(path)}
+          >
+            <Icon name="vscode" size={15} />
+          </button>
+        </span>
       </li>
     {/snippet}
 
-    {#if installations.length > 0}
+    {#if canonicalPath || installations.length > 0}
       <div>
         <p class="mb-1 text-sm font-semibold">Установлен для агентов</p>
         <ul class="space-y-1 text-sm">
-          {#if primaryInstall}
-            {@render installRow('Основные', primaryInstall.installPath)}
+          {#if canonicalPath}
+            {@render installRow('Основные', canonicalPath)}
           {/if}
           {#each otherInstalls as inst (inst.agent)}
             {@render installRow(inst.agent, inst.installPath)}

@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'vitest'
-import { parseGitSourceInput } from '../src/shared/domain/gitSource'
+import { parseGitSourceInput, gitRepoWebUrl } from '../src/shared/domain/gitSource'
+
+describe('gitRepoWebUrl', () => {
+  it('SSH scp-подобный → HTTPS', () => {
+    expect(gitRepoWebUrl('git@github.com:vercel-labs/agent-skills.git')).toBe(
+      'https://github.com/vercel-labs/agent-skills'
+    )
+    expect(gitRepoWebUrl('git@gitlab.rt-dc.ru:clouds/llm-skill-pybotx.git')).toBe(
+      'https://gitlab.rt-dc.ru/clouds/llm-skill-pybotx'
+    )
+  })
+  it('ssh:// → HTTPS', () => {
+    expect(gitRepoWebUrl('ssh://git@git.skbkontur.ru/mobile/agent-skills.git')).toBe(
+      'https://git.skbkontur.ru/mobile/agent-skills'
+    )
+  })
+  it('HTTPS — как есть, без .git и хвостовых слэшей', () => {
+    expect(gitRepoWebUrl('https://github.com/x/y.git')).toBe('https://github.com/x/y')
+    expect(gitRepoWebUrl('https://github.com/x/y/')).toBe('https://github.com/x/y')
+  })
+  it('мусор → null', () => {
+    expect(gitRepoWebUrl('')).toBeNull()
+  })
+})
 
 describe('parseGitSourceInput', () => {
   it('HTTPS-репозиторий', () => {

@@ -1,6 +1,9 @@
 import { app, ipcMain, dialog, shell, BrowserWindow, type OpenDialogOptions } from 'electron'
 import { rmSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { findLockEntry } from '../version'
+import { gitRepoWebUrl } from '@shared/domain/gitSource'
 import { IpcInvoke } from '@shared/ipc/channels'
 import type { ConfigPatch, CatalogQuery } from '@shared/ipc/contract'
 import type { AddSourceInput } from '@shared/domain/source'
@@ -173,6 +176,21 @@ export function registerIpc(deps: IpcDeps): void {
     const entry = skillRegistry.get(skillId)
     if (!entry) return null
     return getSkillReadme(entry, sourceManager.get(entry.sourceId), gitCache)
+  })
+  ipcMain.handle(IpcInvoke.catalog.canonicalPath, (_e, skillId: string) => {
+    const entry = skillRegistry.get(skillId)
+    if (!entry || !entry.installed) return null
+    // Общий каталог установки: {installDir|~}/.agents/skills/<name>.
+    const base = configStore.get().install.installDir || homedir()
+    return join(base, '.agents', 'skills', entry.name)
+  })
+  ipcMain.handle(IpcInvoke.catalog.repoUrl, async (_e, skillId: string) => {
+    const entry = skillRegistry.get(skillId)
+    if (!entry) return null
+    const source = sourceManager.get(entry.sourceId)
+    let url = source?.type === 'git' ? source.config.url : null
+    if (!url) url = (await findLockEntry(entry.name))?.sourceUrl ?? null
+    return url ? gitRepoWebUrl(url) : null
   })
 
   ipcMain.handle(IpcInvoke.shell.openExternal, (_e, url: string) => {

@@ -113,6 +113,10 @@ export interface IpcApi {
     officialUrl(skillId: string): Promise<string | null>
     /** Отрендеренный HTML превью README.md/SKILL.md skill. null — файлов нет. */
     readme(skillId: string): Promise<string | null>
+    /** Путь к общему каталогу установки .agents/skills/<name>. null — не установлен. */
+    canonicalPath(skillId: string): Promise<string | null>
+    /** Веб-URL git-репозитория skill (SSH→HTTPS). null — не git / не определён. */
+    repoUrl(skillId: string): Promise<string | null>
   }
   install: {
     /** Запускает установку skill; возвращает jobId (результат — событие onInstallResult). */
