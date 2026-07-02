@@ -4,8 +4,9 @@
  * `cliFlag` — значение флага `-a` для `npx skills` (может отличаться от внутреннего `id`).
  * Список расширяем: добавление агента не требует изменений в остальной логике.
  *
- * ВНИМАНИЕ: значения `cliFlag` требуют сверки с актуальным CLI `skills` при E2E-проверке —
- * если CLI ожидает иной идентификатор агента, official-установка молча завершится `failed`.
+ * `cliFlag` сверены с реестром CLI (`input/skills-main/src/agents.ts`, ключи `agents`).
+ * Важно: CLI при неизвестном `-a` делает `process.exit(1)` — тогда падает вся установка,
+ * а не отдельный агент. Поэтому cliFlag должен точно совпадать с ключом агента в CLI.
  */
 export interface AgentInfo {
   readonly id: string
@@ -22,8 +23,8 @@ export const KNOWN_AGENTS: readonly AgentInfo[] = [
   { id: 'codex', label: 'Codex', dir: '.codex/skills', cliFlag: 'codex' },
   { id: 'opencode', label: 'OpenCode', dir: '.opencode/skills', cliFlag: 'opencode' },
   { id: 'windsurf', label: 'Windsurf', dir: '.windsurf/skills', cliFlag: 'windsurf' },
-  { id: 'gemini', label: 'Gemini Code Assist', dir: '.gemini/skills', cliFlag: 'gemini' },
-  { id: 'copilot', label: 'GitHub Copilot', dir: '.copilot/skills', cliFlag: 'copilot' },
+  { id: 'gemini', label: 'Gemini CLI', dir: '.gemini/skills', cliFlag: 'gemini-cli' },
+  { id: 'copilot', label: 'GitHub Copilot', dir: '.copilot/skills', cliFlag: 'github-copilot' },
   { id: 'continue', label: 'Continue', dir: '.continue/skills', cliFlag: 'continue' }
 ]
 

@@ -171,4 +171,10 @@
 
 Итог проверок после всех правок: typecheck (node+web) 0 ошибок; **90 тестов** (+20 к исходным 70); build + smoke-boot чисто; prettier чисто.
 
-**Остаются follow-up**: renderer-тесты (jsdom); виртуализация списка каталога. За пользователем — E2E, сверка `cliFlag` с CLI, `npm run dist`/подпись, релиз-пайплайн для electron-updater.
+**Сверка с CLI `skills` (`input/skills-main/src/agents.ts`, `add.ts`):**
+
+- Исправлены `cliFlag`: `gemini` → `gemini-cli`, `copilot` → `github-copilot` (ключи агентов в CLI). При неизвестном `-a` CLI делает `process.exit(1)` — падала бы вся official-установка, а не отдельный агент.
+- У команды `add` нет флага `-p`: проектный scope — дефолт. Убрали мёртвый `-p`, для global оставили `-g` (наш дефолтный scope — global). Повторяющийся `-a` CLI аккумулирует — наш способ (`-a a1 -a a2`) валиден.
+- **Замечено (не исправлено, шире scope):** глобальные каталоги ряда агентов в CLI отличаются от наших `dir` — `opencode`: `~/.config/opencode/skills` (у нас `.opencode/skills`), `windsurf`: `~/.codeium/windsurf/skills` (у нас `.windsurf/skills`); для проектного scope многие агенты используют универсальный `.agents/skills`. Влияет на детект установленных official-скилов нашим сканером для этих агентов. Требует расширения модели `AgentInfo` (dir по scope/универсальный) — вынесено в follow-up.
+
+**Остаются follow-up**: расширение модели каталогов агентов под CLI (scope-specific/universal dirs); renderer-тесты (jsdom); виртуализация списка каталога. За пользователем — E2E-прогон official-установки, `npm run dist`/подпись, релиз-пайплайн для electron-updater.

@@ -34,7 +34,10 @@ export function buildOfficialInvocation(input: OfficialArgsInput): {
   const command = input.cliPath ?? (isWin ? 'npx.cmd' : 'npx')
   const args: string[] = []
   if (!input.cliPath) args.push('-y', `skills@${PINNED_SKILLS_VERSION}`)
-  args.push('add', input.sourceRef, input.scope === 'global' ? '-g' : '-p', '-y')
+  args.push('add', input.sourceRef)
+  // `skills add` знает только `-g` (глобально). Проектный scope — дефолт, флага `-p` у него нет.
+  if (input.scope === 'global') args.push('-g')
+  args.push('-y')
   if (input.force) args.push('--force')
   for (const agent of input.agents) args.push('-a', agent)
   return { command, args }

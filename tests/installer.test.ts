@@ -69,7 +69,15 @@ describe('exec helpers', () => {
     })
     expect(command).toBe('/usr/local/bin/skills')
     expect(args[0]).toBe('add')
-    expect(args).toContain('-p')
+    // project — дефолт CLI: флага `-p` у `add` нет, `-g` тоже не передаём.
+    expect(args).not.toContain('-p')
+    expect(args).not.toContain('-g')
+  })
+
+  it('cliFlag агентов совпадает с ключами CLI (gemini-cli / github-copilot)', () => {
+    expect(getAgent('gemini')?.cliFlag).toBe('gemini-cli')
+    expect(getAgent('copilot')?.cliFlag).toBe('github-copilot')
+    expect(getAgent('claude-code')?.cliFlag).toBe('claude-code')
   })
 
   it('отклоняет небезопасные токены', () => {
