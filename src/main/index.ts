@@ -6,6 +6,7 @@ import type { AppUpdateStatus } from '@shared/ipc/contract'
 import type { AppNotification } from '@shared/domain/notification'
 import { DEFAULT_OFFICIAL_URL } from '@shared/domain/source'
 import { AuditService } from './security/AuditService'
+import { OfficialCatalog } from './sources/officialCatalog'
 import { createTray } from './tray'
 import { ConfigStore } from './config/ConfigStore'
 import { JobRunner, type JobEmitter } from './jobs/JobRunner'
@@ -184,13 +185,18 @@ app.whenReady().then(() => {
     onChecked: (result) => send(IpcEvent.updateChecked, result)
   })
 
-  const auditService = new AuditService(() => {
+  const officialBaseUrl = (): string => {
     const official = configStore.get().sources.find((s) => s.type === 'official' && s.enabled)
     return official?.config.url?.trim() || DEFAULT_OFFICIAL_URL
-  })
+  }
+  const auditService = new AuditService(officialBaseUrl)
+  const officialCatalog = new OfficialCatalog(officialBaseUrl)
 
   sourceManager.init()
   void skillRegistry.init()
+  // skills.sh добавляется по умолчанию как источник, но НЕ индексируется —
+  // его каталог живой (OfficialCatalog, поиск по API при запросе).
+  sourceManager.ensureDefaultOfficial()
   updateEngine.start()
 
   tray = createTray({
@@ -212,7 +218,8 @@ app.whenReady().then(() => {
     updateEngine,
     notifications,
     secretStore,
-    auditService
+    auditService,
+    officialCatalog
   })
   appUpdater.maybeCheckOnLaunch()
 

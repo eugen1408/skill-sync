@@ -5,6 +5,7 @@ import { KNOWN_AGENTS } from '@shared/domain/agent'
 import type { AgentInstallation } from '@shared/domain/skill'
 import { normalizeSkillKey } from '@shared/domain/skill'
 import { readGlobalLock } from '../version/lock'
+import { resolveGlobalAgentSkillsDir } from '../agentPaths'
 
 /**
  * Обнаруживает установленные skills по глобальным каталогам известных агентов (эпик Q-01).
@@ -21,7 +22,7 @@ export async function scanInstalledSkills(
   const seen = new Set<string>()
 
   for (const agent of KNOWN_AGENTS) {
-    const skillsDir = join(home, agent.globalDir)
+    const skillsDir = resolveGlobalAgentSkillsDir(agent, home)
     const entries = await readdir(skillsDir, { withFileTypes: true }).catch(() => null)
     if (!entries) continue
 

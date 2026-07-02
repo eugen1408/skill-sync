@@ -8,25 +8,51 @@ type FetchFn = typeof fetch
 
 const AUDIT_TTL_MS = 30 * 60_000
 const AUDIT_MAX_ENTRIES = 500
-const KNOWN_RISKS: AuditRisk[] = ['safe', 'low', 'medium', 'high', 'critical']
 
-interface RawProvider {
-  risk?: string
-  score?: number
-  alerts?: number
-  analyzedAt?: string
+interface V1AuditEntry {
+  provider?: string
+  slug?: string
+  status?: string
+  summary?: string
+  auditedAt?: string
+  riskLevel?: string
 }
 
-function normalizeRisk(value: unknown): AuditRisk {
-  return typeof value === 'string' && (KNOWN_RISKS as string[]).includes(value)
-    ? (value as AuditRisk)
-    : 'unknown'
+interface V1AuditResponse {
+  audits?: V1AuditEntry[]
+}
+
+/** riskLevel (NONE/LOW/MEDIUM/HIGH/CRITICAL) или status (pass/warn/fail) → наша шкала. */
+function toRisk(entry: V1AuditEntry): AuditRisk {
+  switch (entry.riskLevel?.toUpperCase()) {
+    case 'NONE':
+      return 'safe'
+    case 'LOW':
+      return 'low'
+    case 'MEDIUM':
+      return 'medium'
+    case 'HIGH':
+      return 'high'
+    case 'CRITICAL':
+      return 'critical'
+  }
+  switch (entry.status?.toLowerCase()) {
+    case 'pass':
+      return 'safe'
+    case 'warn':
+      return 'medium'
+    case 'fail':
+      return 'high'
+    default:
+      return 'unknown'
+  }
 }
 
 /**
- * Аудит безопасности skill через skills.sh `/api/audit` (провайдеры ath/socket/snyk/zeroleaks).
- * Отдаёт агрегированную сводку с максимальным риском. Результаты кэшируются (TTL 30 мин),
- * включая «пустые» (нет данных) — чтобы не долбить API. Ошибки/недоступность → пустая сводка.
+ * Аудит безопасности skill через документированный skills.sh v1 API
+ * `GET /api/v1/skills/audit/{source}/{slug}` (провайдеры Agent Trust Hub / Socket / Snyk /
+ * Runlayer / ZeroLeaks). Эндпоинт доступен без Vercel OIDC. 404 — аудитов ещё нет.
+ * Результаты (включая «пустые») кэшируются на 30 мин.
  */
 export class AuditService {
   private readonly cache = new Cache<SecurityAudit>({
@@ -44,7 +70,6 @@ export class AuditService {
     const key = `${source}::${skillId}`
     const cached = this.cache.get(key)
     if (cached) return cached
-
     const audit = await this.fetchAudit(source, skillId)
     this.cache.set(key, audit)
     return audit
@@ -52,34 +77,40 @@ export class AuditService {
 
   private async fetchAudit(source: string, skillId: string): Promise<SecurityAudit> {
     const base = this.baseUrl().replace(/\/$/, '')
-    const url = `${base}/api/audit?source=${encodeURIComponent(source)}&skills=${encodeURIComponent(skillId)}`
+    // source может содержать «/» (owner/repo) — это часть пути, не кодируем целиком.
+    const path = `${source}/${skillId}`
+      .split('/')
+      .map((seg) => encodeURIComponent(seg))
+      .join('/')
+    const url = `${base}/api/v1/skills/audit/${path}`
     try {
       const res = await this.fetchFn(url, { headers: { Accept: 'application/json' } })
+      if (res.status === 404) return { worstRisk: 'unknown', providers: [] }
       if (!res.ok) {
-        logger.warn(`skills.sh /api/audit ${source}/${skillId}: HTTP ${res.status}`)
+        logger.warn(`skills.sh v1 audit ${source}/${skillId}: HTTP ${res.status}`)
         return { worstRisk: 'unknown', providers: [] }
       }
-      const body = (await res.json()) as Record<string, Record<string, RawProvider>>
-      return parseAudit(body[skillId])
+      const body = (await res.json()) as V1AuditResponse
+      return parseAudit(body)
     } catch (err) {
-      logger.warn('skills.sh /api/audit недоступен', err)
+      logger.warn('skills.sh v1 audit недоступен', err)
       return { worstRisk: 'unknown', providers: [] }
     }
   }
 }
 
-export function parseAudit(entry: Record<string, RawProvider> | undefined): SecurityAudit {
-  if (!entry || typeof entry !== 'object') return { worstRisk: 'unknown', providers: [] }
-  const providers: AuditProviderResult[] = []
-  for (const [provider, data] of Object.entries(entry)) {
-    if (!data || typeof data !== 'object' || data.risk === undefined) continue
-    providers.push({
-      provider,
-      risk: normalizeRisk(data.risk),
-      score: typeof data.score === 'number' ? data.score : null,
-      alerts: typeof data.alerts === 'number' ? data.alerts : null,
-      analyzedAt: typeof data.analyzedAt === 'string' ? data.analyzedAt : null
-    })
+export function parseAudit(body: V1AuditResponse | undefined): SecurityAudit {
+  const audits = body?.audits
+  if (!Array.isArray(audits) || audits.length === 0) {
+    return { worstRisk: 'unknown', providers: [] }
   }
+  const providers: AuditProviderResult[] = audits
+    .filter((a) => a && (a.provider || a.slug))
+    .map((a) => ({
+      provider: a.provider ?? a.slug ?? 'unknown',
+      risk: toRisk(a),
+      summary: typeof a.summary === 'string' ? a.summary : null,
+      analyzedAt: typeof a.auditedAt === 'string' ? a.auditedAt : null
+    }))
   return { worstRisk: worstRisk(providers.map((p) => p.risk)), providers }
 }

@@ -1,20 +1,29 @@
 <script lang="ts">
-  import type { SourceType, GitAuthMode } from '@shared/domain/source'
-  import { SOURCE_TYPES, sourceTypeDef } from '../lib/sourceForms'
+  import { parseGitSourceInput, type ParsedGitSource } from '@shared/domain/gitSource'
   import { api } from '../lib/api'
   import { sources } from '../lib/stores/sources.svelte'
 
-  let type = $state<SourceType>('git')
-  let name = $state('')
-  let values = $state<Record<string, string>>({})
+  let type = $state<'git' | 'local'>('git')
+  let gitInput = $state('')
+  let localPath = $state('')
   let error = $state<string | null>(null)
   let busy = $state(false)
 
-  const def = $derived(sourceTypeDef(type))
+  const parsed = $derived<ParsedGitSource | null>(
+    gitInput.trim() ? parseGitSourceInput(gitInput) : null
+  )
+  const localName = $derived(
+    localPath
+      ? (localPath
+          .replace(/[/\\]+$/, '')
+          .split(/[/\\]/)
+          .pop() ?? '')
+      : ''
+  )
 
-  async function pickDirectory(key: string): Promise<void> {
+  async function pickFolder(): Promise<void> {
     const dir = await api.dialog.selectDirectory()
-    if (dir) values[key] = dir
+    if (dir) localPath = dir
   }
 
   async function submit(e: Event): Promise<void> {
@@ -22,20 +31,37 @@
     error = null
     busy = true
     try {
-      await sources.add({
-        type,
-        name,
-        config: {
-          url: type === 'local' ? null : values.url || null,
-          ref: values.ref || null,
-          subpath: values.subpath || null,
-          authMode: type === 'git' ? (values.authMode as GitAuthMode) || 'https' : null,
-          localPath: type === 'local' ? values.localPath || null : null,
-          watch: def.watch ?? false
-        }
-      })
-      name = ''
-      values = {}
+      if (type === 'git') {
+        if (!parsed) throw new Error('Не удалось разобрать ссылку на репозиторий')
+        await sources.add({
+          type: 'git',
+          name: parsed.name,
+          config: {
+            url: parsed.url,
+            ref: parsed.ref,
+            subpath: parsed.subpath,
+            authMode: parsed.authMode,
+            localPath: null,
+            watch: false
+          }
+        })
+        gitInput = ''
+      } else {
+        if (!localPath) throw new Error('Выберите каталог')
+        await sources.add({
+          type: 'local',
+          name: localName,
+          config: {
+            url: null,
+            ref: null,
+            subpath: null,
+            authMode: null,
+            localPath,
+            watch: true
+          }
+        })
+        localPath = ''
+      }
     } catch (err) {
       error = err instanceof Error ? err.message : String(err)
     } finally {
@@ -48,63 +74,78 @@
   <p class="font-semibold">Добавить источник</p>
 
   <div class="flex gap-2">
-    {#each SOURCE_TYPES as t (t.type)}
-      <button
-        type="button"
-        class="btn btn-sm {type === t.type ? 'preset-filled-primary-500' : 'preset-tonal'}"
-        onclick={() => (type = t.type)}
-      >
-        {t.label}
-      </button>
-    {/each}
+    <button
+      type="button"
+      class="btn btn-sm {type === 'git' ? 'preset-filled-primary-500' : 'preset-tonal'}"
+      onclick={() => (type = 'git')}
+    >
+      Git
+    </button>
+    <button
+      type="button"
+      class="btn btn-sm {type === 'local' ? 'preset-filled-primary-500' : 'preset-tonal'}"
+      onclick={() => (type = 'local')}
+    >
+      Локальный
+    </button>
   </div>
 
-  <input class="input" placeholder="Название (необязательно)" bind:value={name} />
-
-  {#each def.fields as field (field.key)}
-    {#if field.control === 'select'}
-      <select
-        class="select"
-        value={values[field.key] ?? field.default ?? ''}
-        onchange={(e) => (values[field.key] = e.currentTarget.value)}
-      >
-        {#each field.options ?? [] as opt (opt.value)}
-          <option value={opt.value}>{opt.label}</option>
-        {/each}
-      </select>
-    {:else if field.picker === 'directory'}
-      <div class="flex gap-2">
-        <input
-          class="input flex-1"
-          placeholder={field.placeholder}
-          required={field.required}
-          value={values[field.key] ?? ''}
-          oninput={(e) => (values[field.key] = e.currentTarget.value)}
-        />
-        <button
-          type="button"
-          class="btn btn-sm preset-tonal"
-          onclick={() => pickDirectory(field.key)}
-        >
-          Обзор…
-        </button>
-      </div>
-    {:else}
-      <input
-        class="input"
-        placeholder={field.placeholder}
-        required={field.required}
-        value={values[field.key] ?? ''}
-        oninput={(e) => (values[field.key] = e.currentTarget.value)}
-      />
+  {#if type === 'git'}
+    <input
+      class="input"
+      placeholder="Вставьте ссылку на репозиторий (HTTPS, SSH или owner/repo)"
+      bind:value={gitInput}
+      required
+    />
+    {#if parsed}
+      <dl class="space-y-1 rounded bg-surface-100-900 p-2 text-xs">
+        <div class="flex justify-between gap-2">
+          <dt class="opacity-60">Название</dt>
+          <dd class="truncate font-medium">{parsed.name}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="opacity-60">URL</dt>
+          <dd class="truncate">{parsed.url}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="opacity-60">Авторизация</dt>
+          <dd>{parsed.authMode === 'ssh' ? 'SSH' : 'HTTPS'}</dd>
+        </div>
+        {#if parsed.ref}
+          <div class="flex justify-between gap-2">
+            <dt class="opacity-60">ref</dt>
+            <dd>{parsed.ref}</dd>
+          </div>
+        {/if}
+        {#if parsed.subpath}
+          <div class="flex justify-between gap-2">
+            <dt class="opacity-60">subpath</dt>
+            <dd class="truncate">{parsed.subpath}</dd>
+          </div>
+        {/if}
+      </dl>
+    {:else if gitInput.trim()}
+      <p class="text-xs text-error-500">Не удалось распознать ссылку на репозиторий.</p>
     {/if}
-  {/each}
+  {:else}
+    <div class="flex gap-2">
+      <input class="input flex-1" placeholder="Каталог не выбран" value={localPath} readonly />
+      <button type="button" class="btn btn-sm preset-tonal" onclick={pickFolder}>Обзор…</button>
+    </div>
+    {#if localName}
+      <p class="text-xs opacity-60">Название: <span class="font-medium">{localName}</span></p>
+    {/if}
+  {/if}
 
   {#if error}
     <p class="text-sm text-error-500">{error}</p>
   {/if}
 
-  <button type="submit" class="btn preset-filled-primary-500" disabled={busy}>
+  <button
+    type="submit"
+    class="btn preset-filled-primary-500"
+    disabled={busy || (type === 'git' ? !parsed : !localPath)}
+  >
     {busy ? 'Добавление…' : 'Добавить'}
   </button>
 </form>

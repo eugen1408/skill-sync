@@ -97,4 +97,32 @@ describe('SourceManager', () => {
     expect(m.list()).toHaveLength(0)
     expect(m.listSkills(src.id)).toEqual([])
   })
+
+  it('ensureDefaultOfficial создаёт skills.sh один раз', () => {
+    const m = makeManager(fakeAdapter(), file)
+    expect(m.ensureDefaultOfficial()).toBe(true)
+    const official = m.list().find((s) => s.type === 'official')
+    expect(official?.id).toBe('official')
+    expect(official?.name).toBe('skills.sh')
+    // Повторный вызов не дублирует.
+    expect(m.ensureDefaultOfficial()).toBe(false)
+    expect(m.list().filter((s) => s.type === 'official')).toHaveLength(1)
+  })
+
+  it('нельзя добавить второй official и нельзя удалить дефолтный', async () => {
+    const m = makeManager(fakeAdapter(), file)
+    m.ensureDefaultOfficial()
+    await expect(m.add({ type: 'official', name: 'x', config: {} })).rejects.toThrow(/по умолчанию/)
+    expect(() => m.remove('official')).toThrow(/нельзя удалить/)
+  })
+
+  it('defaultName выводит имя из basename url/каталога', async () => {
+    const m = makeManager(fakeAdapter(), file)
+    const src = await m.add({
+      type: 'git',
+      name: '',
+      config: { url: 'https://github.com/o/my-repo.git' }
+    })
+    expect(src.name).toBe('my-repo')
+  })
 })

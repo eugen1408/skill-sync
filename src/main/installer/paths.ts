@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { InstallScope } from '@shared/domain/config'
 import type { AgentInfo } from '@shared/domain/agent'
 import { agentDir } from '@shared/domain/agent'
+import { resolveGlobalAgentSkillsDir } from '../agentPaths'
 
 export interface PathContext {
   scope: InstallScope
@@ -32,6 +33,10 @@ export function canonicalSkillPath(ctx: PathContext, skillName: string): string 
 
 /** Каталог skills конкретного агента для scope (куда ставится симлинк на канонический путь). */
 export function agentSkillsDir(ctx: PathContext, agent: AgentInfo): string {
+  // Глобальный scope без явного installDir учитывает env-оверрайды каталогов агентов (CLI).
+  if (ctx.scope === 'global' && !ctx.installDir) {
+    return resolveGlobalAgentSkillsDir(agent, ctx.home)
+  }
   return join(baseDir(ctx), agentDir(agent, ctx.scope))
 }
 
