@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { OFFICIAL_SOURCE_ID } from '@shared/domain/source'
   import { sources } from '../lib/stores/sources.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
   import { sourceTypeLabel, sourceStatusLabel } from '../lib/labels'
@@ -57,13 +58,15 @@
             >
               {source.enabled ? 'Отключить' : 'Включить'}
             </button>
-            <button
-              class="btn btn-sm preset-tonal"
-              onclick={() =>
-                toasts.guard(() => sources.remove(source.id), 'Не удалось удалить источник')}
-            >
-              Удалить
-            </button>
+            {#if source.id !== OFFICIAL_SOURCE_ID}
+              <button
+                class="btn btn-sm preset-tonal"
+                onclick={() =>
+                  toasts.guard(() => sources.remove(source.id), 'Не удалось удалить источник')}
+              >
+                Удалить
+              </button>
+            {/if}
           </div>
         </div>
       {/each}

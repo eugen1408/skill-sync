@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { IpcEvent } from '@shared/ipc/channels'
 import type { AppUpdateStatus } from '@shared/ipc/contract'
 import type { AppNotification } from '@shared/domain/notification'
-import { DEFAULT_OFFICIAL_URL } from '@shared/domain/source'
+import { DEFAULT_OFFICIAL_URL, OFFICIAL_SOURCE_ID } from '@shared/domain/source'
 import { AuditService } from './security/AuditService'
 import { createTray } from './tray'
 import { ConfigStore } from './config/ConfigStore'
@@ -190,8 +190,12 @@ app.whenReady().then(() => {
   })
 
   sourceManager.init()
+  // registry.init() синхронно подписывается на onIndexed до первого await — можно индексировать ниже.
   void skillRegistry.init()
+  // skills.sh добавляется по умолчанию; при первом создании — первичная индексация каталога.
+  const seededOfficial = sourceManager.ensureDefaultOfficial()
   updateEngine.start()
+  if (seededOfficial) sourceManager.refresh(OFFICIAL_SOURCE_ID)
 
   tray = createTray({
     show: showWindow,

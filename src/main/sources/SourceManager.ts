@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Source, RawSkill, SourceType } from '@shared/domain/source'
+import { OFFICIAL_SOURCE_ID } from '@shared/domain/source'
 import type { AppError } from '@shared/domain/error'
 import { makeAppError } from '@shared/domain/error'
 import type { ConfigStore } from '../config/ConfigStore'
@@ -15,10 +16,23 @@ export interface IndexResult {
   error: AppError | null
 }
 
+function basename(p: string): string {
+  return (
+    p
+      .replace(/[/\\]+$/, '')
+      .split(/[/\\]/)
+      .pop() ?? p
+  )
+}
+
 function defaultName(input: AddSourceInput): string {
   if (input.name.trim()) return input.name.trim()
-  if (input.type === 'local') return input.config.localPath ?? 'Локальный каталог'
-  if (input.type === 'git') return input.config.url ?? 'Git-репозиторий'
+  if (input.type === 'local') {
+    return input.config.localPath ? basename(input.config.localPath) : 'Локальный каталог'
+  }
+  if (input.type === 'git') {
+    return input.config.url ? basename(input.config.url.replace(/\.git$/i, '')) : 'Git-репозиторий'
+  }
   return 'skills.sh'
 }
 
@@ -49,6 +63,33 @@ export class SourceManager {
     }
   }
 
+  /**
+   * Гарантирует наличие единственного официального источника skills.sh (добавляется по умолчанию).
+   * Возвращает true, если источник был только что создан (нужна первичная индексация).
+   */
+  ensureDefaultOfficial(): boolean {
+    if (this.list().some((s) => s.type === 'official')) return false
+    const source: Source = {
+      id: OFFICIAL_SOURCE_ID,
+      type: 'official',
+      name: 'skills.sh',
+      enabled: true,
+      config: {
+        url: null,
+        ref: null,
+        subpath: null,
+        authMode: null,
+        localPath: null,
+        watch: false
+      },
+      lastIndexedAt: null,
+      status: 'ok',
+      lastError: null
+    }
+    this.configStore.update({ sources: [source, ...this.list()] })
+    return true
+  }
+
   onIndexed(cb: (r: IndexResult) => void): () => void {
     this.listeners.add(cb)
     return () => this.listeners.delete(cb)
@@ -67,6 +108,9 @@ export class SourceManager {
   }
 
   async add(input: AddSourceInput): Promise<Source> {
+    if (input.type === 'official') {
+      throw new Error('Источник skills.sh уже добавлен по умолчанию и не дублируется')
+    }
     const adapter = this.requireAdapter(input.type)
     const source: Source = {
       id: randomUUID(),
@@ -101,6 +145,9 @@ export class SourceManager {
   }
 
   remove(id: string): void {
+    if (id === OFFICIAL_SOURCE_ID) {
+      throw new Error('Источник skills.sh нельзя удалить (можно отключить)')
+    }
     this.watcher.unwatch(id)
     this.skillsCache.delete(id)
     this.configStore.update({ sources: this.list().filter((s) => s.id !== id) })

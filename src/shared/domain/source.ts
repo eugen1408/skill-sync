@@ -48,3 +48,6 @@ export interface AddSourceInput {
 }
 
 export const DEFAULT_OFFICIAL_URL = 'https://skills.sh'
+
+/** Фиксированный id единственного официального источника (skills.sh), добавляемого по умолчанию. */
+export const OFFICIAL_SOURCE_ID = 'official'
