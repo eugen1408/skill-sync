@@ -22,6 +22,7 @@
   let audit = $state<SecurityAudit | null>(null)
   let officialUrl = $state<string | null>(null)
   let readmeHtml = $state<string | null>(null)
+  let auditOpen = $state(false)
 
   $effect(() => {
     const id = ui.detailId
@@ -35,6 +36,7 @@
     audit = null
     officialUrl = null
     readmeHtml = null
+    auditOpen = false
     // Каждый вызов обёрнут: даже если какой-то IPC-метод недоступен/бросит, эффект не
     // прервётся синхронно и переключение между карточками продолжит работать (стале-гард
     // применяет ответ, только если выбранный skill не сменился за время запроса).
@@ -164,27 +166,38 @@
 
     {#if hasAuditData(audit) && audit}
       <div>
-        <div class="mb-2 flex items-center gap-2">
-          <p class="text-sm font-semibold">Безопасность</p>
+        <button
+          class="flex w-full items-center gap-2 text-left"
+          aria-expanded={auditOpen}
+          onclick={() => (auditOpen = !auditOpen)}
+        >
+          <span class="text-sm font-semibold">Безопасность</span>
           <span class="badge {riskBadgeClass(audit.worstRisk)}">{riskLabel(audit.worstRisk)}</span>
-        </div>
-        <ul class="space-y-2 text-sm">
-          {#each audit.providers as p (p.provider)}
-            <li class="rounded border border-surface-200-800 p-2">
-              <div class="flex items-center justify-between gap-2">
-                <span class="font-medium">{auditProviderLabel(p.provider)}</span>
-                <span class="badge {riskBadgeClass(p.risk)}">{riskLabel(p.risk)}</span>
-              </div>
-              {#if p.summary}
-                <p class="mt-1 text-xs opacity-70">{p.summary}</p>
-              {/if}
-              {#if p.analyzedAt}
-                <p class="mt-1 text-xs opacity-40">Проверено: {fmtDate(p.analyzedAt)}</p>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-        <p class="mt-1 text-xs opacity-50">Данные аудита: skills.sh</p>
+          <span class="ml-auto text-xs opacity-50">{audit.providers.length}</span>
+          <Icon
+            name="chevron"
+            class={auditOpen ? 'rotate-180 transition-transform' : 'transition-transform'}
+          />
+        </button>
+        {#if auditOpen}
+          <ul class="mt-2 space-y-2 text-sm">
+            {#each audit.providers as p (p.provider)}
+              <li class="rounded border border-surface-200-800 p-2">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-medium">{auditProviderLabel(p.provider)}</span>
+                  <span class="badge {riskBadgeClass(p.risk)}">{riskLabel(p.risk)}</span>
+                </div>
+                {#if p.summary}
+                  <p class="mt-1 text-xs opacity-70">{p.summary}</p>
+                {/if}
+                {#if p.analyzedAt}
+                  <p class="mt-1 text-xs opacity-40">Проверено: {fmtDate(p.analyzedAt)}</p>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+          <p class="mt-1 text-xs opacity-50">Данные аудита: skills.sh</p>
+        {/if}
       </div>
     {/if}
 
