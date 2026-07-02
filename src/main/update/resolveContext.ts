@@ -23,7 +23,9 @@ function officialRepoUrl(sourceRef: string): string | null {
 export function buildResolveContext(
   entry: CatalogEntry,
   source: Source | undefined,
-  lockEntry: LockEntry | null
+  lockEntry: LockEntry | null,
+  /** Каталог локального клона git-источника (root), если он уже существует. */
+  gitLocalDir: string | null = null
 ): ResolveContext {
   const installPath = entry.installations[0]?.installPath ?? null
 
@@ -52,7 +54,7 @@ export function buildResolveContext(
     sourceType: entry.sourceType,
     installPath,
     lockEntry,
-    repo: { url: repoUrl, ref, skillPath, localDir: null },
+    repo: { url: repoUrl, ref, skillPath, localDir: gitLocalDir },
     localPath
   }
 }

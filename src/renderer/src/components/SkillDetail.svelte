@@ -14,7 +14,10 @@
       entry = null
       return
     }
-    void api.catalog.get(id).then((e) => (entry = e))
+    // Стале-гард: применяем ответ только если выбранный skill не сменился за время запроса.
+    void api.catalog.get(id).then((e) => {
+      if (ui.detailId === id) entry = e
+    })
   })
 
   function install(): void {

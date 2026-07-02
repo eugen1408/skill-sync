@@ -4,7 +4,7 @@ import type { UpdateCheckResult, UpdateCheckEntry, UpdateRunSummary } from '@sha
 import type { InstallRequest } from '@shared/domain/install'
 import type { JobContext } from '../jobs/JobRunner'
 import type { JobRunner } from '../jobs/JobRunner'
-import type { SourceManager } from '../sources'
+import type { SourceManager, GitCache } from '../sources'
 import type { SkillRegistry } from '../registry'
 import type { InstallerService } from '../installer'
 import type { ConfigStore } from '../config/ConfigStore'
@@ -13,6 +13,7 @@ import { findLockEntry } from '../version'
 import type { NotificationCenter } from '../notifications/NotificationCenter'
 import { logger } from '../logger'
 import { mapWithConcurrency } from '../util/pool'
+import { resolveConcurrency } from '../util/concurrency'
 import { buildResolveContext } from './resolveContext'
 
 export interface UpdateEngineDeps {
@@ -23,11 +24,24 @@ export interface UpdateEngineDeps {
   resolver: VersionResolver
   notifications: NotificationCenter
   configStore: ConfigStore
+  gitCache: GitCache
   onChecked: (result: UpdateCheckResult) => void
 }
 
-const CHECK_CONCURRENCY = 6
-const RUN_CONCURRENCY = 4
+// Проверки версий IO-bound (сеть) — можно шире; установки запускают npx/git — уже.
+// Оба масштабируются под CPU и переопределяются env-переменными (follow-up [18]).
+const CHECK_CONCURRENCY = resolveConcurrency({
+  envVar: 'SKILLS_CHECK_CONCURRENCY',
+  min: 2,
+  max: 8,
+  fallback: 6
+})
+const RUN_CONCURRENCY = resolveConcurrency({
+  envVar: 'SKILLS_INSTALL_CONCURRENCY',
+  min: 1,
+  max: 6,
+  fallback: 4
+})
 
 /**
  * Проверка и применение обновлений skills. Режимы: вручную / при запуске / по расписанию /
@@ -155,7 +169,12 @@ export class UpdateEngine {
   private async checkEntry(entry: CatalogEntry, checkedAt: string): Promise<UpdateCheckEntry> {
     const source = this.deps.sourceManager.get(entry.sourceId)
     const lockEntry = await findLockEntry(entry.name)
-    const info = await this.deps.resolver.resolve(buildResolveContext(entry, source, lockEntry))
+    // Для git-источника — путь существующего клона (без сети): включает path-scoped git log
+    // и чтение CHANGELOG из клона вместо деградации к ls-remote HEAD (follow-up [6]).
+    const gitLocalDir = source?.type === 'git' ? await this.deps.gitCache.existingDir(source) : null
+    const info = await this.deps.resolver.resolve(
+      buildResolveContext(entry, source, lockEntry, gitLocalDir)
+    )
     this.deps.skillRegistry.applyVersion(entry.id, info, checkedAt)
 
     if (info.hasUpdate) {

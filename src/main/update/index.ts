@@ -1,6 +1,6 @@
 import type { UpdateCheckResult } from '@shared/domain/update'
 import type { JobRunner } from '../jobs/JobRunner'
-import type { SourceManager } from '../sources'
+import type { SourceManager, GitCache } from '../sources'
 import type { SkillRegistry } from '../registry'
 import type { InstallerService } from '../installer'
 import type { ConfigStore } from '../config/ConfigStore'
@@ -19,6 +19,7 @@ export interface UpdateEngineFactoryDeps {
   resolver: VersionResolver
   notifications: NotificationCenter
   configStore: ConfigStore
+  gitCache: GitCache
   onChecked: (result: UpdateCheckResult) => void
 }
 

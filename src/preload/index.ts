@@ -36,6 +36,9 @@ const api: IpcApi = {
   jobs: {
     cancel: (jobId: string) => ipcRenderer.invoke(IpcInvoke.jobs.cancel, jobId)
   },
+  dialog: {
+    selectDirectory: () => ipcRenderer.invoke(IpcInvoke.dialog.selectDirectory)
+  },
   source: {
     list: () => ipcRenderer.invoke(IpcInvoke.source.list),
     add: (input: AddSourceInput) => ipcRenderer.invoke(IpcInvoke.source.add, input),

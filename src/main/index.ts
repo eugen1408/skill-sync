@@ -156,6 +156,7 @@ app.whenReady().then(() => {
     resolver: createDefaultVersionResolver(),
     notifications,
     configStore,
+    gitCache,
     onChecked: (result) => send(IpcEvent.updateChecked, result)
   })
 

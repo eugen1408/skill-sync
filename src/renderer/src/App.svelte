@@ -7,6 +7,7 @@
   import { notifications } from './lib/stores/notifications.svelte'
   import { jobs } from './lib/stores/jobs.svelte'
   import { config } from './lib/stores/config.svelte'
+  import { toasts } from './lib/stores/toasts.svelte'
   import CatalogPage from './components/CatalogPage.svelte'
   import SourcesPage from './components/SourcesPage.svelte'
   import NotificationsPage from './components/NotificationsPage.svelte'
@@ -31,12 +32,25 @@
     sources.init()
     notifications.init()
     void api.app.getVersion().then((v) => (version = v))
+
+    // Транзиентная обратная связь по фоновым событиям (ошибки уже идут в уведомления).
+    const offInstall = api.events.onInstallResult((r) => {
+      if (r.status === 'ok') {
+        toasts.push(r.installedVersion ? `Установлено: ${r.installedVersion}` : 'Skill установлен')
+      }
+    })
+    const offChecked = api.events.onUpdateChecked((r) => {
+      if (r.updatesAvailable > 0) toasts.push(`Доступно обновлений: ${r.updatesAvailable}`)
+    })
+
     return () => {
       jobs.destroy()
       config.destroy()
       catalog.destroy()
       sources.destroy()
       notifications.destroy()
+      offInstall()
+      offChecked()
     }
   })
 

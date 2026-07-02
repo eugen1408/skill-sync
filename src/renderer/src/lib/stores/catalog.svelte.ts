@@ -14,11 +14,15 @@ class CatalogStore {
   loading = $state(false)
   private unsubs: Array<() => void> = []
   private initialized = false
+  private queryId = 0
+  private searchTimer: ReturnType<typeof setTimeout> | null = null
+  private readonly debounceMs = 250
 
   async load(): Promise<void> {
+    const id = ++this.queryId
     this.loading = true
     try {
-      this.result = await api.catalog.query({
+      const page = await api.catalog.query({
         text: this.text || null,
         sourceIds: this.sourceIds,
         status: this.status,
@@ -26,8 +30,11 @@ class CatalogStore {
         page: this.page,
         pageSize: this.pageSize
       })
+      // Игнорируем ответ на устаревший запрос (гонка при быстром вводе/переключении).
+      if (id !== this.queryId) return
+      this.result = page
     } finally {
-      this.loading = false
+      if (id === this.queryId) this.loading = false
     }
   }
 
@@ -41,13 +48,20 @@ class CatalogStore {
   destroy(): void {
     this.unsubs.forEach((u) => u())
     this.unsubs = []
+    if (this.searchTimer) clearTimeout(this.searchTimer)
+    this.searchTimer = null
     this.initialized = false
   }
 
   setText(text: string): void {
     this.text = text
     this.page = 0
-    void this.load()
+    // Debounce ввода: не дёргаем main на каждый символ.
+    if (this.searchTimer) clearTimeout(this.searchTimer)
+    this.searchTimer = setTimeout(() => {
+      this.searchTimer = null
+      void this.load()
+    }, this.debounceMs)
   }
 
   setStatus(status: CatalogStatusFilter | null): void {

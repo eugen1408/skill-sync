@@ -20,6 +20,15 @@ export class GitCache {
     return join(this.baseDir, source.id)
   }
 
+  /**
+   * Каталог уже существующего клона (репозиторий root), либо null, если клон ещё не создан.
+   * Не обращается к сети — пригодно для offline-проверки версий (follow-up [6]).
+   */
+  async existingDir(source: Source): Promise<string | null> {
+    const dir = this.dirFor(source)
+    return (await this.isRepo(dir)) ? dir : null
+  }
+
   /** Гарантирует актуальный локальный клон; возвращает каталог для обхода (с учётом subpath). */
   async ensure(source: Source, ctx: IndexContext): Promise<string> {
     const url = source.config.url?.trim()

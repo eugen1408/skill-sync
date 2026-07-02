@@ -5,8 +5,15 @@
   import { api } from '../lib/api'
   import { config } from '../lib/stores/config.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
+  import { theme, type ThemeMode } from '../lib/stores/theme.svelte'
 
   const cfg = $derived(config.config)
+
+  const themeModes: Array<{ value: ThemeMode; label: string }> = [
+    { value: 'system', label: 'Как в системе' },
+    { value: 'light', label: 'Светлая' },
+    { value: 'dark', label: 'Тёмная' }
+  ]
 
   // Ключ должен совпадать с GITHUB_TOKEN_KEY в main/secrets/SecretStore.
   const GITHUB_TOKEN_KEY = 'githubToken'
@@ -57,6 +64,22 @@
 
 {#if cfg}
   <div class="mx-auto max-w-2xl space-y-6">
+    <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
+      <h3 class="h5">Оформление</h3>
+      <div class="flex gap-2">
+        {#each themeModes as m (m.value)}
+          <button
+            class="btn btn-sm {theme.mode === m.value
+              ? 'preset-filled-primary-500'
+              : 'preset-tonal'}"
+            onclick={() => theme.set(m.value)}
+          >
+            {m.label}
+          </button>
+        {/each}
+      </div>
+    </section>
+
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">Целевые агенты</h3>
       <p class="text-sm opacity-60">

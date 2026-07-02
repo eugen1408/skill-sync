@@ -150,6 +150,17 @@
 - **Блокер: прокси (Q-04/FR9)** — `src/main/net/proxy.ts` `applyProxy`: глобальный undici-dispatcher для `fetch` (GitHub API / skills.sh) + переменные `HTTPS_PROXY/HTTP_PROXY` (наследуются git/npx). Применяется при старте и при изменении настроек (`config:update` с секцией `network`).
 - **Блокер: секреты (Q-04)** — `src/main/secrets/SecretStore.ts` на Electron `safeStorage`: GitHub-токен шифруется на диск (`secrets.bin`), значения в renderer не отдаются (IPC `secrets:` — только available/has/set/delete). Токен прокидывается в `GITHUB_TOKEN`/`GH_TOKEN` при старте и при изменении (наследуется fetch-портами и git). UI — поле в Настройках (write-only, статус «задан/не задан»).
 
-Итог проверок после всех правок: typecheck (node+web) 0 ошибок; **70 тестов**; build + smoke-boot чисто; prettier чисто.
+**Добор follow-up (без внешних данных):**
 
-**Остаются follow-up** (не блокеры): парсинг `owner/repo` покрывает official, но `repo.localDir` в контексте всё ещё `null` (path-scoped git log/CHANGELOG-из-клона); HTTPS-git-auth токеном (не только GitHub API) — через credential-helper; cron-расписание; трей/фоновые проверки; renderer-тесты; виртуализация; дебаунс поиска; тема-тумблер. Плюс за пользователем — E2E, сверка `cliFlag` с CLI, `npm run dist`/подпись, релиз-пайплайн для electron-updater.
+- **[6] `repo.localDir`** — `GitCache.existingDir()` (offline, без сети) прокидывает каталог существующего клона git-источника в `ResolveContext`; включает path-scoped `git log` и чтение CHANGELOG из клона вместо деградации к `ls-remote HEAD`. `UpdateEngine` получает `gitCache` в deps.
+- **[10] folder-picker** — IPC `dialog:selectDirectory` (нативный выбор каталога) + кнопка «Обзор…» в форме локального источника.
+- **[11] дебаунс + стале-гард** — поиск каталога дебаунсится (250 мс), ответы на устаревшие запросы отбрасываются по `queryId`; `SkillDetail` применяет ответ только если выбранный skill не сменился.
+- **[14] тема** — тумблер «Как в системе / Светлая / Тёмная» (Настройки); класс `.dark` на `<html>` через `@custom-variant`, Skeleton подхватывает через `light-dark()`/`color-scheme`; предпочтение в `localStorage`, применяется до монтирования.
+- **[15] неиспользуемые IPC-события** — `install:result` → тост об успешной установке, `update:checked` → сводный тост при наличии обновлений (ошибки по-прежнему в уведомлениях).
+- **[16] типы источников из реестра** — форма добавления строится из `SOURCE_TYPES`; новый `SourceType` требует правки в одном месте.
+- **[17] semver pre-release/build** — `parseSemver` выделяет pre-release, `compareSemver` сравнивает по правилам semver §11 (стабильный релиз старше pre-release); build-метаданные игнорируются.
+- **[18] параллелизм** — `resolveConcurrency` (env-override `SKILLS_CHECK_CONCURRENCY`/`SKILLS_INSTALL_CONCURRENCY` + CPU-скейлинг в границах) вместо фиксированных 6/4.
+
+Итог проверок после всех правок: typecheck (node+web) 0 ошибок; **83 теста** (+13); build чисто; prettier чисто.
+
+**Остаются follow-up**: HTTPS-git-auth токеном (не только GitHub API) — через credential-helper; cron-расписание; трей/фоновые проверки; renderer-тесты; виртуализация списка каталога; preview-подтверждение реконсиляции + разворачиваемые логи операций. Плюс за пользователем — E2E, сверка `cliFlag` с CLI, `npm run dist`/подпись, релиз-пайплайн для electron-updater.

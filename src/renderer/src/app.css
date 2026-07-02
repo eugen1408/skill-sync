@@ -1,4 +1,8 @@
 @import 'tailwindcss';
+/* Ручное управление темой: dark-вариант переключается классом .dark на <html>
+   (по умолчанию Tailwind завязан на prefers-color-scheme). Skeleton через light-dark()
+   и color-scheme подхватывает это автоматически (follow-up [14]). */
+@custom-variant dark (&:where(.dark, .dark *));
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton-svelte';
 @import '@skeletonlabs/skeleton/themes/cerberus';

@@ -18,6 +18,9 @@ export const IpcInvoke = {
   jobs: {
     cancel: 'jobs:cancel'
   },
+  dialog: {
+    selectDirectory: 'dialog:selectDirectory'
+  },
   source: {
     list: 'source:list',
     add: 'source:add',

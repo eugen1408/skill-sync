@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, dialog, BrowserWindow, type OpenDialogOptions } from 'electron'
 import { IpcInvoke } from '@shared/ipc/channels'
 import type { ConfigPatch, CatalogQuery } from '@shared/ipc/contract'
 import type { AddSourceInput } from '@shared/domain/source'
@@ -58,6 +58,13 @@ export function registerIpc(deps: IpcDeps): void {
   })
 
   ipcMain.handle(IpcInvoke.jobs.cancel, (_e, jobId: string) => jobRunner.cancel(jobId))
+
+  ipcMain.handle(IpcInvoke.dialog.selectDirectory, async () => {
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null
+    const opts: OpenDialogOptions = { properties: ['openDirectory', 'createDirectory'] }
+    const result = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
+  })
 
   ipcMain.handle(IpcInvoke.source.list, () => sourceManager.list())
   ipcMain.handle(IpcInvoke.source.add, (_e, input: AddSourceInput) => sourceManager.add(input))

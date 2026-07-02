@@ -1,16 +1,21 @@
 <script lang="ts">
   import type { SourceType, GitAuthMode } from '@shared/domain/source'
+  import { SOURCE_TYPES, sourceTypeDef } from '../lib/sourceForms'
+  import { api } from '../lib/api'
   import { sources } from '../lib/stores/sources.svelte'
 
   let type = $state<SourceType>('git')
   let name = $state('')
-  let url = $state('')
-  let ref = $state('')
-  let subpath = $state('')
-  let authMode = $state<GitAuthMode>('https')
-  let localPath = $state('')
+  let values = $state<Record<string, string>>({})
   let error = $state<string | null>(null)
   let busy = $state(false)
+
+  const def = $derived(sourceTypeDef(type))
+
+  async function pickDirectory(key: string): Promise<void> {
+    const dir = await api.dialog.selectDirectory()
+    if (dir) values[key] = dir
+  }
 
   async function submit(e: Event): Promise<void> {
     e.preventDefault()
@@ -21,15 +26,16 @@
         type,
         name,
         config: {
-          url: type === 'local' ? null : url || null,
-          ref: ref || null,
-          subpath: subpath || null,
-          authMode: type === 'git' ? authMode : null,
-          localPath: type === 'local' ? localPath || null : null,
-          watch: type === 'local'
+          url: type === 'local' ? null : values.url || null,
+          ref: values.ref || null,
+          subpath: values.subpath || null,
+          authMode: type === 'git' ? (values.authMode as GitAuthMode) || 'https' : null,
+          localPath: type === 'local' ? values.localPath || null : null,
+          watch: def.watch ?? false
         }
       })
-      name = url = ref = subpath = localPath = ''
+      name = ''
+      values = {}
     } catch (err) {
       error = err instanceof Error ? err.message : String(err)
     } finally {
@@ -42,39 +48,57 @@
   <p class="font-semibold">Добавить источник</p>
 
   <div class="flex gap-2">
-    {#each ['official', 'git', 'local'] as const as t (t)}
+    {#each SOURCE_TYPES as t (t.type)}
       <button
         type="button"
-        class="btn btn-sm {type === t ? 'preset-filled-primary-500' : 'preset-tonal'}"
-        onclick={() => (type = t)}
+        class="btn btn-sm {type === t.type ? 'preset-filled-primary-500' : 'preset-tonal'}"
+        onclick={() => (type = t.type)}
       >
-        {t === 'official' ? 'skills.sh' : t === 'git' ? 'Git' : 'Локальный'}
+        {t.label}
       </button>
     {/each}
   </div>
 
   <input class="input" placeholder="Название (необязательно)" bind:value={name} />
 
-  {#if type === 'git'}
-    <input class="input" placeholder="URL репозитория" bind:value={url} required />
-    <div class="flex gap-2">
-      <input class="input" placeholder="ref (branch/tag)" bind:value={ref} />
-      <input class="input" placeholder="subpath" bind:value={subpath} />
-    </div>
-    <select class="select" bind:value={authMode}>
-      <option value="https">HTTPS</option>
-      <option value="ssh">SSH</option>
-      <option value="none">Без авторизации</option>
-    </select>
-  {:else if type === 'local'}
-    <input class="input" placeholder="Путь к каталогу" bind:value={localPath} required />
-  {:else}
-    <input
-      class="input"
-      placeholder="Базовый URL (по умолчанию https://skills.sh)"
-      bind:value={url}
-    />
-  {/if}
+  {#each def.fields as field (field.key)}
+    {#if field.control === 'select'}
+      <select
+        class="select"
+        value={values[field.key] ?? field.default ?? ''}
+        onchange={(e) => (values[field.key] = e.currentTarget.value)}
+      >
+        {#each field.options ?? [] as opt (opt.value)}
+          <option value={opt.value}>{opt.label}</option>
+        {/each}
+      </select>
+    {:else if field.picker === 'directory'}
+      <div class="flex gap-2">
+        <input
+          class="input flex-1"
+          placeholder={field.placeholder}
+          required={field.required}
+          value={values[field.key] ?? ''}
+          oninput={(e) => (values[field.key] = e.currentTarget.value)}
+        />
+        <button
+          type="button"
+          class="btn btn-sm preset-tonal"
+          onclick={() => pickDirectory(field.key)}
+        >
+          Обзор…
+        </button>
+      </div>
+    {:else}
+      <input
+        class="input"
+        placeholder={field.placeholder}
+        required={field.required}
+        value={values[field.key] ?? ''}
+        oninput={(e) => (values[field.key] = e.currentTarget.value)}
+      />
+    {/if}
+  {/each}
 
   {#if error}
     <p class="text-sm text-error-500">{error}</p>

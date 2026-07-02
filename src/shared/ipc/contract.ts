@@ -69,6 +69,10 @@ export interface IpcApi {
   jobs: {
     cancel(jobId: string): Promise<boolean>
   }
+  dialog: {
+    /** Нативный выбор каталога; возвращает путь или null при отмене. */
+    selectDirectory(): Promise<string | null>
+  }
   source: {
     list(): Promise<Source[]>
     add(input: AddSourceInput): Promise<Source>

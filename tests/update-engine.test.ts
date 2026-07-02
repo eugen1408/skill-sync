@@ -85,6 +85,13 @@ describe('buildResolveContext', () => {
     const ctx = buildResolveContext(entry, source, null)
     expect(ctx.repo.url).toBe('https://github.com/owner/repo')
   })
+
+  it('прокидывает каталог локального клона git в repo.localDir', () => {
+    const entry = mkEntry({ sourceType: 'git', sourceRef: 'alpha' })
+    const source = mkSource('git', { url: 'https://github.com/o/r' })
+    const ctx = buildResolveContext(entry, source, null, '/cache/o-r')
+    expect(ctx.repo.localDir).toBe('/cache/o-r')
+  })
 })
 
 // -- UpdateEngine --
@@ -139,6 +146,7 @@ describe('UpdateEngine', () => {
         startInstall: () => ({ jobId: 'i', promise: Promise.resolve(installResult) })
       } as never,
       resolver: { resolve: async () => info } as never,
+      gitCache: { existingDir: async () => null } as never,
       notifications,
       configStore: {
         get: () => ({
