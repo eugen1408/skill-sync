@@ -28,19 +28,28 @@
       officialUrl = null
       return
     }
-    // Стале-гард: применяем ответ только если выбранный skill не сменился за время запроса.
-    void api.catalog.get(id).then((e) => {
-      if (ui.detailId === id) entry = e
-    })
     audit = null
     officialUrl = null
-    void api.catalog.audit(id).then((a) => {
-      if (ui.detailId === id) audit = a
+    // Каждый вызов обёрнут: даже если какой-то IPC-метод недоступен/бросит, эффект не
+    // прервётся синхронно и переключение между карточками продолжит работать (стале-гард
+    // применяет ответ, только если выбранный skill не сменился за время запроса).
+    void run(() => api.catalog.get(id)).then((e) => {
+      if (e !== undefined && ui.detailId === id) entry = e
     })
-    void api.catalog.officialUrl(id).then((u) => {
-      if (ui.detailId === id) officialUrl = u
+    void run(() => api.catalog.audit(id)).then((a) => {
+      if (a !== undefined && ui.detailId === id) audit = a
+    })
+    void run(() => api.catalog.officialUrl(id)).then((u) => {
+      if (u !== undefined && ui.detailId === id) officialUrl = u
     })
   })
+
+  /** Безопасно вызывает IPC: синхронный бросок/отказ → undefined (не валит $effect). */
+  function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
+    return Promise.resolve()
+      .then(fn)
+      .catch(() => undefined)
+  }
 
   // Описание: собственное описание записи либо (для official) сводка Agent Trust Hub с skills.sh.
   const description = $derived(entry?.description ?? audit?.description ?? null)
@@ -113,7 +122,7 @@
     {#if officialUrl}
       <button
         class="btn btn-sm preset-tonal self-start"
-        onclick={() => void api.shell.openExternal(officialUrl!)}
+        onclick={() => void api.shell?.openExternal(officialUrl!)}
       >
         ↗ Открыть на skills.sh
       </button>

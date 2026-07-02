@@ -28,6 +28,8 @@
     "tests/theme.test.ts",
     "tests/toasts.test.ts",
     "tests/catalog-store.test.ts",
-    "tests/virtual.test.ts"
+    "tests/virtual.test.ts",
+    "tests/skill-detail.test.ts",
+    "tests/catalog-page.test.ts"
   ]
 }
