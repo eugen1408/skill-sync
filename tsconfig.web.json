@@ -24,6 +24,10 @@
     "src/renderer/**/*.ts",
     "src/renderer/**/*.svelte",
     "src/preload/index.d.ts",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "tests/theme.test.ts",
+    "tests/toasts.test.ts",
+    "tests/catalog-store.test.ts",
+    "tests/virtual.test.ts"
   ]
 }

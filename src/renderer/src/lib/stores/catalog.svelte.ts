@@ -9,7 +9,9 @@ class CatalogStore {
   sourceIds = $state<string[] | null>(null)
   sort = $state<CatalogSort>('update-first')
   page = $state(0)
-  pageSize = 20
+  // Индекс каталога держится в памяти — грузим все совпадения одним запросом,
+  // список рендерится виртуализированно (follow-up [12]).
+  pageSize = 100_000
   result = $state<CatalogPage>(EMPTY)
   loading = $state(false)
   private unsubs: Array<() => void> = []

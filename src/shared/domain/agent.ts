@@ -18,8 +18,12 @@ export interface AgentInfo {
   readonly cliFlag: string
   /** Каталог skills в проектном scope (относительно корня проекта). */
   readonly projectDir: string
-  /** Каталог skills в глобальном scope (относительно home). */
+  /** Каталог skills в глобальном scope (относительно home) — дефолт CLI без env-оверрайдов. */
   readonly globalDir: string
+  /** Env-переменная, переопределяющая базовый каталог глобального scope (как в CLI). */
+  readonly globalEnvVar?: string
+  /** Путь skills относительно значения `globalEnvVar` (если переменная задана). */
+  readonly globalEnvSuffix?: string
 }
 
 export type AgentScope = 'global' | 'project'
@@ -32,7 +36,9 @@ export const KNOWN_AGENTS: readonly AgentInfo[] = [
     label: 'Claude Code',
     cliFlag: 'claude-code',
     projectDir: '.claude/skills',
-    globalDir: '.claude/skills'
+    globalDir: '.claude/skills',
+    globalEnvVar: 'CLAUDE_CONFIG_DIR',
+    globalEnvSuffix: 'skills'
   },
   {
     id: 'cursor',
@@ -46,14 +52,18 @@ export const KNOWN_AGENTS: readonly AgentInfo[] = [
     label: 'Codex',
     cliFlag: 'codex',
     projectDir: UNIVERSAL,
-    globalDir: '.codex/skills'
+    globalDir: '.codex/skills',
+    globalEnvVar: 'CODEX_HOME',
+    globalEnvSuffix: 'skills'
   },
   {
     id: 'opencode',
     label: 'OpenCode',
     cliFlag: 'opencode',
     projectDir: UNIVERSAL,
-    globalDir: '.config/opencode/skills'
+    globalDir: '.config/opencode/skills',
+    globalEnvVar: 'XDG_CONFIG_HOME',
+    globalEnvSuffix: 'opencode/skills'
   },
   {
     id: 'windsurf',

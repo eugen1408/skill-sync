@@ -177,4 +177,12 @@
 - У команды `add` нет флага `-p`: проектный scope — дефолт. Убрали мёртвый `-p`, для global оставили `-g` (наш дефолтный scope — global). Повторяющийся `-a` CLI аккумулирует — наш способ (`-a a1 -a a2`) валиден.
 - **Модель каталогов агентов приведена к CLI.** `AgentInfo.dir` заменён на `projectDir` + `globalDir` (сверены с `agents.ts`: `skillsDir`/`globalSkillsDir`), + хелпер `agentDir(agent, scope)`. Исправлены глобальные пути: `opencode` → `.config/opencode/skills`, `windsurf` → `.codeium/windsurf/skills`. Проектные каталоги: универсальные агенты (`cursor`/`codex`/`opencode`/`gemini`/`copilot`) используют `.agents/skills`. `installedScanner` сканирует `globalDir` (с дедупом по agent×skill для общих каталогов). `paths.agentSkillsDir` и реконсиляция учитывают scope; для универсальных агентов (каталог == канон) симлинк не создаётся и канон не удаляется (guard `isCanonicalAgentDir` в `fileInstall`/`agentReconciler`/`previewReconcile`). Ограничение: env-оверрайды (`CLAUDE_CONFIG_DIR`/`CODEX_HOME`/`XDG_CONFIG_HOME`) не учитываются — берутся дефолты CLI.
 
-**Остаются follow-up**: renderer-тесты (jsdom); виртуализация списка каталога; поддержка env-оверрайдов каталогов агентов. За пользователем — E2E-прогон official-установки, `npm run dist`/подпись, релиз-пайплайн для electron-updater.
+**Закрытие технических follow-up:**
+
+- **[9] Renderer-тесты** — vitest + `@sveltejs/vite-plugin-svelte` (компиляция рун в `.svelte.ts`) + jsdom (`// @vitest-environment jsdom` per-file) + `@testing-library/svelte`/jest-dom. Покрыты сторы: `toasts`, `theme` (класс `.dark`, matchMedia, localStorage), `catalog` (debounce + стале-гард). Renderer-тесты вынесены в `tsconfig.web.json`.
+- **[12] Виртуализация каталога** — pagination заменён на виртуальный список фиксированной высоты строки (`ROW_H`); каталог грузит все совпадения (индекс in-memory), рендерится только видимое окно. Оконная математика — чистый хелпер `lib/virtual.ts` (`computeWindow`, покрыт тестами).
+- **Env-оверрайды каталогов агентов** — `resolveGlobalAgentSkillsDir` учитывает `CLAUDE_CONFIG_DIR`/`CODEX_HOME`/`XDG_CONFIG_HOME` (поля `globalEnvVar`/`globalEnvSuffix` у `AgentInfo`); используется сканером и `paths` для global scope.
+
+Итог: typecheck (node+web) 0 ошибок; **114 тестов**; build + smoke-boot чисто; prettier чисто.
+
+**Остаётся за пользователем** (нужна внешняя среда): E2E-прогон official-установки на живом `npx skills`, `npm run dist` + подпись/нотаризация, релиз-пайплайн electron-updater (реальный GitHub-репозиторий). Виртуализацию каталога стоит визуально проверить в `npm run dev` (фиксированная высота строки).

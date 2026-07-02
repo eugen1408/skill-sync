@@ -8,6 +8,7 @@
   import { toasts } from '../lib/stores/toasts.svelte'
   import { updateStatusLabel, sourceTypeLabel } from '../lib/labels'
   import { installWithAuditGuard } from '../lib/install'
+  import { computeWindow } from '../lib/virtual'
 
   const statusFilters: Array<{ value: CatalogStatusFilter | null; label: string }> = [
     { value: null, label: 'Все' },
@@ -22,6 +23,16 @@
     { value: 'name-desc', label: 'Имя Я–А' }
   ]
 
+  // Фиксированная высота строки (px) для виртуализации; должна вмещать карточку + отступ.
+  const ROW_H = 96
+
+  let scrollTop = $state(0)
+  let viewportH = $state(0)
+
+  const items = $derived(catalog.result.items)
+  const win = $derived(computeWindow(scrollTop, viewportH, ROW_H, items.length))
+  const visible = $derived(items.slice(win.start, win.end))
+
   function badgeClass(entry: CatalogEntry): string {
     if (entry.hasUpdate) return 'preset-filled-warning-500'
     if (entry.installed) return 'preset-filled-success-500'
@@ -33,11 +44,9 @@
     if (!cfg) return
     void installWithAuditGuard(entry, cfg)
   }
-
-  const totalPages = $derived(Math.ceil(catalog.result.total / catalog.pageSize) || 1)
 </script>
 
-<div class="space-y-4">
+<div class="flex h-full flex-col gap-4">
   <div class="flex flex-wrap items-center gap-3">
     <input
       class="input max-w-xs"
@@ -71,64 +80,63 @@
 
   {#if catalog.loading}
     <p class="opacity-60">Загрузка…</p>
-  {:else if catalog.result.items.length === 0}
+  {:else if items.length === 0}
     <div class="card preset-outlined-surface-200-800 p-8 text-center opacity-70">
       Ничего не найдено. Добавьте источник во вкладке «Источники».
     </div>
   {:else}
-    <div class="space-y-2">
-      {#each catalog.result.items as entry (entry.id)}
-        <div class="card preset-outlined-surface-200-800 flex items-center gap-4 p-4">
-          <button class="flex-1 text-left" onclick={() => ui.openDetail(entry.id)}>
-            <div class="flex items-center gap-2">
-              <span class="font-semibold">{entry.name}</span>
-              <span class="badge {badgeClass(entry)}">{updateStatusLabel(entry.updateStatus)}</span>
+    <!-- Виртуализированный список: рендерим только видимое окно (follow-up [12]). -->
+    <div
+      class="min-h-0 flex-1 overflow-y-auto"
+      bind:clientHeight={viewportH}
+      onscroll={(e) => (scrollTop = e.currentTarget.scrollTop)}
+    >
+      <div class="relative" style="height: {win.totalHeight}px">
+        <div style="transform: translateY({win.padTop}px)">
+          {#each visible as entry (entry.id)}
+            <div style="height: {ROW_H}px" class="pb-2">
+              <div class="card preset-outlined-surface-200-800 flex h-full items-center gap-4 px-4">
+                <button
+                  class="flex-1 overflow-hidden text-left"
+                  onclick={() => ui.openDetail(entry.id)}
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="truncate font-semibold">{entry.name}</span>
+                    <span class="badge {badgeClass(entry)}"
+                      >{updateStatusLabel(entry.updateStatus)}</span
+                    >
+                  </div>
+                  {#if entry.description}
+                    <p class="line-clamp-1 text-sm opacity-70">{entry.description}</p>
+                  {/if}
+                  <p class="text-xs opacity-50">{sourceTypeLabel(entry.sourceType)}</p>
+                </button>
+                <div class="flex gap-2">
+                  {#if entry.hasUpdate}
+                    <button
+                      class="btn btn-sm preset-filled-warning-500"
+                      onclick={() =>
+                        toasts.guard(
+                          () => api.update.runOne(entry.id),
+                          'Не удалось запустить обновление'
+                        )}
+                    >
+                      Обновить
+                    </button>
+                  {:else if !entry.installed && entry.sourceId !== 'installed'}
+                    <button
+                      class="btn btn-sm preset-filled-primary-500"
+                      onclick={() => install(entry)}
+                    >
+                      Установить
+                    </button>
+                  {/if}
+                </div>
+              </div>
             </div>
-            {#if entry.description}
-              <p class="line-clamp-1 text-sm opacity-70">{entry.description}</p>
-            {/if}
-            <p class="text-xs opacity-50">{sourceTypeLabel(entry.sourceType)}</p>
-          </button>
-          <div class="flex gap-2">
-            {#if entry.hasUpdate}
-              <button
-                class="btn btn-sm preset-filled-warning-500"
-                onclick={() =>
-                  toasts.guard(
-                    () => api.update.runOne(entry.id),
-                    'Не удалось запустить обновление'
-                  )}
-              >
-                Обновить
-              </button>
-            {:else if !entry.installed && entry.sourceId !== 'installed'}
-              <button class="btn btn-sm preset-filled-primary-500" onclick={() => install(entry)}>
-                Установить
-              </button>
-            {/if}
-          </div>
+          {/each}
         </div>
-      {/each}
-    </div>
-
-    {#if totalPages > 1}
-      <div class="flex items-center justify-center gap-3">
-        <button
-          class="btn btn-sm preset-tonal"
-          disabled={catalog.page === 0}
-          onclick={() => catalog.setPage(catalog.page - 1)}
-        >
-          Назад
-        </button>
-        <span class="text-sm">{catalog.page + 1} / {totalPages}</span>
-        <button
-          class="btn btn-sm preset-tonal"
-          disabled={catalog.page + 1 >= totalPages}
-          onclick={() => catalog.setPage(catalog.page + 1)}
-        >
-          Вперёд
-        </button>
       </div>
-    {/if}
+    </div>
   {/if}
 </div>
