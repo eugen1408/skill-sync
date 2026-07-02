@@ -156,7 +156,9 @@ export function registerIpc(deps: IpcDeps): void {
   })
   ipcMain.handle(IpcInvoke.catalog.officialUrl, (_e, skillId: string) => {
     const entry = skillRegistry.get(skillId)
-    if (!entry || entry.sourceType !== 'official') return null
+    if (!entry) return null
+    // Ссылка доступна для любого skill, чей ref разбирается как owner/repo@slug
+    // (official + git-скилы, опубликованные на skills.sh), а не только official.
     const ref = parseOfficialRef(entry.sourceRef)
     if (!ref) return null
     // Карточка skill на skills.sh: {base}/{owner/repo}/{slug}.

@@ -36,6 +36,15 @@ describe('renderMarkdown', () => {
     expect(bad).not.toContain('href=')
   })
 
+  it('GFM-таблица рендерится в <table>', () => {
+    const html = renderMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |')
+    expect(html).toContain('<table>')
+    expect(html).toContain('<thead><tr><th>A</th><th>B</th></tr></thead>')
+    expect(html).toContain(
+      '<tbody><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></tbody>'
+    )
+  })
+
   it('изображение → только alt (внешние ресурсы блокирует CSP)', () => {
     const html = renderMarkdown('![логотип](https://x/y.png)')
     expect(html).toContain('логотип')

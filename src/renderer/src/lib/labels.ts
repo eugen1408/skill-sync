@@ -16,6 +16,26 @@ export function updateStatusLabel(status: UpdateStatus): string {
   }
 }
 
+// Форматирование дат в локали системы (Chromium/Electron берёт локаль ОС из navigator.languages).
+const dateTimeFmt = new Intl.DateTimeFormat(
+  typeof navigator !== 'undefined' ? [...navigator.languages] : undefined,
+  { dateStyle: 'medium', timeStyle: 'short' }
+)
+const dateFmt = new Intl.DateTimeFormat(
+  typeof navigator !== 'undefined' ? [...navigator.languages] : undefined,
+  { dateStyle: 'medium' }
+)
+
+/** Дата + время в системном формате. */
+export function formatDateTime(iso: string | null): string {
+  return iso ? dateTimeFmt.format(new Date(iso)) : '—'
+}
+
+/** Только дата в системном формате. */
+export function formatDate(iso: string | null): string {
+  return iso ? dateFmt.format(new Date(iso)) : ''
+}
+
 /** Тримминг в середине: длинные SHA/версии → «c914440…a0bdfaee» (сохраняет начало и конец). */
 export function truncateMiddle(value: string, head = 7, tail = 8): string {
   if (value.length <= head + tail + 1) return value

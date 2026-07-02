@@ -13,7 +13,9 @@
     riskBadgeClass,
     auditProviderLabel,
     formatInstalls,
-    truncateMiddle
+    truncateMiddle,
+    formatDateTime,
+    formatDate
   } from '../lib/labels'
   import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
   import Icon from './Icon.svelte'
@@ -22,7 +24,15 @@
   let audit = $state<SecurityAudit | null>(null)
   let officialUrl = $state<string | null>(null)
   let readmeHtml = $state<string | null>(null)
-  let auditOpen = $state(false)
+  // Раскрытые карточки провайдеров аудита (детали доступны при наличии summary).
+  let openProviders = $state<Set<string>>(new Set())
+
+  function toggleProvider(name: string): void {
+    const next = new Set(openProviders)
+    if (next.has(name)) next.delete(name)
+    else next.add(name)
+    openProviders = next
+  }
 
   $effect(() => {
     const id = ui.detailId
@@ -33,7 +43,7 @@
       readmeHtml = null
       return
     }
-    auditOpen = false
+    openProviders = new Set()
     audit = null
     officialUrl = null
     readmeHtml = null
@@ -98,19 +108,32 @@
     if (!cfg || !entry) return
     void installWithAuditGuard(entry, cfg, true)
   }
-
-  function fmtDate(iso: string | null): string {
-    return iso ? new Date(iso).toLocaleDateString() : ''
-  }
 </script>
 
 {#if entry}
   <aside
     class="markdown-root flex h-full flex-1 flex-col gap-4 overflow-y-auto border-l border-surface-200-800 p-4 xl:flex-[2]"
   >
-    <div class="flex items-start justify-between">
-      <h2 class="h4">{entry.name}</h2>
-      <button class="btn btn-sm preset-tonal" title="Закрыть" onclick={() => ui.closeDetail()}>
+    <div class="flex items-start justify-between gap-2">
+      <h2 class="h4 min-w-0">
+        {#if officialUrl}
+          <button
+            class="inline-flex min-w-0 items-center gap-1 text-left hover:underline"
+            title="Открыть страницу на skills.sh"
+            onclick={() => void api.shell?.openExternal(officialUrl!)}
+          >
+            <span class="truncate">{entry.name}</span>
+            <Icon name="external" size={16} class="opacity-60" />
+          </button>
+        {:else}
+          {entry.name}
+        {/if}
+      </h2>
+      <button
+        class="btn btn-sm preset-tonal shrink-0"
+        title="Закрыть"
+        onclick={() => ui.closeDetail()}
+      >
         <Icon name="close" />
       </button>
     </div>
@@ -164,7 +187,7 @@
       </div>
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">Проверено</dt>
-        <dd>{entry.lastCheckedAt ? new Date(entry.lastCheckedAt).toLocaleString() : '—'}</dd>
+        <dd>{entry.lastCheckedAt ? formatDateTime(entry.lastCheckedAt) : '—'}</dd>
       </div>
     </dl>
 
@@ -180,38 +203,47 @@
 
     {#if hasAuditData(audit) && audit}
       <div>
-        <button
-          class="flex w-full items-center gap-2 text-left"
-          aria-expanded={auditOpen}
-          onclick={() => (auditOpen = !auditOpen)}
-        >
-          <span class="text-sm font-semibold">Безопасность</span>
+        <div class="mb-2 flex items-center gap-2">
+          <p class="text-sm font-semibold">Безопасность</p>
           <span class="badge {riskBadgeClass(audit.worstRisk)}">{riskLabel(audit.worstRisk)}</span>
-          <span class="ml-auto text-xs opacity-50">{audit.providers.length}</span>
-          <Icon
-            name="chevron"
-            class={auditOpen ? 'rotate-180 transition-transform' : 'transition-transform'}
-          />
-        </button>
-        {#if auditOpen}
-          <ul class="mt-2 space-y-2 text-sm">
-            {#each audit.providers as p (p.provider)}
-              <li class="rounded border border-surface-200-800 p-2">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="font-medium">{auditProviderLabel(p.provider)}</span>
-                  <span class="badge {riskBadgeClass(p.risk)}">{riskLabel(p.risk)}</span>
+        </div>
+        <ul class="space-y-2 text-sm">
+          {#each audit.providers as p (p.provider)}
+            {@const hasDetails = !!p.summary || !!p.analyzedAt}
+            {@const open = openProviders.has(p.provider)}
+            <li class="rounded border border-surface-200-800">
+              <!-- Карточка провайдера раскрывается при наличии деталей (summary/дата). -->
+              <button
+                class="flex w-full items-center gap-2 p-2 text-left"
+                class:cursor-default={!hasDetails}
+                aria-expanded={open}
+                disabled={!hasDetails}
+                onclick={() => toggleProvider(p.provider)}
+              >
+                <span class="font-medium">{auditProviderLabel(p.provider)}</span>
+                <span class="badge {riskBadgeClass(p.risk)} ml-auto">{riskLabel(p.risk)}</span>
+                {#if hasDetails}
+                  <Icon
+                    name="chevron"
+                    size={14}
+                    class={open ? 'opacity-60' : '-rotate-90 opacity-60'}
+                  />
+                {/if}
+              </button>
+              {#if open && hasDetails}
+                <div class="border-t border-surface-200-800 p-2">
+                  {#if p.summary}
+                    <p class="text-xs opacity-70">{p.summary}</p>
+                  {/if}
+                  {#if p.analyzedAt}
+                    <p class="mt-1 text-xs opacity-40">Проверено: {formatDate(p.analyzedAt)}</p>
+                  {/if}
                 </div>
-                {#if p.summary}
-                  <p class="mt-1 text-xs opacity-70">{p.summary}</p>
-                {/if}
-                {#if p.analyzedAt}
-                  <p class="mt-1 text-xs opacity-40">Проверено: {fmtDate(p.analyzedAt)}</p>
-                {/if}
-              </li>
-            {/each}
-          </ul>
-          <p class="mt-1 text-xs opacity-50">Данные аудита: skills.sh</p>
-        {/if}
+              {/if}
+            </li>
+          {/each}
+        </ul>
+        <p class="mt-1 text-xs opacity-50">Данные аудита: skills.sh</p>
       </div>
     {/if}
 
@@ -233,11 +265,11 @@
                 {inst.installPath}
               </button>
               <button
-                class="btn btn-icon btn-icon-sm preset-tonal shrink-0"
+                class="shrink-0 text-[#0098ff] opacity-80 hover:opacity-100"
                 title="Открыть в VS Code"
                 onclick={() => void api.shell?.openInEditor(inst.installPath)}
               >
-                <Icon name="editor" size={14} />
+                <Icon name="vscode" size={15} />
               </button>
             </li>
           {/each}
@@ -319,6 +351,23 @@
   .markdown :global(pre code) {
     background: none;
     padding: 0;
+  }
+  .markdown :global(table) {
+    border-collapse: collapse;
+    margin: 0.6em 0;
+    display: block;
+    overflow-x: auto;
+    font-size: 0.9em;
+  }
+  .markdown :global(th),
+  .markdown :global(td) {
+    border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+    padding: 0.3em 0.6em;
+    text-align: left;
+  }
+  .markdown :global(th) {
+    background: color-mix(in oklab, currentColor 8%, transparent);
+    font-weight: 600;
   }
   .markdown :global(blockquote) {
     border-left: 3px solid color-mix(in oklab, currentColor 25%, transparent);

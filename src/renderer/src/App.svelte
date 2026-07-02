@@ -112,7 +112,7 @@
       </div>
       {#each nav as item (item.view)}
         <button
-          class="btn justify-start {ui.view === item.view
+          class="btn relative justify-start {ui.view === item.view
             ? 'preset-filled-primary-500'
             : 'preset-tonal'}"
           onclick={() => ui.go(item.view)}
@@ -121,7 +121,7 @@
           <span class="flex-1 text-left">{item.label}</span>
           {#if item.view === 'notifications' && notifications.unread > 0}
             <span
-              class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1.5 text-xs font-semibold text-white"
+              class="absolute right-0 top-0 inline-flex h-5 min-w-5 -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full bg-error-500 px-1.5 text-xs font-semibold text-white"
             >
               {notifications.unread}
             </span>
