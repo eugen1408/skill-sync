@@ -12,12 +12,12 @@ export const RISK_SEVERITY: Record<AuditRisk, number> = {
   critical: 4
 }
 
-/** Результат одного провайдера аудита (ath / socket / snyk / zeroleaks). */
+/** Результат одного провайдера аудита (Agent Trust Hub / Socket / Snyk / Runlayer / ZeroLeaks). */
 export interface AuditProviderResult {
   provider: string
   risk: AuditRisk
-  score: number | null
-  alerts: number | null
+  /** Однострочная сводка провайдера (v1 audit API), если есть. */
+  summary: string | null
   analyzedAt: string | null
 }
 

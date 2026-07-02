@@ -108,6 +108,46 @@ describe('SkillRegistry', () => {
     expect(byName['gamma'].installed).toBe(true)
   })
 
+  it('buildOfficialEntries: пропускает уже присутствующие (локальные/установленные), добавляет новые', async () => {
+    const { manager } = fakeSourceManager([source('s1')], { s1: [raw('Alpha')] })
+    // 'react-best' установлен, но не покрыт источником → станет orphan в индексе.
+    const installed = new Map<string, AgentInstallation[]>([
+      ['react-best', [inst('claude-code', '/h/.claude/skills/react-best')]]
+    ])
+    const reg = new SkillRegistry(
+      store,
+      manager,
+      () => {},
+      async () => installed
+    )
+    await reg.init()
+
+    const official = reg.buildOfficialEntries([
+      { name: 'Alpha', slug: 'alpha', source: 'o/r', sourceRef: 'o/r@alpha', installs: 1 },
+      {
+        name: 'react-best',
+        slug: 'react-best',
+        source: 'o/r',
+        sourceRef: 'o/r@react-best',
+        installs: 2
+      },
+      {
+        name: 'Fresh One',
+        slug: 'fresh-one',
+        source: 'o/r',
+        sourceRef: 'o/r@fresh-one',
+        installs: 3
+      }
+    ])
+
+    // Alpha (локальный) и react-best (установлен → orphan) отсеяны; остаётся только новый.
+    expect(official.map((e) => e.name)).toEqual(['Fresh One'])
+    expect(official[0].sourceId).toBe('official')
+    expect(official[0].sourceRef).toBe('o/r@fresh-one')
+    expect(official[0].installed).toBe(false)
+    expect(official[0].updateStatus).toBe('not_installed')
+  })
+
   it('applyVersion обновляет статус обновления', async () => {
     const { manager } = fakeSourceManager([source('s1')], { s1: [raw('Alpha')] })
     const installed = new Map([['alpha', [inst('claude-code', '/h/.claude/skills/alpha')]]])

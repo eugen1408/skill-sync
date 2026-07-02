@@ -85,10 +85,10 @@
         <ul class="space-y-1 text-sm">
           {#each audit.providers as p (p.provider)}
             <li class="flex items-center justify-between gap-2">
-              <span class="opacity-70">{auditProviderLabel(p.provider)}</span>
-              <span class="badge {riskBadgeClass(p.risk)}">
-                {riskLabel(p.risk)}{p.score !== null ? ` · ${p.score}` : ''}
+              <span class="truncate opacity-70" title={p.summary ?? ''}>
+                {auditProviderLabel(p.provider)}
               </span>
+              <span class="badge {riskBadgeClass(p.risk)}">{riskLabel(p.risk)}</span>
             </li>
           {/each}
         </ul>

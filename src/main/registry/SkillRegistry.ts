@@ -1,7 +1,9 @@
 import { basename } from 'node:path'
 import type { Source, RawSkill } from '@shared/domain/source'
+import { OFFICIAL_SOURCE_ID } from '@shared/domain/source'
 import type { CatalogEntry, AgentInstallation, VersionInfo } from '@shared/domain/skill'
 import { normalizeSkillKey, catalogEntryId } from '@shared/domain/skill'
+import type { OfficialSkill } from '../sources/officialCatalog'
 import type { CatalogQuery, CatalogPage } from '@shared/ipc/contract'
 import type { SourceManager } from '../sources'
 import { logger } from '../logger'
@@ -47,16 +49,58 @@ export class SkillRegistry {
   }
 
   query(query: CatalogQuery): CatalogPage {
+    return queryCatalog(this.visibleEntries(), query)
+  }
+
+  /** Как query, но с добавлением внешних записей (живой официальный каталог). */
+  queryWith(query: CatalogQuery, extra: CatalogEntry[]): CatalogPage {
+    return queryCatalog([...this.visibleEntries(), ...extra], query)
+  }
+
+  /** Видимые записи локального индекса (git/local + установленные), без пагинации. */
+  visibleEntries(): CatalogEntry[] {
     const enabled = new Set(
       this.sourceManager
         .list()
         .filter((s) => s.enabled)
         .map((s) => s.id)
     )
-    const visible = [...this.entries.values()].filter(
+    return [...this.entries.values()].filter(
       (e) => e.sourceId === ORPHAN_SOURCE_ID || enabled.has(e.sourceId)
     )
-    return queryCatalog(visible, query)
+  }
+
+  /**
+   * Строит записи каталога из живого поиска официального источника (не индексируется).
+   * Пропускает skills, уже присутствующие в локальном индексе (установленные/из других
+   * источников) — они показываются своей записью. Применяет статус установки.
+   */
+  buildOfficialEntries(skills: OfficialSkill[]): CatalogEntry[] {
+    const existing = new Set([...this.entries.values()].map((e) => normalizeSkillKey(e.name)))
+    const seen = new Set<string>()
+    const out: CatalogEntry[] = []
+    for (const s of skills) {
+      const key = normalizeSkillKey(s.name)
+      if (!key || existing.has(key) || seen.has(key)) continue
+      seen.add(key)
+      const installations = this.installed.get(key) ?? []
+      const installed = installations.length > 0
+      out.push({
+        id: catalogEntryId(OFFICIAL_SOURCE_ID, s.name),
+        name: s.name,
+        description: null,
+        sourceId: OFFICIAL_SOURCE_ID,
+        sourceType: 'official',
+        installed,
+        installations,
+        latestVersion: null,
+        hasUpdate: false,
+        lastCheckedAt: null,
+        updateStatus: installed ? 'unknown' : 'not_installed',
+        sourceRef: s.sourceRef
+      })
+    }
+    return out
   }
 
   get(id: string): CatalogEntry | null {
@@ -103,6 +147,8 @@ export class SkillRegistry {
     this.installed = await this.scan()
     const next = new Map<string, CatalogEntry>()
     for (const source of this.sourceManager.list()) {
+      // Официальный источник не индексируется — он живой (см. OfficialCatalog).
+      if (source.type === 'official') continue
       for (const raw of this.sourceManager.listSkills(source.id)) {
         const entry = this.buildEntry(source, raw)
         next.set(entry.id, entry)
@@ -114,6 +160,7 @@ export class SkillRegistry {
   }
 
   private async onSourceIndexed(source: Source, skills: RawSkill[]): Promise<void> {
+    if (source.type === 'official') return // официальный источник живой, не индексируется
     this.installed = await this.scan()
     for (const [id, entry] of this.entries) {
       if (entry.sourceId === source.id) this.entries.delete(id)

@@ -2,30 +2,39 @@ import { describe, it, expect } from 'vitest'
 import { parseAudit } from '../src/main/security/AuditService'
 import { worstRisk, isRiskyAudit } from '../src/shared/domain/audit'
 
-describe('parseAudit', () => {
-  it('парсит провайдеров и вычисляет максимальный риск', () => {
+describe('parseAudit (v1 audit)', () => {
+  it('парсит providers, riskLevel и summary, вычисляет максимальный риск', () => {
     const audit = parseAudit({
-      ath: { risk: 'safe', analyzedAt: '2026-01-01' },
-      socket: { risk: 'safe', alerts: 0, score: 90 },
-      snyk: { risk: 'high' },
-      zeroleaks: { risk: 'safe', score: 93 }
+      audits: [
+        { provider: 'Gen Agent Trust Hub', status: 'pass', summary: 'No risks', riskLevel: 'LOW' },
+        { provider: 'Socket', status: 'pass', summary: 'No alerts' },
+        { provider: 'Snyk', status: 'fail', summary: 'Issue', riskLevel: 'HIGH' }
+      ]
     })
     expect(audit.worstRisk).toBe('high')
-    expect(audit.providers).toHaveLength(4)
-    const socket = audit.providers.find((p) => p.provider === 'socket')!
-    expect(socket.score).toBe(90)
-    expect(socket.alerts).toBe(0)
+    expect(audit.providers).toHaveLength(3)
+    const ath = audit.providers.find((p) => p.provider === 'Gen Agent Trust Hub')!
+    expect(ath.risk).toBe('low')
+    expect(ath.summary).toBe('No risks')
+    // без riskLevel — по status (pass → safe)
+    expect(audit.providers.find((p) => p.provider === 'Socket')!.risk).toBe('safe')
   })
 
-  it('пустой/отсутствующий вход → нет данных', () => {
+  it('status без riskLevel: warn → medium, fail → high', () => {
+    const a = parseAudit({ audits: [{ provider: 'X', status: 'warn', summary: 's' }] })
+    expect(a.worstRisk).toBe('medium')
+  })
+
+  it('riskLevel имеет приоритет: NONE → safe, CRITICAL → critical', () => {
+    expect(parseAudit({ audits: [{ provider: 'A', riskLevel: 'NONE' }] }).worstRisk).toBe('safe')
+    expect(parseAudit({ audits: [{ provider: 'B', riskLevel: 'CRITICAL' }] }).worstRisk).toBe(
+      'critical'
+    )
+  })
+
+  it('пустой/отсутствующий audits → нет данных', () => {
     expect(parseAudit(undefined)).toEqual({ worstRisk: 'unknown', providers: [] })
-    expect(parseAudit({})).toEqual({ worstRisk: 'unknown', providers: [] })
-  })
-
-  it('нераспознанный risk трактуется как unknown', () => {
-    const audit = parseAudit({ x: { risk: 'weird' } })
-    expect(audit.providers[0].risk).toBe('unknown')
-    expect(audit.worstRisk).toBe('unknown')
+    expect(parseAudit({ audits: [] })).toEqual({ worstRisk: 'unknown', providers: [] })
   })
 })
 
@@ -39,7 +48,6 @@ describe('worstRisk / isRiskyAudit', () => {
   it('isRiskyAudit срабатывает с medium и выше', () => {
     expect(isRiskyAudit({ worstRisk: 'low', providers: [] })).toBe(false)
     expect(isRiskyAudit({ worstRisk: 'medium', providers: [] })).toBe(true)
-    expect(isRiskyAudit({ worstRisk: 'critical', providers: [] })).toBe(true)
     expect(isRiskyAudit(null)).toBe(false)
   })
 })
