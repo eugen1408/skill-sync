@@ -219,13 +219,6 @@
     {/if}
 
     <div class="mt-auto flex flex-wrap gap-2 pt-2">
-      <button
-        class="btn btn-sm preset-tonal"
-        onclick={() =>
-          toasts.guard(() => api.update.checkOne(entry!.id), 'Не удалось запустить проверку')}
-      >
-        Проверить
-      </button>
       {#if entry.hasUpdate}
         <button
           class="btn btn-sm preset-filled-warning-500"
