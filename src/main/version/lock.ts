@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { LockEntry } from './types'
@@ -30,6 +30,23 @@ export function readGlobalLock(): Promise<Record<string, LockEntry>> {
 
 export function readLocalLock(projectDir: string): Promise<Record<string, LockEntry>> {
   return readLockFile(join(projectDir, 'skills-lock.json'))
+}
+
+/**
+ * Удаляет запись skill из глобального lock CLI (best-effort). Нужна при удалении skill,
+ * чтобы он не оставался в `.skill-lock.json` как «установленный». Тихо игнорирует отсутствие.
+ */
+export async function removeGlobalLockEntry(skillName: string): Promise<void> {
+  const path = globalLockPath()
+  try {
+    const raw = await readFile(path, 'utf8')
+    const parsed = JSON.parse(raw) as LockFile
+    if (!parsed.skills || !(skillName in parsed.skills)) return
+    delete parsed.skills[skillName]
+    await writeFile(path, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
+  } catch {
+    // Файла нет / не читается / не пишется — не критично для удаления.
+  }
 }
 
 /** Находит запись skill сначала в локальном (если задан projectDir), затем в глобальном lock. */

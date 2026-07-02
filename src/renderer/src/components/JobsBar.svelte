@@ -5,6 +5,7 @@
     'source.index': 'Индексация',
     'source.refresh': 'Обновление источника',
     install: 'Установка',
+    'install.uninstall': 'Удаление',
     'install.reconcileAgents': 'Реконсиляция агентов',
     'update.check': 'Проверка обновлений',
     'update.run': 'Обновление'

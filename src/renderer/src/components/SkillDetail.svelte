@@ -11,18 +11,21 @@
     sourceTypeLabel,
     riskLabel,
     riskBadgeClass,
-    auditProviderLabel
+    auditProviderLabel,
+    formatInstalls
   } from '../lib/labels'
-  import { installWithAuditGuard } from '../lib/install'
+  import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
 
   let entry = $state<CatalogEntry | null>(null)
   let audit = $state<SecurityAudit | null>(null)
+  let officialUrl = $state<string | null>(null)
 
   $effect(() => {
     const id = ui.detailId
     if (!id) {
       entry = null
       audit = null
+      officialUrl = null
       return
     }
     // Стале-гард: применяем ответ только если выбранный skill не сменился за время запроса.
@@ -30,10 +33,18 @@
       if (ui.detailId === id) entry = e
     })
     audit = null
+    officialUrl = null
     void api.catalog.audit(id).then((a) => {
       if (ui.detailId === id) audit = a
     })
+    void api.catalog.officialUrl(id).then((u) => {
+      if (ui.detailId === id) officialUrl = u
+    })
   })
+
+  // Описание: собственное описание записи либо (для official) сводка Agent Trust Hub с skills.sh.
+  const description = $derived(entry?.description ?? audit?.description ?? null)
+  const descriptionFromOfficial = $derived(!entry?.description && !!audit?.description)
 
   function install(): void {
     const cfg = config.config
@@ -46,17 +57,28 @@
     if (!cfg || !entry) return
     void installWithAuditGuard(entry, cfg, true)
   }
+
+  function fmtDate(iso: string | null): string {
+    return iso ? new Date(iso).toLocaleDateString() : ''
+  }
 </script>
 
 {#if entry}
-  <aside class="flex h-full w-96 flex-col gap-4 border-l border-surface-200-800 p-4">
+  <aside
+    class="flex h-full w-96 flex-col gap-4 overflow-y-auto border-l border-surface-200-800 p-4"
+  >
     <div class="flex items-start justify-between">
       <h2 class="h4">{entry.name}</h2>
       <button class="btn btn-sm preset-tonal" onclick={() => ui.closeDetail()}>✕</button>
     </div>
 
-    {#if entry.description}
-      <p class="text-sm opacity-80">{entry.description}</p>
+    {#if description}
+      <div>
+        <p class="text-sm opacity-80">{description}</p>
+        {#if descriptionFromOfficial}
+          <p class="mt-1 text-xs opacity-40">Описание: skills.sh</p>
+        {/if}
+      </div>
     {/if}
 
     <dl class="space-y-2 text-sm">
@@ -64,6 +86,12 @@
         <dt class="opacity-60">Источник</dt>
         <dd>{sourceTypeLabel(entry.sourceType)}</dd>
       </div>
+      {#if entry.installs != null}
+        <div class="flex justify-between">
+          <dt class="opacity-60">Установок (skills.sh)</dt>
+          <dd>{formatInstalls(entry.installs)}</dd>
+        </div>
+      {/if}
       <div class="flex justify-between">
         <dt class="opacity-60">Статус</dt>
         <dd>{updateStatusLabel(entry.updateStatus)}</dd>
@@ -82,19 +110,34 @@
       </div>
     </dl>
 
+    {#if officialUrl}
+      <button
+        class="btn btn-sm preset-tonal self-start"
+        onclick={() => void api.shell.openExternal(officialUrl!)}
+      >
+        ↗ Открыть на skills.sh
+      </button>
+    {/if}
+
     {#if hasAuditData(audit) && audit}
       <div>
-        <div class="mb-1 flex items-center gap-2">
+        <div class="mb-2 flex items-center gap-2">
           <p class="text-sm font-semibold">Безопасность</p>
           <span class="badge {riskBadgeClass(audit.worstRisk)}">{riskLabel(audit.worstRisk)}</span>
         </div>
-        <ul class="space-y-1 text-sm">
+        <ul class="space-y-2 text-sm">
           {#each audit.providers as p (p.provider)}
-            <li class="flex items-center justify-between gap-2">
-              <span class="truncate opacity-70" title={p.summary ?? ''}>
-                {auditProviderLabel(p.provider)}
-              </span>
-              <span class="badge {riskBadgeClass(p.risk)}">{riskLabel(p.risk)}</span>
+            <li class="rounded border border-surface-200-800 p-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-medium">{auditProviderLabel(p.provider)}</span>
+                <span class="badge {riskBadgeClass(p.risk)}">{riskLabel(p.risk)}</span>
+              </div>
+              {#if p.summary}
+                <p class="mt-1 text-xs opacity-70">{p.summary}</p>
+              {/if}
+              {#if p.analyzedAt}
+                <p class="mt-1 text-xs opacity-40">Проверено: {fmtDate(p.analyzedAt)}</p>
+              {/if}
             </li>
           {/each}
         </ul>
@@ -115,7 +158,7 @@
       </div>
     {/if}
 
-    <div class="mt-auto flex flex-wrap gap-2">
+    <div class="mt-auto flex flex-wrap gap-2 pt-2">
       <button
         class="btn btn-sm preset-tonal"
         onclick={() =>
@@ -136,6 +179,12 @@
       {/if}
       {#if entry.installed}
         <button class="btn btn-sm preset-tonal-primary" onclick={reinstall}>Переустановить</button>
+        <button
+          class="btn btn-sm preset-tonal-error"
+          onclick={() => void uninstallWithConfirm(entry!)}
+        >
+          Удалить
+        </button>
       {/if}
     </div>
   </aside>

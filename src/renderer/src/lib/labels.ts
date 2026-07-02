@@ -16,6 +16,13 @@ export function updateStatusLabel(status: UpdateStatus): string {
   }
 }
 
+/** Компактный формат числа установок: 1_234 → «1.2K», 1_500_000 → «1.5M». */
+export function formatInstalls(n: number): string {
+  if (n < 1000) return String(n)
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}K`
+  return `${(n / 1_000_000).toFixed(1)}M`
+}
+
 export function sourceTypeLabel(type: SourceType): string {
   switch (type) {
     case 'official':

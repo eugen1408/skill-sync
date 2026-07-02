@@ -36,12 +36,17 @@ export const IpcInvoke = {
     query: 'catalog:query',
     get: 'catalog:get',
     refreshIndex: 'catalog:refreshIndex',
-    audit: 'catalog:audit'
+    audit: 'catalog:audit',
+    officialUrl: 'catalog:officialUrl'
   },
   install: {
     run: 'install:run',
+    uninstall: 'install:uninstall',
     reconcileAgents: 'install:reconcileAgents',
     previewReconcile: 'install:previewReconcile'
+  },
+  shell: {
+    openExternal: 'shell:openExternal'
   },
   update: {
     checkAll: 'update:checkAll',

@@ -6,7 +6,7 @@
   import { config } from '../lib/stores/config.svelte'
   import { ui } from '../lib/stores/ui.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
-  import { updateStatusLabel, sourceTypeLabel } from '../lib/labels'
+  import { updateStatusLabel, sourceTypeLabel, formatInstalls } from '../lib/labels'
   import { installWithAuditGuard } from '../lib/install'
   import { computeWindow } from '../lib/virtual'
 
@@ -19,6 +19,7 @@
 
   const sorts: Array<{ value: CatalogSort; label: string }> = [
     { value: 'update-first', label: 'Сначала обновления' },
+    { value: 'installs-desc', label: 'Популярные (skills.sh)' },
     { value: 'name-asc', label: 'Имя А–Я' },
     { value: 'name-desc', label: 'Имя Я–А' }
   ]
@@ -117,7 +118,12 @@
                   {#if entry.description}
                     <p class="line-clamp-1 text-sm opacity-70">{entry.description}</p>
                   {/if}
-                  <p class="text-xs opacity-50">{sourceTypeLabel(entry.sourceType)}</p>
+                  <p class="text-xs opacity-50">
+                    {sourceTypeLabel(entry.sourceType)}
+                    {#if entry.installs != null}
+                      · ↓ {formatInstalls(entry.installs)}
+                    {/if}
+                  </p>
                 </button>
                 <div class="flex gap-2">
                   {#if entry.hasUpdate}

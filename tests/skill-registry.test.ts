@@ -80,6 +80,16 @@ describe('queryCatalog', () => {
     expect(page.items).toHaveLength(2)
     expect(page.total).toBe(3)
   })
+
+  it('сортировка installs-desc: больше установок выше, без счётчика — в конце', () => {
+    const withInstalls: CatalogEntry[] = [
+      mkEntry('s1', 'Low', { installs: 10 }),
+      mkEntry('s1', 'None', { installs: null }),
+      mkEntry('s1', 'High', { installs: 9999 })
+    ]
+    const items = queryCatalog(withInstalls, q({ sort: 'installs-desc' })).items
+    expect(items.map((e) => e.name)).toEqual(['High', 'Low', 'None'])
+  })
 })
 
 describe('SkillRegistry', () => {
@@ -365,6 +375,7 @@ function mkEntry(sourceId: string, name: string, over: Partial<CatalogEntry> = {
     lastCheckedAt: null,
     updateStatus: 'not_installed',
     sourceRef: name,
+    installs: null,
     ...over
   }
 }

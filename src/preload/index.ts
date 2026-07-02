@@ -56,14 +56,19 @@ const api: IpcApi = {
     query: (query: CatalogQuery) => ipcRenderer.invoke(IpcInvoke.catalog.query, query),
     get: (id: string) => ipcRenderer.invoke(IpcInvoke.catalog.get, id),
     refreshIndex: () => ipcRenderer.invoke(IpcInvoke.catalog.refreshIndex),
-    audit: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.audit, skillId)
+    audit: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.audit, skillId),
+    officialUrl: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.officialUrl, skillId)
   },
   install: {
     run: (request: InstallRequest) => ipcRenderer.invoke(IpcInvoke.install.run, request),
+    uninstall: (skillId: string) => ipcRenderer.invoke(IpcInvoke.install.uninstall, skillId),
     reconcileAgents: (request: ReconcileAgentsRequest) =>
       ipcRenderer.invoke(IpcInvoke.install.reconcileAgents, request),
     previewReconcile: (request: ReconcileAgentsRequest) =>
       ipcRenderer.invoke(IpcInvoke.install.previewReconcile, request)
+  },
+  shell: {
+    openExternal: (url: string) => ipcRenderer.invoke(IpcInvoke.shell.openExternal, url)
   },
   update: {
     checkAll: () => ipcRenderer.invoke(IpcInvoke.update.checkAll),

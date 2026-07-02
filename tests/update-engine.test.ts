@@ -240,6 +240,7 @@ function mkEntry(over: Partial<CatalogEntry> = {}): CatalogEntry {
     lastCheckedAt: null,
     updateStatus: 'unknown',
     sourceRef: 'alpha',
+    installs: null,
     ...over
   }
 }

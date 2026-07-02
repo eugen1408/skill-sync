@@ -1,4 +1,4 @@
-import { app, ipcMain, dialog, BrowserWindow, type OpenDialogOptions } from 'electron'
+import { app, ipcMain, dialog, shell, BrowserWindow, type OpenDialogOptions } from 'electron'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { IpcInvoke } from '@shared/ipc/channels'
@@ -31,6 +31,8 @@ export interface IpcDeps {
   secretStore: SecretStore
   auditService: AuditService
   officialCatalog: OfficialCatalog
+  /** Базовый URL официального каталога (для ссылок на карточки skills.sh). */
+  officialBaseUrl: () => string
 }
 
 /** Разбирает official sourceRef `owner/repo@slug` → { source, skillId }. */
@@ -56,7 +58,8 @@ export function registerIpc(deps: IpcDeps): void {
     notifications,
     secretStore,
     auditService,
-    officialCatalog
+    officialCatalog,
+    officialBaseUrl
   } = deps
 
   ipcMain.handle(IpcInvoke.app.getVersion, () => app.getVersion())
@@ -147,9 +150,30 @@ export function registerIpc(deps: IpcDeps): void {
     const ref = parseOfficialRef(entry.sourceRef)
     return ref ? auditService.get(ref.source, ref.skillId) : null
   })
+  ipcMain.handle(IpcInvoke.catalog.officialUrl, (_e, skillId: string) => {
+    const entry = skillRegistry.get(skillId)
+    if (!entry || entry.sourceType !== 'official') return null
+    const ref = parseOfficialRef(entry.sourceRef)
+    if (!ref) return null
+    // Карточка skill на skills.sh: {base}/{owner/repo}/{slug}.
+    const base = officialBaseUrl().replace(/\/$/, '')
+    const path = `${ref.source}/${ref.skillId}`
+      .split('/')
+      .map((seg) => encodeURIComponent(seg))
+      .join('/')
+    return `${base}/${path}`
+  })
+
+  ipcMain.handle(IpcInvoke.shell.openExternal, (_e, url: string) => {
+    // Открываем только http/https — защита от file://, javascript: и прочих схем.
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+  })
 
   ipcMain.handle(IpcInvoke.install.run, (_e, request: InstallRequest) =>
     installerService.run(request)
+  )
+  ipcMain.handle(IpcInvoke.install.uninstall, (_e, skillId: string) =>
+    installerService.uninstall(skillId)
   )
   ipcMain.handle(IpcInvoke.install.reconcileAgents, (_e, request: ReconcileAgentsRequest) =>
     installerService.reconcile(request)

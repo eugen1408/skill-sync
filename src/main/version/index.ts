@@ -10,7 +10,7 @@ import { ChangelogStrategy } from './strategies/changelog'
 export { VersionResolver } from './VersionResolver'
 export { StrategyRegistry } from './registry'
 export type { VersionStrategy, ResolveContext, VersionPorts, LockEntry } from './types'
-export { findLockEntry, readGlobalLock, readLocalLock } from './lock'
+export { findLockEntry, readGlobalLock, readLocalLock, removeGlobalLockEntry } from './lock'
 
 /**
  * Собирает VersionResolver с приоритетом по умолчанию:

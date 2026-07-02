@@ -25,6 +25,11 @@ export interface AuditProviderResult {
 export interface SecurityAudit {
   worstRisk: AuditRisk
   providers: AuditProviderResult[]
+  /**
+   * Описание skill по данным skills.sh — берётся из сводки провайдера Agent Trust Hub
+   * (единственный неаутентифицированный источник описания). null — недоступно.
+   */
+  description: string | null
 }
 
 /** Максимальный риск из набора (без учёта unknown; пусто → unknown). */

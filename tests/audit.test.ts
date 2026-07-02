@@ -32,9 +32,39 @@ describe('parseAudit (v1 audit)', () => {
     )
   })
 
+  it('description берётся из содержательной сводки Agent Trust Hub', () => {
+    const desc =
+      'This skill provides a comprehensive set of performance optimization guidelines for React.'
+    const a = parseAudit({
+      audits: [
+        { provider: 'Gen Agent Trust Hub', slug: 'agent-trust-hub', status: 'pass', summary: desc },
+        { provider: 'Socket', slug: 'socket', status: 'pass', summary: 'No alerts' }
+      ]
+    })
+    expect(a.description).toBe(desc)
+  })
+
+  it('description = null, если сводка ATH — короткая оценка-заглушка', () => {
+    expect(
+      parseAudit({ audits: [{ slug: 'agent-trust-hub', summary: 'No issues' }] }).description
+    ).toBeNull()
+    // Нет провайдера ATH → нет описания (у Socket/Snyk сводки не описательные).
+    expect(
+      parseAudit({ audits: [{ slug: 'socket', summary: 'a'.repeat(80) }] }).description
+    ).toBeNull()
+  })
+
   it('пустой/отсутствующий audits → нет данных', () => {
-    expect(parseAudit(undefined)).toEqual({ worstRisk: 'unknown', providers: [] })
-    expect(parseAudit({ audits: [] })).toEqual({ worstRisk: 'unknown', providers: [] })
+    expect(parseAudit(undefined)).toEqual({
+      worstRisk: 'unknown',
+      providers: [],
+      description: null
+    })
+    expect(parseAudit({ audits: [] })).toEqual({
+      worstRisk: 'unknown',
+      providers: [],
+      description: null
+    })
   })
 })
 
@@ -46,8 +76,8 @@ describe('worstRisk / isRiskyAudit', () => {
   })
 
   it('isRiskyAudit срабатывает с medium и выше', () => {
-    expect(isRiskyAudit({ worstRisk: 'low', providers: [] })).toBe(false)
-    expect(isRiskyAudit({ worstRisk: 'medium', providers: [] })).toBe(true)
+    expect(isRiskyAudit({ worstRisk: 'low', providers: [], description: null })).toBe(false)
+    expect(isRiskyAudit({ worstRisk: 'medium', providers: [], description: null })).toBe(true)
     expect(isRiskyAudit(null)).toBe(false)
   })
 })

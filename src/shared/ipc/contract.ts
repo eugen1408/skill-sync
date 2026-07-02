@@ -109,14 +109,22 @@ export interface IpcApi {
     refreshIndex(): Promise<void>
     /** Аудит безопасности skill (skills.sh). null — неприменимо (не official). */
     audit(skillId: string): Promise<SecurityAudit | null>
+    /** URL карточки skill на skills.sh (только official). null — неприменимо. */
+    officialUrl(skillId: string): Promise<string | null>
   }
   install: {
     /** Запускает установку skill; возвращает jobId (результат — событие onInstallResult). */
     run(request: InstallRequest): Promise<string>
+    /** Удаляет skill из всех агентов (симлинки + канон + запись lock); возвращает jobId. */
+    uninstall(skillId: string): Promise<string>
     /** Реконсиляция симлинков при изменении набора агентов; возвращает jobId. */
     reconcileAgents(request: ReconcileAgentsRequest): Promise<string>
     /** Предпросмотр реконсиляции (link/unlink) без изменения ФС. */
     previewReconcile(request: ReconcileAgentsRequest): Promise<ReconcilePreview>
+  }
+  /** Внешние ссылки — открытие в системном браузере (только http/https). */
+  shell: {
+    openExternal(url: string): Promise<void>
   }
   update: {
     checkAll(): Promise<string>

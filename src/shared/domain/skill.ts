@@ -42,6 +42,8 @@ export interface CatalogEntry {
   updateStatus: UpdateStatus
   /** Идентификатор внутри источника. */
   sourceRef: string
+  /** Число установок по данным skills.sh (только для official-записей); null — неизвестно. */
+  installs: number | null
 }
 
 /** Информация о версии от Version Resolver (Часть 3). */

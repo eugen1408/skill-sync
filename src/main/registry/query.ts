@@ -27,8 +27,10 @@ function sortEntries(entries: CatalogEntry[], sort: CatalogQuery['sort']): Catal
       return [...entries].sort((a, b) => byName(b, a))
     case 'update-first':
       return [...entries].sort((a, b) => Number(b.hasUpdate) - Number(a.hasUpdate) || byName(a, b))
+    case 'installs-desc':
+      // Больше установок — выше; записи без счётчика (не official) в конце, затем по имени.
+      return [...entries].sort((a, b) => (b.installs ?? -1) - (a.installs ?? -1) || byName(a, b))
     case 'name-asc':
-    case 'installs-desc': // счётчик установок в индексе не хранится — деградируем к имени
     default:
       return [...entries].sort(byName)
   }

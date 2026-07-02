@@ -18,7 +18,14 @@ import { logger } from '../logger'
 import type { InstallerRegistry } from './registry'
 import type { ResolvedInstall } from './types'
 import { reconcileAgents, type ReconcilableSkill } from './agentReconciler'
-import { defaultPathContext, isCanonicalAgentDir, type PathContext } from './paths'
+import {
+  canonicalSkillPath,
+  defaultPathContext,
+  isCanonicalAgentDir,
+  type PathContext
+} from './paths'
+import { removePath } from './fsLink'
+import { removeGlobalLockEntry } from '../version'
 
 export interface InstallerServiceDeps {
   jobRunner: JobRunner
@@ -77,6 +84,36 @@ export class InstallerService {
       if (result) this.deps.onResult(result)
     })
     return started
+  }
+
+  /**
+   * Удаляет skill из всех агентов: снимает симлинки/копии по известным путям установок,
+   * удаляет канонический каталог `.agents/skills/<name>` (для обоих scope) и чистит запись
+   * в глобальном `.skill-lock.json`. Возвращает jobId; каталог обновляется через rescan.
+   */
+  uninstall(skillId: string): string {
+    const { jobId } = this.deps.jobRunner.start('install.uninstall', async (ctx) => {
+      const entry = this.deps.skillRegistry.get(skillId)
+      if (!entry) throw makeAppError('INSTALL_FAILED', 'Skill не найден')
+      if (!entry.installed) throw makeAppError('INSTALL_FAILED', 'Skill не установлен')
+
+      ctx.progress(null, `Удаление «${entry.name}»…`)
+      // Пути установок конкретных агентов (симлинки/копии) + канон для обоих scope.
+      const targets = new Set(entry.installations.map((i) => i.installPath))
+      for (const scope of ['global', 'project'] as const) {
+        targets.add(canonicalSkillPath(this.pathContext(scope), entry.name))
+      }
+      let removed = 0
+      for (const target of targets) {
+        await removePath(target)
+        removed += 1
+      }
+      await removeGlobalLockEntry(entry.name)
+      await this.deps.skillRegistry.rescanInstalled()
+      logger.info('Skill удалён', { skill: entry.name, paths: removed })
+      return { skill: entry.name, removed }
+    })
+    return jobId
   }
 
   /** Предпросмотр реконсиляции: список операций link/unlink без изменения ФС (follow-up [13]). */

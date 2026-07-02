@@ -113,7 +113,8 @@ export class SkillRegistry {
         hasUpdate: false,
         lastCheckedAt: null,
         updateStatus: installed ? 'unknown' : 'not_installed',
-        sourceRef: s.sourceRef
+        sourceRef: s.sourceRef,
+        installs: s.installs
       })
     }
     // Кэшируем результаты последнего поиска, чтобы клик по карточке (get/audit) их нашёл.
@@ -230,7 +231,8 @@ export class SkillRegistry {
       hasUpdate: prev?.hasUpdate ?? false,
       lastCheckedAt: prev?.lastCheckedAt ?? null,
       updateStatus: prev?.updateStatus ?? (installed ? 'unknown' : 'not_installed'),
-      sourceRef: raw.sourceRef
+      sourceRef: raw.sourceRef,
+      installs: prev?.installs ?? null
     }
   }
 
@@ -330,7 +332,8 @@ export class SkillRegistry {
       hasUpdate: prev?.hasUpdate ?? false,
       lastCheckedAt: prev?.lastCheckedAt ?? null,
       updateStatus: prev?.updateStatus ?? 'unknown',
-      sourceRef
+      sourceRef,
+      installs: prev?.installs ?? null
     }
   }
 

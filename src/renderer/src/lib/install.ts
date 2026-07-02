@@ -43,3 +43,19 @@ export async function installWithAuditGuard(
     })
   }, 'Не удалось запустить установку')
 }
+
+/** Удаление skill из всех агентов с нативным подтверждением. */
+export async function uninstallWithConfirm(entry: CatalogEntry): Promise<void> {
+  await toasts.guard(async () => {
+    const agents = entry.installations.map((i) => i.agent).join(', ')
+    const ok = await api.dialog.confirm({
+      message: `Удалить «${entry.name}»?`,
+      detail: agents
+        ? `Skill будет удалён у агентов: ${agents}.`
+        : 'Skill будет удалён из всех каталогов.',
+      confirmLabel: 'Удалить'
+    })
+    if (!ok) return
+    await api.install.uninstall(entry.id)
+  }, 'Не удалось запустить удаление')
+}

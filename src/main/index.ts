@@ -321,7 +321,8 @@ app.whenReady().then(() => {
     notifications,
     secretStore,
     auditService,
-    officialCatalog
+    officialCatalog,
+    officialBaseUrl
   })
   appUpdater.maybeCheckOnLaunch()
 

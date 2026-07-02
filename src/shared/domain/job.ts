@@ -5,6 +5,7 @@ export type JobKind =
   | 'source.index'
   | 'source.refresh'
   | 'install'
+  | 'install.uninstall'
   | 'install.reconcileAgents'
   | 'update.check'
   | 'update.run'
