@@ -33,16 +33,14 @@
       readmeHtml = null
       return
     }
+    auditOpen = false
     audit = null
     officialUrl = null
     readmeHtml = null
-    auditOpen = false
     // Каждый вызов обёрнут: даже если какой-то IPC-метод недоступен/бросит, эффект не
     // прервётся синхронно и переключение между карточками продолжит работать (стале-гард
     // применяет ответ, только если выбранный skill не сменился за время запроса).
-    void run(() => api.catalog.get(id)).then((e) => {
-      if (e !== undefined && ui.detailId === id) entry = e
-    })
+    refetchEntry(id)
     void run(() => api.catalog.audit(id)).then((a) => {
       if (a !== undefined && ui.detailId === id) audit = a
     })
@@ -53,6 +51,22 @@
       if (h !== undefined && ui.detailId === id) readmeHtml = h
     })
   })
+
+  // Освежаем запись при обновлении каталога (после установки/обновления/удаления skill),
+  // не трогая аудит/README и состояние сворачивания — чтобы статус/версия в карточке не залипали.
+  $effect(() => {
+    const off = api.events?.onCatalogUpdated?.(() => {
+      const id = ui.detailId
+      if (id) refetchEntry(id)
+    })
+    return off ?? undefined
+  })
+
+  function refetchEntry(id: string): void {
+    void run(() => api.catalog.get(id)).then((e) => {
+      if (e !== undefined && ui.detailId === id) entry = e
+    })
+  }
 
   /** Безопасно вызывает IPC: синхронный бросок/отказ → undefined (не валит $effect). */
   function run<T>(fn: () => Promise<T>): Promise<T | undefined> {

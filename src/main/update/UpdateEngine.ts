@@ -267,6 +267,15 @@ export class UpdateEngine {
 
     const summary: UpdateRunSummary = { ok: 0, failed: 0, skipped: 0 }
     for (const outcome of outcomes) summary[outcome] += 1
+
+    // Переопределяем версии обновлённых skills, иначе в списке/карточке остаётся статус
+    // «Есть обновление» (rescan сохраняет прежние поля версий). Берём свежие записи из реестра.
+    const updatedIds = entries.filter((_, i) => outcomes[i] === 'ok').map((e) => e.id)
+    const fresh = updatedIds
+      .map((id) => this.deps.skillRegistry.get(id))
+      .filter((e): e is CatalogEntry => e !== null)
+    if (fresh.length > 0) await this.checkEntries(fresh, ctx)
+
     logger.info('Обновление завершено', summary)
     return summary
   }
