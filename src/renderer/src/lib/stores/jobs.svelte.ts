@@ -68,6 +68,11 @@ class JobsStore {
     this.jobs = this.jobs.filter((j) => j.jobId !== jobId)
   }
 
+  /** Убирает все завершённые (не выполняющиеся) задачи. */
+  clearFinished(): void {
+    this.jobs = this.jobs.filter((j) => j.status === 'running')
+  }
+
   /** Оставляет не более MAX_FINISHED завершённых задач (без логов — убираем первыми). */
   private trimFinished(): void {
     const finished = this.jobs.filter((j) => j.status !== 'running')
