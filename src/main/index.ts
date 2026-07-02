@@ -1,9 +1,12 @@
-import { app, BrowserWindow, Notification, session } from 'electron'
+import { app, BrowserWindow, Notification, session, type Tray } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { IpcEvent } from '@shared/ipc/channels'
 import type { AppUpdateStatus } from '@shared/ipc/contract'
 import type { AppNotification } from '@shared/domain/notification'
+import { DEFAULT_OFFICIAL_URL } from '@shared/domain/source'
+import { AuditService } from './security/AuditService'
+import { createTray } from './tray'
 import { ConfigStore } from './config/ConfigStore'
 import { JobRunner, type JobEmitter } from './jobs/JobRunner'
 import { AppUpdater } from './appUpdater'
@@ -22,11 +25,24 @@ import { initLogger, logger } from './logger'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let isQuitting = false
 
 function send(channel: string, payload: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(channel, payload)
   }
+}
+
+/** Показывает окно (создаёт заново, если было закрыто). */
+function showWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    mainWindow = createWindow()
+    return
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
 }
 
 function makeJobEmitter(): JobEmitter {
@@ -55,6 +71,14 @@ function createWindow(): BrowserWindow {
   })
 
   window.on('ready-to-show', () => window.show())
+
+  // Закрытие окна сворачивает в трей (фоновые проверки продолжаются), пока не выбран «Выход».
+  window.on('close', (e) => {
+    if (!isQuitting && tray) {
+      e.preventDefault()
+      window.hide()
+    }
+  })
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
@@ -160,9 +184,23 @@ app.whenReady().then(() => {
     onChecked: (result) => send(IpcEvent.updateChecked, result)
   })
 
+  const auditService = new AuditService(() => {
+    const official = configStore.get().sources.find((s) => s.type === 'official' && s.enabled)
+    return official?.config.url?.trim() || DEFAULT_OFFICIAL_URL
+  })
+
   sourceManager.init()
   void skillRegistry.init()
   updateEngine.start()
+
+  tray = createTray({
+    show: showWindow,
+    checkUpdates: () => updateEngine.checkAll(),
+    quit: () => {
+      isQuitting = true
+      app.quit()
+    }
+  })
 
   registerIpc({
     configStore,
@@ -173,23 +211,27 @@ app.whenReady().then(() => {
     installerService,
     updateEngine,
     notifications,
-    secretStore
+    secretStore,
+    auditService
   })
   appUpdater.maybeCheckOnLaunch()
+
+  app.on('before-quit', () => {
+    isQuitting = true
+  })
 
   app.on('will-quit', () => {
     sourceManager.dispose()
     skillRegistry.dispose()
     updateEngine.stop()
+    tray?.destroy()
+    tray = null
   })
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createWindow()
-    }
-  })
+  app.on('activate', () => showWindow())
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  // При активном трее приложение продолжает работать в фоне (фоновые проверки).
+  if (!tray && process.platform !== 'darwin') app.quit()
 })

@@ -1,37 +1,44 @@
 <script lang="ts">
   import type { CatalogEntry } from '@shared/domain/skill'
+  import type { SecurityAudit } from '@shared/domain/audit'
+  import { hasAuditData } from '@shared/domain/audit'
   import { api } from '../lib/api'
   import { config } from '../lib/stores/config.svelte'
   import { ui } from '../lib/stores/ui.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
-  import { updateStatusLabel, sourceTypeLabel } from '../lib/labels'
+  import {
+    updateStatusLabel,
+    sourceTypeLabel,
+    riskLabel,
+    riskBadgeClass,
+    auditProviderLabel
+  } from '../lib/labels'
+  import { installWithAuditGuard } from '../lib/install'
 
   let entry = $state<CatalogEntry | null>(null)
+  let audit = $state<SecurityAudit | null>(null)
 
   $effect(() => {
     const id = ui.detailId
     if (!id) {
       entry = null
+      audit = null
       return
     }
     // Стале-гард: применяем ответ только если выбранный skill не сменился за время запроса.
     void api.catalog.get(id).then((e) => {
       if (ui.detailId === id) entry = e
     })
+    audit = null
+    void api.catalog.audit(id).then((a) => {
+      if (ui.detailId === id) audit = a
+    })
   })
 
   function install(): void {
     const cfg = config.config
     if (!cfg || !entry) return
-    const req = {
-      skillId: entry.id,
-      sourceId: entry.sourceId,
-      sourceRef: entry.sourceRef,
-      targetAgents: cfg.install.targetAgents,
-      scope: cfg.install.scope,
-      force: false
-    }
-    void toasts.guard(() => api.install.run(req), 'Не удалось запустить установку')
+    void installWithAuditGuard(entry, cfg)
   }
 </script>
 
@@ -68,6 +75,26 @@
         <dd>{entry.lastCheckedAt ? new Date(entry.lastCheckedAt).toLocaleString() : '—'}</dd>
       </div>
     </dl>
+
+    {#if hasAuditData(audit) && audit}
+      <div>
+        <div class="mb-1 flex items-center gap-2">
+          <p class="text-sm font-semibold">Безопасность</p>
+          <span class="badge {riskBadgeClass(audit.worstRisk)}">{riskLabel(audit.worstRisk)}</span>
+        </div>
+        <ul class="space-y-1 text-sm">
+          {#each audit.providers as p (p.provider)}
+            <li class="flex items-center justify-between gap-2">
+              <span class="opacity-70">{auditProviderLabel(p.provider)}</span>
+              <span class="badge {riskBadgeClass(p.risk)}">
+                {riskLabel(p.risk)}{p.score !== null ? ` · ${p.score}` : ''}
+              </span>
+            </li>
+          {/each}
+        </ul>
+        <p class="mt-1 text-xs opacity-50">Данные аудита: skills.sh</p>
+      </div>
+    {/if}
 
     {#if entry.installations.length > 0}
       <div>

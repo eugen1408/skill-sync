@@ -41,18 +41,39 @@
     }, 'Не удалось удалить токен')
   }
 
+  const intervalPresets: Array<{ minutes: number; label: string }> = [
+    { minutes: 60, label: 'Каждый час' },
+    { minutes: 360, label: 'Каждые 6 часов' },
+    { minutes: 1440, label: 'Раз в день' }
+  ]
+
   function toggleAgent(id: string): void {
     if (!cfg) return
     const prev = cfg.install.targetAgents
     const next = prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
+    const scope = cfg.install.scope
     void toasts.guard(async () => {
-      await config.update({ install: { ...cfg.install, targetAgents: next } })
-      // Реконсиляция симлинков установленных skills под новый набор агентов (эпик Q-01).
-      await api.install.reconcileAgents({
+      // Предпросмотр операций реконсиляции и подтверждение до применения (follow-up [13]).
+      const preview = await api.install.previewReconcile({
         previousAgents: prev,
         nextAgents: next,
-        scope: cfg.install.scope
+        scope
       })
+      if (preview.ops.length > 0) {
+        const links = preview.ops.filter((o) => o.action === 'link').length
+        const unlinks = preview.ops.filter((o) => o.action === 'unlink').length
+        const parts: string[] = []
+        if (links) parts.push(`создать ${links} симлинк(ов)`)
+        if (unlinks) parts.push(`удалить ${unlinks} симлинк(ов)`)
+        const ok = await api.dialog.confirm({
+          message: `Изменение набора агентов затронет ${preview.skillCount} установленных skills.`,
+          detail: `Будет: ${parts.join(', ')}.`,
+          confirmLabel: 'Применить'
+        })
+        if (!ok) return
+      }
+      await config.update({ install: { ...cfg.install, targetAgents: next } })
+      await api.install.reconcileAgents({ previousAgents: prev, nextAgents: next, scope })
     }, 'Не удалось применить набор агентов')
   }
 
@@ -134,10 +155,23 @@
         <span class="text-sm">Проверять по расписанию</span>
       </label>
       {#if cfg.update.scheduleEnabled}
+        <div class="flex flex-wrap gap-2">
+          {#each intervalPresets as p (p.minutes)}
+            <button
+              class="btn btn-sm {cfg.update.scheduleIntervalMinutes === p.minutes
+                ? 'preset-filled-primary-500'
+                : 'preset-tonal'}"
+              onclick={() => setUpdate({ scheduleIntervalMinutes: p.minutes })}
+            >
+              {p.label}
+            </button>
+          {/each}
+        </div>
         <label class="flex items-center gap-2">
-          <span class="text-sm">Интервал, минут</span>
+          <span class="text-sm">Свой интервал, минут</span>
           <input
             type="number"
+            min="1"
             class="input max-w-28"
             value={cfg.update.scheduleIntervalMinutes ?? 60}
             onchange={(e) => setUpdate({ scheduleIntervalMinutes: Number(e.currentTarget.value) })}

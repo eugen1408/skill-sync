@@ -10,6 +10,7 @@ import {
   PINNED_SKILLS_VERSION
 } from '../src/main/installer/exec'
 import { InstallerRegistry } from '../src/main/installer/registry'
+import { InstallerService } from '../src/main/installer/InstallerService'
 import { OfficialProvider } from '../src/main/installer/providers/official'
 import { GitProvider } from '../src/main/installer/providers/git'
 import { LocalFolderProvider } from '../src/main/installer/providers/local'
@@ -92,6 +93,45 @@ describe('InstallerRegistry', () => {
     expect(reg.resolve('git').id).toBe('git')
     expect(reg.resolve('local').id).toBe('local')
     expect(() => reg.resolve('s3' as SourceType)).toThrow()
+  })
+})
+
+describe('InstallerService.previewReconcile', () => {
+  function service(installedNames: string[]): InstallerService {
+    const items = installedNames.map((name) => ({
+      name,
+      installations: [{ agent: 'claude-code', installPath: `/x/${name}` }]
+    }))
+    return new InstallerService({
+      jobRunner: {} as never,
+      sourceManager: {} as never,
+      skillRegistry: { query: () => ({ items, total: items.length }) } as never,
+      configStore: { get: () => ({ install: {} }) } as never,
+      registry: {} as never,
+      onResult: () => {}
+    })
+  }
+
+  it('строит операции link/unlink для добавленных/снятых агентов', () => {
+    const preview = service(['a', 'b']).previewReconcile({
+      previousAgents: ['claude-code'],
+      nextAgents: ['claude-code', 'cursor'],
+      scope: 'global'
+    })
+    expect(preview.addedAgents).toEqual(['cursor'])
+    expect(preview.removedAgents).toEqual([])
+    expect(preview.skillCount).toBe(2)
+    expect(preview.ops).toHaveLength(2)
+    expect(preview.ops.every((o) => o.action === 'link' && o.agent === 'cursor')).toBe(true)
+  })
+
+  it('без изменений агентов операций нет', () => {
+    const preview = service(['a']).previewReconcile({
+      previousAgents: ['claude-code'],
+      nextAgents: ['claude-code'],
+      scope: 'global'
+    })
+    expect(preview.ops).toHaveLength(0)
   })
 })
 

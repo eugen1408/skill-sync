@@ -19,7 +19,8 @@ export const IpcInvoke = {
     cancel: 'jobs:cancel'
   },
   dialog: {
-    selectDirectory: 'dialog:selectDirectory'
+    selectDirectory: 'dialog:selectDirectory',
+    confirm: 'dialog:confirm'
   },
   source: {
     list: 'source:list',
@@ -32,11 +33,13 @@ export const IpcInvoke = {
   catalog: {
     query: 'catalog:query',
     get: 'catalog:get',
-    refreshIndex: 'catalog:refreshIndex'
+    refreshIndex: 'catalog:refreshIndex',
+    audit: 'catalog:audit'
   },
   install: {
     run: 'install:run',
-    reconcileAgents: 'install:reconcileAgents'
+    reconcileAgents: 'install:reconcileAgents',
+    previewReconcile: 'install:previewReconcile'
   },
   update: {
     checkAll: 'update:checkAll',

@@ -43,3 +43,18 @@ export interface ReconcileSummary {
   unlinked: number
   skipped: number
 }
+
+/** Одна планируемая операция реконсиляции (для предпросмотра). */
+export interface ReconcileOp {
+  agent: string
+  skill: string
+  action: 'link' | 'unlink'
+}
+
+/** Предпросмотр реконсиляции: что будет создано/удалено до применения (follow-up [13]). */
+export interface ReconcilePreview {
+  addedAgents: string[]
+  removedAgents: string[]
+  skillCount: number
+  ops: ReconcileOp[]
+}

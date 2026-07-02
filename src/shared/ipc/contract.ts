@@ -2,10 +2,16 @@ import type { AppConfig } from '../domain/config'
 import type { JobProgressEvent, JobLogEvent, JobDoneEvent, JobErrorEvent } from '../domain/job'
 import type { Source, RawSkill, AddSourceInput, SourceStatus } from '../domain/source'
 import type { CatalogEntry } from '../domain/skill'
-import type { InstallRequest, InstallResult, ReconcileAgentsRequest } from '../domain/install'
+import type {
+  InstallRequest,
+  InstallResult,
+  ReconcileAgentsRequest,
+  ReconcilePreview
+} from '../domain/install'
 import type { UpdateSettings } from '../domain/config'
 import type { UpdateCheckResult } from '../domain/update'
 import type { AppNotification } from '../domain/notification'
+import type { SecurityAudit } from '../domain/audit'
 
 /** Частичное обновление верхнеуровневых секций конфигурации (schemaVersion не меняется извне). */
 export type ConfigPatch = Partial<Omit<AppConfig, 'schemaVersion'>>
@@ -72,6 +78,8 @@ export interface IpcApi {
   dialog: {
     /** Нативный выбор каталога; возвращает путь или null при отмене. */
     selectDirectory(): Promise<string | null>
+    /** Нативное подтверждение (message + detail); true — пользователь подтвердил. */
+    confirm(opts: { message: string; detail?: string; confirmLabel?: string }): Promise<boolean>
   }
   source: {
     list(): Promise<Source[]>
@@ -87,12 +95,16 @@ export interface IpcApi {
     get(id: string): Promise<CatalogEntry | null>
     /** Пересобрать индекс из текущих данных источников + пересканировать установленные. */
     refreshIndex(): Promise<void>
+    /** Аудит безопасности skill (skills.sh). null — неприменимо (не official). */
+    audit(skillId: string): Promise<SecurityAudit | null>
   }
   install: {
     /** Запускает установку skill; возвращает jobId (результат — событие onInstallResult). */
     run(request: InstallRequest): Promise<string>
     /** Реконсиляция симлинков при изменении набора агентов; возвращает jobId. */
     reconcileAgents(request: ReconcileAgentsRequest): Promise<string>
+    /** Предпросмотр реконсиляции (link/unlink) без изменения ФС. */
+    previewReconcile(request: ReconcileAgentsRequest): Promise<ReconcilePreview>
   }
   update: {
     checkAll(): Promise<string>

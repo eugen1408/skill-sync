@@ -7,6 +7,7 @@
   import { ui } from '../lib/stores/ui.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
   import { updateStatusLabel, sourceTypeLabel } from '../lib/labels'
+  import { installWithAuditGuard } from '../lib/install'
 
   const statusFilters: Array<{ value: CatalogStatusFilter | null; label: string }> = [
     { value: null, label: 'Все' },
@@ -30,18 +31,7 @@
   function install(entry: CatalogEntry): void {
     const cfg = config.config
     if (!cfg) return
-    void toasts.guard(
-      () =>
-        api.install.run({
-          skillId: entry.id,
-          sourceId: entry.sourceId,
-          sourceRef: entry.sourceRef,
-          targetAgents: cfg.install.targetAgents,
-          scope: cfg.install.scope,
-          force: false
-        }),
-      'Не удалось запустить установку'
-    )
+    void installWithAuditGuard(entry, cfg)
   }
 
   const totalPages = $derived(Math.ceil(catalog.result.total / catalog.pageSize) || 1)

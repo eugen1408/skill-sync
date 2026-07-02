@@ -8,7 +8,6 @@ export interface UpdateSettings {
   checkOnLaunch: boolean
   scheduleEnabled: boolean
   scheduleIntervalMinutes: number | null
-  scheduleCron: string | null
   watchLocalSources: boolean
   /** Авто-применять обновления или только уведомлять. */
   autoInstallUpdates: boolean
@@ -60,7 +59,6 @@ export function defaultConfig(): AppConfig {
       checkOnLaunch: true,
       scheduleEnabled: false,
       scheduleIntervalMinutes: null,
-      scheduleCron: null,
       watchLocalSources: true,
       autoInstallUpdates: false
     },

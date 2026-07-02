@@ -37,7 +37,8 @@ const api: IpcApi = {
     cancel: (jobId: string) => ipcRenderer.invoke(IpcInvoke.jobs.cancel, jobId)
   },
   dialog: {
-    selectDirectory: () => ipcRenderer.invoke(IpcInvoke.dialog.selectDirectory)
+    selectDirectory: () => ipcRenderer.invoke(IpcInvoke.dialog.selectDirectory),
+    confirm: (opts) => ipcRenderer.invoke(IpcInvoke.dialog.confirm, opts)
   },
   source: {
     list: () => ipcRenderer.invoke(IpcInvoke.source.list),
@@ -51,12 +52,15 @@ const api: IpcApi = {
   catalog: {
     query: (query: CatalogQuery) => ipcRenderer.invoke(IpcInvoke.catalog.query, query),
     get: (id: string) => ipcRenderer.invoke(IpcInvoke.catalog.get, id),
-    refreshIndex: () => ipcRenderer.invoke(IpcInvoke.catalog.refreshIndex)
+    refreshIndex: () => ipcRenderer.invoke(IpcInvoke.catalog.refreshIndex),
+    audit: (skillId: string) => ipcRenderer.invoke(IpcInvoke.catalog.audit, skillId)
   },
   install: {
     run: (request: InstallRequest) => ipcRenderer.invoke(IpcInvoke.install.run, request),
     reconcileAgents: (request: ReconcileAgentsRequest) =>
-      ipcRenderer.invoke(IpcInvoke.install.reconcileAgents, request)
+      ipcRenderer.invoke(IpcInvoke.install.reconcileAgents, request),
+    previewReconcile: (request: ReconcileAgentsRequest) =>
+      ipcRenderer.invoke(IpcInvoke.install.previewReconcile, request)
   },
   update: {
     checkAll: () => ipcRenderer.invoke(IpcInvoke.update.checkAll),

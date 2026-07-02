@@ -161,6 +161,14 @@
 - **[17] semver pre-release/build** — `parseSemver` выделяет pre-release, `compareSemver` сравнивает по правилам semver §11 (стабильный релиз старше pre-release); build-метаданные игнорируются.
 - **[18] параллелизм** — `resolveConcurrency` (env-override `SKILLS_CHECK_CONCURRENCY`/`SKILLS_INSTALL_CONCURRENCY` + CPU-скейлинг в границах) вместо фиксированных 6/4.
 
-Итог проверок после всех правок: typecheck (node+web) 0 ошибок; **83 теста** (+13); build чисто; prettier чисто.
+**Follow-up по решениям пользователя:**
 
-**Остаются follow-up**: HTTPS-git-auth токеном (не только GitHub API) — через credential-helper; cron-расписание; трей/фоновые проверки; renderer-тесты; виртуализация списка каталога; preview-подтверждение реконсиляции + разворачиваемые логи операций. Плюс за пользователем — E2E, сверка `cliFlag` с CLI, `npm run dist`/подпись, релиз-пайплайн для electron-updater.
+- **Безопасность skills (skills.sh)** — обнаружен и подключён API `GET /api/audit?source=<owner/repo>&skills=<slug>`: провайдеры `ath`/`socket`/`snyk`/`zeroleaks`, поле `risk` ∈ safe<low<medium<high<critical (+ score/alerts). `AuditService` (main, TTL-кэш 30 мин, негативы тоже кэшируются) → IPC `catalog:audit`. В `SkillDetail` — сводка рисков по провайдерам; при установке official-скила с риском medium+ — нативное подтверждение (`dialog:confirm`) с перечнем провайдеров. Применимо к official-источнику (`sourceRef` `owner/repo@slug`).
+- **[7] cron → интервал + пресеты** — неиспользуемое поле `scheduleCron` убрано; в Настройках пресеты «Каждый час / 6 часов / Раз в день» + свой интервал (тот же `setInterval`).
+- **[8] трей + фон** — `src/main/tray.ts` (встроенная PNG-иконка): меню Открыть / Проверить обновления / Выход; закрытие окна сворачивает в трей (`close`→`hide`, `before-quit`/`isQuitting`), `window-all-closed` не завершает процесс при активном трее → фоновые проверки по расписанию продолжаются.
+- **[13] preview + логи** — `install:previewReconcile` считает операции link/unlink без изменения ФС; смена набора агентов в Настройках спрашивает подтверждение с числом операций; `JobsBar` показывает завершённые задачи (история ≤5) с разворачиваемыми логами.
+- **Git HTTPS-auth токеном** — по решению не делаем: приватные репозитории через системный git (SSH/настроенный credential-helper ОС).
+
+Итог проверок после всех правок: typecheck (node+web) 0 ошибок; **90 тестов** (+20 к исходным 70); build + smoke-boot чисто; prettier чисто.
+
+**Остаются follow-up**: renderer-тесты (jsdom); виртуализация списка каталога. За пользователем — E2E, сверка `cliFlag` с CLI, `npm run dist`/подпись, релиз-пайплайн для electron-updater.

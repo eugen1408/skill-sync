@@ -4,6 +4,7 @@ import type { ConfigPatch, CatalogQuery } from '@shared/ipc/contract'
 import type { AddSourceInput } from '@shared/domain/source'
 import type { InstallRequest, ReconcileAgentsRequest } from '@shared/domain/install'
 import type { UpdateSettings } from '@shared/domain/config'
+import type { AuditService } from '../security/AuditService'
 import type { ConfigStore } from '../config/ConfigStore'
 import type { JobRunner } from '../jobs/JobRunner'
 import type { AppUpdater } from '../appUpdater'
@@ -25,6 +26,13 @@ export interface IpcDeps {
   updateEngine: UpdateEngine
   notifications: NotificationCenter
   secretStore: SecretStore
+  auditService: AuditService
+}
+
+/** Разбирает official sourceRef `owner/repo@slug` → { source, skillId }. */
+function parseOfficialRef(sourceRef: string): { source: string; skillId: string } | null {
+  const m = /^(.+)@([^@]+)$/.exec(sourceRef)
+  return m ? { source: m[1], skillId: m[2] } : null
 }
 
 /**
@@ -42,7 +50,8 @@ export function registerIpc(deps: IpcDeps): void {
     installerService,
     updateEngine,
     notifications,
-    secretStore
+    secretStore,
+    auditService
   } = deps
 
   ipcMain.handle(IpcInvoke.app.getVersion, () => app.getVersion())
@@ -66,6 +75,25 @@ export function registerIpc(deps: IpcDeps): void {
     return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
   })
 
+  ipcMain.handle(
+    IpcInvoke.dialog.confirm,
+    async (_e, opts: { message: string; detail?: string; confirmLabel?: string }) => {
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null
+      const boxOpts = {
+        type: 'warning' as const,
+        buttons: ['Отмена', opts.confirmLabel ?? 'Продолжить'],
+        defaultId: 0,
+        cancelId: 0,
+        message: opts.message,
+        detail: opts.detail
+      }
+      const { response } = win
+        ? await dialog.showMessageBox(win, boxOpts)
+        : await dialog.showMessageBox(boxOpts)
+      return response === 1
+    }
+  )
+
   ipcMain.handle(IpcInvoke.source.list, () => sourceManager.list())
   ipcMain.handle(IpcInvoke.source.add, (_e, input: AddSourceInput) => sourceManager.add(input))
   ipcMain.handle(IpcInvoke.source.remove, (_e, id: string) => {
@@ -80,12 +108,21 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle(IpcInvoke.catalog.query, (_e, query: CatalogQuery) => skillRegistry.query(query))
   ipcMain.handle(IpcInvoke.catalog.get, (_e, id: string) => skillRegistry.get(id))
   ipcMain.handle(IpcInvoke.catalog.refreshIndex, () => skillRegistry.refreshIndex())
+  ipcMain.handle(IpcInvoke.catalog.audit, (_e, skillId: string) => {
+    const entry = skillRegistry.get(skillId)
+    if (!entry || entry.sourceType !== 'official') return null
+    const ref = parseOfficialRef(entry.sourceRef)
+    return ref ? auditService.get(ref.source, ref.skillId) : null
+  })
 
   ipcMain.handle(IpcInvoke.install.run, (_e, request: InstallRequest) =>
     installerService.run(request)
   )
   ipcMain.handle(IpcInvoke.install.reconcileAgents, (_e, request: ReconcileAgentsRequest) =>
     installerService.reconcile(request)
+  )
+  ipcMain.handle(IpcInvoke.install.previewReconcile, (_e, request: ReconcileAgentsRequest) =>
+    installerService.previewReconcile(request)
   )
 
   ipcMain.handle(IpcInvoke.update.checkAll, () => updateEngine.checkAll())

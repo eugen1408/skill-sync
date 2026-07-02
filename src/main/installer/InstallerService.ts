@@ -3,7 +3,9 @@ import type {
   InstallRequest,
   InstallResult,
   ReconcileAgentsRequest,
-  ReconcileSummary
+  ReconcileSummary,
+  ReconcilePreview,
+  ReconcileOp
 } from '@shared/domain/install'
 import type { AgentInfo } from '@shared/domain/agent'
 import { getAgent } from '@shared/domain/agent'
@@ -75,6 +77,21 @@ export class InstallerService {
       if (result) this.deps.onResult(result)
     })
     return started
+  }
+
+  /** Предпросмотр реконсиляции: список операций link/unlink без изменения ФС (follow-up [13]). */
+  previewReconcile(request: ReconcileAgentsRequest): ReconcilePreview {
+    const prev = new Set(request.previousAgents)
+    const next = new Set(request.nextAgents)
+    const added = [...next].filter((a) => !prev.has(a))
+    const removed = [...prev].filter((a) => !next.has(a))
+    const skills = this.installedSkills()
+    const ops: ReconcileOp[] = []
+    for (const skill of skills) {
+      for (const agent of added) ops.push({ agent, skill: skill.name, action: 'link' })
+      for (const agent of removed) ops.push({ agent, skill: skill.name, action: 'unlink' })
+    }
+    return { addedAgents: added, removedAgents: removed, skillCount: skills.length, ops }
   }
 
   /** Реконсиляция симлинков установленных skills при изменении набора агентов (эпик Q-01). */

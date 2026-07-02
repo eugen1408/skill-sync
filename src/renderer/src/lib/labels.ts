@@ -1,6 +1,7 @@
 import type { UpdateStatus } from '@shared/domain/skill'
 import type { SourceType, SourceStatus } from '@shared/domain/source'
 import type { NotificationType } from '@shared/domain/notification'
+import type { AuditRisk } from '@shared/domain/audit'
 
 export function updateStatusLabel(status: UpdateStatus): string {
   switch (status) {
@@ -37,6 +38,50 @@ export function sourceStatusLabel(status: SourceStatus): string {
     case 'disabled':
       return 'Отключён'
   }
+}
+
+export function riskLabel(risk: AuditRisk): string {
+  switch (risk) {
+    case 'safe':
+      return 'Безопасно'
+    case 'low':
+      return 'Низкий риск'
+    case 'medium':
+      return 'Средний риск'
+    case 'high':
+      return 'Высокий риск'
+    case 'critical':
+      return 'Критический риск'
+    case 'unknown':
+      return 'Нет данных'
+  }
+}
+
+export function riskBadgeClass(risk: AuditRisk): string {
+  switch (risk) {
+    case 'safe':
+      return 'preset-filled-success-500'
+    case 'low':
+      return 'preset-tonal-success'
+    case 'medium':
+      return 'preset-filled-warning-500'
+    case 'high':
+    case 'critical':
+      return 'preset-filled-error-500'
+    case 'unknown':
+      return 'preset-tonal'
+  }
+}
+
+const PROVIDER_LABELS: Record<string, string> = {
+  ath: 'Agent Trust Hub',
+  socket: 'Socket',
+  snyk: 'Snyk',
+  zeroleaks: 'ZeroLeaks'
+}
+
+export function auditProviderLabel(provider: string): string {
+  return PROVIDER_LABELS[provider] ?? provider
 }
 
 export function notificationTypeLabel(type: NotificationType): string {
