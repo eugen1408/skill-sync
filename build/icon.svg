@@ -1,0 +1,55 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+  </defs>
+
+  <path d="M 284 100 
+           L 740 100 
+           C 841.2 100 924 182.8 924 284
+           L 924 740 
+           C 924 841.2 841.2 924 740 924
+           L 284 924 
+           C 182.8 924 100 841.2 100 740
+           L 100 284 
+           C 100 182.8 182.8 100 284 100 Z" 
+        fill="url(#bgGradient)"/>
+
+  <line x1="548.0" y1="277.7" x2="728.3" y2="385.8" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="548.0" y1="277.7" x2="620.1" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="800.4" y1="566.1" x2="620.1" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="331.8" y1="674.2" x2="403.9" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="403.9" y1="457.9" x2="512.0" y2="566.1" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="223.6" y1="530.0" x2="403.9" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="692.2" y1="746.3" x2="512.0" y2="566.1" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="728.3" y1="385.8" x2="800.4" y2="566.1" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="548.0" y1="277.7" x2="403.9" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="800.4" y1="566.1" x2="692.2" y2="746.3" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="331.8" y1="674.2" x2="512.0" y2="566.1" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="403.9" y1="457.9" x2="620.1" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="223.6" y1="530.0" x2="331.8" y2="313.7" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="620.1" y1="457.9" x2="512.0" y2="566.1" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="223.6" y1="530.0" x2="331.8" y2="674.2" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="692.2" y1="746.3" x2="512.0" y2="710.3" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="692.2" y1="746.3" x2="620.1" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="728.3" y1="385.8" x2="620.1" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="331.8" y1="313.7" x2="548.0" y2="277.7" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="331.8" y1="313.7" x2="403.9" y2="457.9" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="512.0" y1="710.3" x2="512.0" y2="566.1" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+  <line x1="512.0" y1="710.3" x2="331.8" y2="674.2" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+
+  <circle cx="223.6" cy="530.0" r="25" fill="#ffffff"/>
+  <circle cx="331.8" cy="313.7" r="25" fill="#ffffff"/>
+  <circle cx="548.0" cy="277.7" r="25" fill="#ffffff"/>
+  <circle cx="728.3" cy="385.8" r="25" fill="#ffffff"/>
+  <circle cx="800.4" cy="566.1" r="25" fill="#ffffff"/>
+  <circle cx="692.2" cy="746.3" r="25" fill="#ffffff"/>
+  <circle cx="512.0" cy="710.3" r="25" fill="#ffffff"/>
+  <circle cx="331.8" cy="674.2" r="25" fill="#ffffff"/>
+  <circle cx="403.9" cy="457.9" r="25" fill="#ffffff"/>
+  <circle cx="620.1" cy="457.9" r="25" fill="#ffffff"/>
+  <circle cx="512.0" cy="566.1" r="25" fill="#ffffff"/>
+
+</svg>
