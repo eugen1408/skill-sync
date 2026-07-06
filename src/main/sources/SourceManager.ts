@@ -103,6 +103,10 @@ export class SourceManager {
     return this.list().find((s) => s.id === id)
   }
 
+  hasIndexed(id: string): boolean {
+    return this.skillsCache.has(id)
+  }
+
   listSkills(id: string): RawSkill[] {
     return this.skillsCache.get(id) ?? []
   }

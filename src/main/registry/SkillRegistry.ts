@@ -191,6 +191,25 @@ export class SkillRegistry {
     for (const source of this.sourceManager.list()) {
       // Официальный источник не индексируется — он живой (см. OfficialCatalog).
       if (source.type === 'official') continue
+
+      if (!this.sourceManager.hasIndexed(source.id)) {
+        // Источник ещё не проиндексирован в этом запуске.
+        // Сохраняем его старые карточки из кэша (prev), чтобы они не превратились в local.
+        for (const oldEntry of prev.values()) {
+          if (oldEntry.sourceId === source.id) {
+            const slug = normalizeSkillKey(oldEntry.name)
+            const installations = this.installed.get(slug) ?? []
+            const entry: CatalogEntry = {
+              ...oldEntry,
+              installations,
+              installed: installations.length > 0
+            }
+            next.set(entry.id, entry)
+          }
+        }
+        continue
+      }
+
       for (const raw of this.sourceManager.listSkills(source.id)) {
         const entry = this.buildEntry(source, raw, prev)
         next.set(entry.id, entry)
