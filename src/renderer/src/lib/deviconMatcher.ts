@@ -32,9 +32,16 @@ const customAliases: Record<string, string> = {
   'ml': 'tensorflow',
   'llm': 'tensorflow',
   'neural': 'tensorflow',
+  'gpt': 'tensorflow',
+  'flux': 'tensorflow',
+  'kling': 'tensorflow',
+  'wan': 'tensorflow',
+  'comfy': 'tensorflow',
+  'seedance': 'tensorflow',
   'data': 'pandas',
   'bot': 'android',
   'robot': 'ros',
+  'agent': 'android',
   
   // Общая терминология
   'log': 'logstash',
@@ -51,6 +58,32 @@ const customAliases: Record<string, string> = {
   'terminal': 'bash',
   'console': 'bash',
   'script': 'bash',
+  'code': 'vscode',
+  'edit': 'vscode',
+  'doc': 'markdown',
+  'docs': 'markdown',
+  'wiki': 'markdown',
+  'readme': 'markdown',
+  'app': 'android',
+  'skill': 'bash',
+  'skills': 'bash',
+  
+  // Медиа
+  'image': 'photoshop',
+  'video': 'premierepro',
+  'audio': 'apple',
+  'music': 'apple',
+  'pptx': 'windows8',
+  
+  // Коммуникация / Трекеры
+  'chat': 'slack',
+  'msg': 'slack',
+  'lark': 'slack',
+  'issue': 'jira',
+  'issues': 'jira',
+  'prd': 'jira',
+  'task': 'jira',
+  'bug': 'jira',
   
   // DevOps / Testing
   'ci': 'jenkins',
@@ -60,21 +93,32 @@ const customAliases: Record<string, string> = {
   'test': 'jest',
   'testing': 'jest',
   'qa': 'jest',
+  'tdd': 'jest',
   'k8s': 'kubernetes',
   'gcp': 'googlecloud',
   'cloud': 'googlecloud',
+  
+  // Прочее
+  'microsoft': 'windows8',
+  'remotion': 'react',
+  'scrape': 'python',
+  'scraper': 'python',
 }
 
 // Объединяем базовый маппинг и наши алиасы
 const deviconMap = { ...baseDeviconMap, ...customAliases }
 
 const genericTerms = new Set([
-  'ai', 'ml', 'llm', 'neural', 'data', 'bot', 'robot',
+  'ai', 'ml', 'llm', 'neural', 'data', 'bot', 'robot', 'agent',
+  'gpt', 'flux', 'kling', 'wan', 'comfy', 'seedance',
   'log', 'logging', 'db', 'sql', 'database',
   'backend', 'frontend', 'ui', 'ux', 'design',
-  'api', 'terminal', 'console', 'script',
+  'api', 'terminal', 'console', 'script', 'code', 'edit',
+  'doc', 'docs', 'wiki', 'readme', 'app', 'skill', 'skills',
+  'image', 'video', 'audio', 'music', 'chat', 'msg', 'lark',
+  'issue', 'issues', 'prd', 'task', 'bug',
   'ci', 'cd', 'pipeline', 'devops',
-  'test', 'testing', 'qa', 'cloud'
+  'test', 'testing', 'qa', 'tdd', 'cloud'
 ])
 
 // Сортируем ключи по убыванию длины, чтобы находить более длинные специфичные слова раньше
