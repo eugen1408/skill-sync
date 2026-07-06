@@ -67,8 +67,19 @@ const customAliases: Record<string, string> = {
 // Объединяем базовый маппинг и наши алиасы
 const deviconMap = { ...baseDeviconMap, ...customAliases }
 
+const genericTerms = new Set([
+  'ai', 'ml', 'llm', 'neural', 'data', 'bot', 'robot',
+  'log', 'logging', 'db', 'sql', 'database',
+  'backend', 'frontend', 'ui', 'ux', 'design',
+  'api', 'terminal', 'console', 'script',
+  'ci', 'cd', 'pipeline', 'devops',
+  'test', 'testing', 'qa', 'cloud'
+])
+
 // Сортируем ключи по убыванию длины, чтобы находить более длинные специфичные слова раньше
 const sortedKeys = Object.keys(deviconMap).sort((a, b) => b.length - a.length)
+const primaryKeys = sortedKeys.filter(k => !genericTerms.has(k))
+const fallbackKeys = sortedKeys.filter(k => genericTerms.has(k))
 
 const regexCache = new Map<string, RegExp>()
 
@@ -87,7 +98,17 @@ function getWordRegex(key: string): RegExp {
 export function getIconForSkill(skillId: string, description?: string | null): string | null {
   const text = `${skillId} ${description || ''}`.toLowerCase()
 
-  for (const key of sortedKeys) {
+  // 1. Сначала ищем конкретные технологии (swift, react, python)
+  for (const key of primaryKeys) {
+    if (text.includes(key)) {
+      if (getWordRegex(key).test(text)) {
+        return (deviconMap as Record<string, string>)[key]
+      }
+    }
+  }
+
+  // 2. Если ничего специфичного не нашли, ищем общие термины (testing, backend, api)
+  for (const key of fallbackKeys) {
     if (text.includes(key)) {
       if (getWordRegex(key).test(text)) {
         return (deviconMap as Record<string, string>)[key]
