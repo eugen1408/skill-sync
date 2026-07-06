@@ -1,27 +1,27 @@
 <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <line x1="23.7" y1="8.5" x2="18.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="4.7" y1="18.0" x2="10.4" y2="6.6" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="23.7" y1="8.5" x2="31.3" y2="19.9" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="27.5" y1="29.4" x2="18.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="18.0" y1="29.4" x2="18.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="4.7" y1="18.0" x2="18.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="10.4" y1="6.6" x2="23.7" y2="8.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="18.0" y1="29.4" x2="10.4" y2="25.6" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="31.3" y1="19.9" x2="27.5" y2="29.4" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="4.7" y1="18.0" x2="10.4" y2="25.6" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="27.5" y1="29.4" x2="18.0" y2="29.4" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="31.3" y1="19.9" x2="18.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="10.4" y1="25.6" x2="18.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="10.4" y1="6.6" x2="18.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="24.0" y1="6.0" x2="18.0" y2="16.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="4.0" y1="16.0" x2="10.0" y2="4.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="24.0" y1="6.0" x2="32.0" y2="18.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="28.0" y1="32.0" x2="18.0" y2="16.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="18.0" y1="28.0" x2="18.0" y2="16.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="4.0" y1="16.0" x2="18.0" y2="16.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="10.0" y1="4.0" x2="24.0" y2="6.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="18.0" y1="28.0" x2="10.0" y2="24.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="32.0" y1="18.0" x2="28.0" y2="32.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="4.0" y1="16.0" x2="10.0" y2="24.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="28.0" y1="32.0" x2="18.0" y2="28.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="32.0" y1="18.0" x2="18.0" y2="16.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="10.0" y1="24.0" x2="18.0" y2="16.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="10.0" y1="4.0" x2="18.0" y2="16.0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
 
-  <circle cx="4.7" cy="18.0" r="2.5" fill="#ffffff"/>
-  <circle cx="10.4" cy="6.6" r="2.5" fill="#ffffff"/>
-  <circle cx="23.7" cy="8.5" r="2.5" fill="#ffffff"/>
-  <circle cx="31.3" cy="19.9" r="2.5" fill="#ffffff"/>
-  <circle cx="27.5" cy="29.4" r="2.5" fill="#ffffff"/>
-  <circle cx="18.0" cy="29.4" r="2.5" fill="#ffffff"/>
-  <circle cx="10.4" cy="25.6" r="2.5" fill="#ffffff"/>
-  <circle cx="18.0" cy="18.0" r="2.5" fill="#ffffff"/>
+  <circle cx="4.0" cy="16.0" r="2.5" fill="#ffffff"/>
+  <circle cx="10.0" cy="4.0" r="2.5" fill="#ffffff"/>
+  <circle cx="24.0" cy="6.0" r="2.5" fill="#ffffff"/>
+  <circle cx="32.0" cy="18.0" r="2.5" fill="#ffffff"/>
+  <circle cx="28.0" cy="32.0" r="2.5" fill="#ffffff"/>
+  <circle cx="18.0" cy="28.0" r="2.5" fill="#ffffff"/>
+  <circle cx="10.0" cy="24.0" r="2.5" fill="#ffffff"/>
+  <circle cx="18.0" cy="16.0" r="2.5" fill="#ffffff"/>
 
   <circle cx="28" cy="8" r="7" fill="#ef4444" />
 
