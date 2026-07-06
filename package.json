@@ -2,7 +2,7 @@
   "name": "skill-sync",
   "version": "0.1.0",
   "description": "Централизованный менеджер установки и обновления skills для LLM-агентов",
-  "author": "evaganov",
+  "author": "eugen1408",
   "license": "MIT",
   "type": "module",
   "main": "./out/main/index.js",
@@ -44,5 +44,9 @@
     "typescript": "^5.7.2",
     "vite": "^7.3.6",
     "vitest": "^3.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eugen1408/skill-sync.git"
   }
 }

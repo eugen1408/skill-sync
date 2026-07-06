@@ -12,7 +12,7 @@ files:
   - '!**/*.map'
 publish:
   provider: github
-  owner: evaganov
+  owner: eugen1408
   repo: skill-sync
 mac:
   target:
