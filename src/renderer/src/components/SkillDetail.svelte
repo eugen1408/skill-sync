@@ -17,6 +17,7 @@
     formatDateTime,
     formatDate
   } from '../lib/labels'
+  import { t } from '../lib/i18n.svelte'
   import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
   import Icon from './Icon.svelte'
 
@@ -134,9 +135,9 @@
   async function copyText(text: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text)
-      toasts.push('Скопировано')
+      toasts.push(t('toast.copied'))
     } catch {
-      toasts.push('Не удалось скопировать', 'error')
+      toasts.push(t('toast.copyFailed'), 'error')
     }
   }
 
@@ -162,7 +163,7 @@
         {#if officialUrl}
           <button
             class="inline-flex min-w-0 items-center gap-1 text-left hover:underline"
-            title="Открыть страницу на skills.sh"
+            title={t('detail.openPageTitle')}
             onclick={() => void api.shell?.openExternal(officialUrl!)}
           >
             <span class="truncate">{entry.name}</span>
@@ -174,7 +175,7 @@
       </h2>
       <button
         class="btn btn-sm preset-tonal shrink-0"
-        title="Закрыть"
+        title={t('common.close')}
         onclick={() => ui.closeDetail()}
       >
         <Icon name="close" />
@@ -188,14 +189,14 @@
         </p>
         <div class="mt-1 flex items-center gap-2">
           {#if descriptionFromOfficial}
-            <span class="text-xs opacity-40">Описание: skills.sh</span>
+            <span class="text-xs opacity-40">{t('detail.descriptionFrom')}</span>
           {/if}
           {#if descOverflow || descExpanded}
             <button
               class="ml-auto text-xs text-primary-500 hover:underline"
               onclick={() => (descExpanded = !descExpanded)}
             >
-              {descExpanded ? 'Свернуть' : 'Показать полностью'}
+              {descExpanded ? t('detail.collapse') : t('detail.showFull')}
             </button>
           {/if}
         </div>
@@ -211,7 +212,7 @@
           aria-expanded={readmeOpen}
           onclick={() => (readmeOpen = !readmeOpen)}
         >
-          <span>README.md / SKILL.md</span>
+          <span>{t('detail.readme')}</span>
           <Icon
             name="chevron"
             size={14}
@@ -229,30 +230,30 @@
 
     <dl class="space-y-2 text-sm">
       <div class="flex justify-between gap-4">
-        <dt class="shrink-0 opacity-60">Источник</dt>
+        <dt class="shrink-0 opacity-60">{t('detail.source')}</dt>
         <dd>{sourceTypeLabel(entry.sourceType)}</dd>
       </div>
       {#if entry.installs != null}
         <div class="flex justify-between gap-4">
-          <dt class="shrink-0 opacity-60">Установок (skills.sh)</dt>
+          <dt class="shrink-0 opacity-60">{t('detail.installs')}</dt>
           <dd>{formatInstalls(entry.installs)}</dd>
         </div>
       {/if}
       <div class="flex justify-between gap-4">
-        <dt class="shrink-0 opacity-60">Статус</dt>
+        <dt class="shrink-0 opacity-60">{t('detail.status')}</dt>
         <dd>{updateStatusLabel(entry.updateStatus)}</dd>
       </div>
       <div class="flex justify-between gap-4">
-        <dt class="shrink-0 opacity-60">Установленная версия</dt>
+        <dt class="shrink-0 opacity-60">{t('detail.installedVersion')}</dt>
         {@render versionCell(entry.installations[0]?.installedVersion ?? null)}
       </div>
       <div class="flex justify-between gap-4">
-        <dt class="shrink-0 opacity-60">Последняя версия</dt>
+        <dt class="shrink-0 opacity-60">{t('detail.latestVersion')}</dt>
         {@render versionCell(entry.latestVersion)}
       </div>
       <div class="flex justify-between gap-4">
-        <dt class="shrink-0 opacity-60">Проверено</dt>
-        <dd>{entry.lastCheckedAt ? formatDateTime(entry.lastCheckedAt) : '—'}</dd>
+        <dt class="shrink-0 opacity-60">{t('detail.checked')}</dt>
+        <dd>{entry.lastCheckedAt ? formatDateTime(entry.lastCheckedAt) : t('common.dash')}</dd>
       </div>
     </dl>
 
@@ -263,7 +264,7 @@
           onclick={() => void api.shell?.openExternal(officialUrl!)}
         >
           <Icon name="external" />
-          Открыть на skills.sh
+          {t('detail.openOnSkillsSh')}
         </button>
       {/if}
       {#if repoUrl}
@@ -272,7 +273,7 @@
           onclick={() => void api.shell?.openExternal(repoUrl!)}
         >
           <Icon name="external" />
-          Открыть репозиторий
+          {t('detail.openRepo')}
         </button>
       {/if}
     </div>
@@ -280,7 +281,7 @@
     {#if hasAuditData(audit) && audit}
       <div>
         <div class="mb-2 flex items-center gap-2">
-          <p class="text-sm font-semibold">Безопасность</p>
+          <p class="text-sm font-semibold">{t('detail.security')}</p>
           <span class="badge {riskBadgeClass(audit.worstRisk)}">{riskLabel(audit.worstRisk)}</span>
         </div>
         <ul class="space-y-2 text-sm">
@@ -314,14 +315,16 @@
                     <p class="text-xs opacity-70">{p.summary}</p>
                   {/if}
                   {#if p.analyzedAt}
-                    <p class="text-xs opacity-40">Проверено: {formatDate(p.analyzedAt)}</p>
+                    <p class="text-xs opacity-40">
+                      {t('detail.checkedOn', { date: formatDate(p.analyzedAt) })}
+                    </p>
                   {/if}
                   {#if secUrl}
                     <button
                       class="inline-flex items-center gap-1 text-xs text-primary-500 hover:underline"
                       onclick={() => void api.shell?.openExternal(secUrl)}
                     >
-                      Полные результаты на skills.sh
+                      {t('detail.fullResults')}
                       <Icon name="external" size={12} />
                     </button>
                   {/if}
@@ -330,7 +333,7 @@
             </li>
           {/each}
         </ul>
-        <p class="mt-1 text-xs opacity-50">Данные аудита: skills.sh</p>
+        <p class="mt-1 text-xs opacity-50">{t('detail.auditData')}</p>
       </div>
     {/if}
 
@@ -339,49 +342,57 @@
         <dd class="min-w-0 text-right">
           <button
             class="max-w-full truncate font-mono text-xs hover:underline"
-            title="Скопировать: {value}"
+            title={t('detail.copyTitle', { value })}
             onclick={() => void copyText(value)}
           >
             {truncateMiddle(value)}
           </button>
         </dd>
       {:else}
-        <dd class="text-right font-mono text-xs">—</dd>
+        <dd class="text-right font-mono text-xs">{t('common.dash')}</dd>
       {/if}
     {/snippet}
 
-    {#snippet installRow(label: string, path: string)}
+    {#snippet installRow(label: string, path: string, isSymlink: boolean)}
       <li class="flex items-center gap-2">
         <span class="shrink-0">{label}</span>
-        <!-- Путь + кнопка VS Code рядом (группа хагает контент, не растягиваясь на всю ширину). -->
-        <span class="flex min-w-0 items-center gap-1">
-          <button
-            class="truncate text-left text-xs opacity-60 hover:underline"
-            title={path}
-            onclick={() => void api.shell?.openPath(path)}
-          >
-            {path}
-          </button>
-          <button
-            class="shrink-0 text-[#0098ff] opacity-80 hover:opacity-100"
-            title="Открыть в VS Code"
-            onclick={() => void api.shell?.openInEditor(path)}
-          >
-            <Icon name="vscode" size={15} />
-          </button>
-        </span>
+        {#if isSymlink}
+          <!-- Симлинк (агентская папка ссылается на общий каталог) — путь некликабелен. -->
+          <span class="flex min-w-0 items-center gap-1">
+            <span class="truncate text-xs opacity-50" title={path}>{path}</span>
+            <span class="badge preset-tonal shrink-0 text-[0.65rem]">{t('detail.symlink')}</span>
+          </span>
+        {:else}
+          <!-- Путь + кнопка VS Code рядом (группа хагает контент, не растягиваясь на всю ширину). -->
+          <span class="flex min-w-0 items-center gap-1">
+            <button
+              class="truncate text-left text-xs opacity-60 hover:underline"
+              title={path}
+              onclick={() => void api.shell?.openPath(path)}
+            >
+              {path}
+            </button>
+            <button
+              class="shrink-0 text-[#0098ff] opacity-80 hover:opacity-100"
+              title={t('detail.openInVscode')}
+              onclick={() => void api.shell?.openInEditor(path)}
+            >
+              <Icon name="vscode" size={15} />
+            </button>
+          </span>
+        {/if}
       </li>
     {/snippet}
 
     {#if canonicalPath || installations.length > 0}
       <div>
-        <p class="mb-1 text-sm font-semibold">Установлен для агентов</p>
+        <p class="mb-1 text-sm font-semibold">{t('detail.installedForAgents')}</p>
         <ul class="space-y-1 text-sm">
           {#if canonicalPath}
-            {@render installRow('Основные', canonicalPath)}
+            {@render installRow(t('detail.primary'), canonicalPath, false)}
           {/if}
           {#each otherInstalls as inst (inst.agent)}
-            {@render installRow(inst.agent, inst.installPath)}
+            {@render installRow(inst.agent, inst.installPath, inst.isSymlink)}
           {/each}
         </ul>
       </div>
@@ -391,22 +402,25 @@
       {#if entry.hasUpdate}
         <button
           class="btn btn-sm preset-filled-warning-500"
-          onclick={() =>
-            toasts.guard(() => api.update.runOne(entry!.id), 'Не удалось запустить обновление')}
+          onclick={() => toasts.guard(() => api.update.runOne(entry!.id), t('error.updateStart'))}
         >
-          Обновить
+          {t('action.update')}
         </button>
       {:else if !entry.installed && entry.sourceId !== 'installed'}
-        <button class="btn btn-sm preset-filled-primary-500" onclick={install}>Установить</button>
+        <button class="btn btn-sm preset-filled-primary-500" onclick={install}
+          >{t('action.install')}</button
+        >
       {/if}
       {#if entry.installed}
-        <button class="btn btn-sm preset-tonal-primary" onclick={reinstall}>Переустановить</button>
+        <button class="btn btn-sm preset-tonal-primary" onclick={reinstall}
+          >{t('action.reinstall')}</button
+        >
         <button
           class="btn btn-sm preset-tonal-error gap-1"
           onclick={() => void uninstallWithConfirm(entry!)}
         >
           <Icon name="trash" size={14} />
-          Удалить
+          {t('action.remove')}
         </button>
       {/if}
     </div>
@@ -478,6 +492,17 @@
   .markdown :global(th) {
     background: color-mix(in oklab, currentColor 8%, transparent);
     font-weight: 600;
+  }
+  /* YAML-фронтматтер: узкая колонка ключей, значение слева — читается как key/value. */
+  .markdown :global(table.frontmatter) {
+    display: table;
+    width: 100%;
+  }
+  .markdown :global(table.frontmatter th) {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+    vertical-align: top;
   }
   .markdown :global(blockquote) {
     border-left: 3px solid color-mix(in oklab, currentColor 25%, transparent);

@@ -1,23 +1,11 @@
 <script lang="ts">
   import { jobs } from '../lib/stores/jobs.svelte'
+  import { t } from '../lib/i18n.svelte'
+  import type { MessageKey } from '@shared/i18n/messages'
   import Icon from './Icon.svelte'
 
-  const kindLabels: Record<string, string> = {
-    'source.index': 'Индексация',
-    'source.refresh': 'Обновление источника',
-    install: 'Установка',
-    'install.uninstall': 'Удаление',
-    'install.reconcileAgents': 'Реконсиляция агентов',
-    'update.check': 'Проверка обновлений',
-    'update.run': 'Обновление'
-  }
-
-  const statusLabels: Record<string, string> = {
-    running: '',
-    done: 'Готово',
-    error: 'Ошибка',
-    cancelled: 'Отменено'
-  }
+  const kindLabel = (kind: string): string => t(`jobs.kind.${kind}` as MessageKey)
+  const statusLabel = (status: string): string => t(`jobs.status.${status}` as MessageKey)
 
   const MIN_H = 80
   const MAX_H = 500
@@ -57,21 +45,21 @@
       class="h-1.5 shrink-0 cursor-ns-resize bg-surface-200-800/40 hover:bg-primary-500/50"
       role="separator"
       aria-orientation="horizontal"
-      aria-label="Изменить высоту панели событий"
+      aria-label={t('jobs.resizeLabel')}
       onpointerdown={startResize}
     ></div>
 
     <div class="flex items-center gap-2 px-3 py-1 text-xs">
-      <span class="font-semibold opacity-70">События</span>
+      <span class="font-semibold opacity-70">{t('jobs.events')}</span>
       <span class="opacity-40">{jobs.visible.length}</span>
       {#if hasFinished}
         <button
           class="btn btn-sm preset-tonal ml-auto gap-1"
-          title="Очистить завершённые"
+          title={t('jobs.clearFinished')}
           onclick={() => jobs.clearFinished()}
         >
           <Icon name="trash" size={14} />
-          Очистить все
+          {t('jobs.clearAll')}
         </button>
       {/if}
     </div>
@@ -83,7 +71,7 @@
             {#if job.logs.length > 0}
               <button
                 class="opacity-60 hover:opacity-100"
-                title="Логи"
+                title={t('jobs.logs')}
                 onclick={() => toggle(job.jobId)}
               >
                 <Icon
@@ -95,26 +83,26 @@
             {:else}
               <span class="w-3.5"></span>
             {/if}
-            <span class="font-medium">{kindLabels[job.kind] ?? job.kind}</span>
+            <span class="font-medium">{kindLabel(job.kind)}</span>
             <span class="flex-1 truncate opacity-70">
-              {job.status === 'error' ? (job.error ?? 'Ошибка') : (job.message ?? '')}
+              {job.status === 'error' ? (job.error ?? t('common.error')) : (job.message ?? '')}
             </span>
             {#if job.status === 'running'}
               {#if job.percent !== null}
                 <span class="opacity-60">{job.percent}%</span>
               {/if}
               <button class="btn btn-sm preset-tonal" onclick={() => jobs.cancel(job.jobId)}>
-                Отмена
+                {t('jobs.cancel')}
               </button>
             {:else}
               <span
                 class="badge {job.status === 'error' ? 'preset-filled-error-500' : 'preset-tonal'}"
               >
-                {statusLabels[job.status]}
+                {statusLabel(job.status)}
               </span>
               <button
                 class="btn-icon btn-icon-sm preset-tonal"
-                title="Убрать"
+                title={t('jobs.dismiss')}
                 onclick={() => jobs.dismiss(job.jobId)}
               >
                 <Icon name="trash" size={14} />

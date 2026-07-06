@@ -3,28 +3,41 @@
   import type { CatalogStatusFilter, CatalogSort } from '@shared/ipc/contract'
   import { api } from '../lib/api'
   import { catalog } from '../lib/stores/catalog.svelte'
+  import { sources } from '../lib/stores/sources.svelte'
   import { config } from '../lib/stores/config.svelte'
   import { ui } from '../lib/stores/ui.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
   import { jobs } from '../lib/stores/jobs.svelte'
   import { updateStatusLabel, sourceTypeLabel, formatInstalls } from '../lib/labels'
+  import { t } from '../lib/i18n.svelte'
   import { installWithAuditGuard } from '../lib/install'
   import { computeWindow } from '../lib/virtual'
   import Icon from './Icon.svelte'
+  import FilterMenu from './FilterMenu.svelte'
 
-  const statusFilters: Array<{ value: CatalogStatusFilter | null; label: string }> = [
-    { value: null, label: 'Все' },
-    { value: 'installed', label: 'Установлены' },
-    { value: 'not_installed', label: 'Не установлены' },
-    { value: 'update_available', label: 'Есть обновление' }
+  const STATUS_VALUES: CatalogStatusFilter[] = ['installed', 'not_installed', 'update_available']
+
+  const sorts: Array<{ value: CatalogSort; labelKey: Parameters<typeof t>[0] }> = [
+    { value: 'update-first', labelKey: 'sort.updateFirst' },
+    { value: 'installs-desc', labelKey: 'sort.popular' },
+    { value: 'name-asc', labelKey: 'sort.nameAsc' },
+    { value: 'name-desc', labelKey: 'sort.nameDesc' }
   ]
 
-  const sorts: Array<{ value: CatalogSort; label: string }> = [
-    { value: 'update-first', label: 'Сначала обновления' },
-    { value: 'installs-desc', label: 'Популярные (skills.sh)' },
-    { value: 'name-asc', label: 'Имя А–Я' },
-    { value: 'name-desc', label: 'Имя Я–А' }
-  ]
+  const statusOptions = $derived(
+    STATUS_VALUES.map((v) => ({
+      value: v,
+      label: t(`statusFilter.${v}`),
+      checked: catalog.statuses.includes(v)
+    }))
+  )
+  const sourceOptions = $derived(
+    sources.items.map((s) => ({
+      value: s.id,
+      label: s.name,
+      checked: catalog.sourceIds?.includes(s.id) ?? false
+    }))
+  )
 
   let scrollTop = $state(0)
   let viewportH = $state(0)
@@ -65,14 +78,14 @@
     <div class="relative max-w-xs flex-1">
       <input
         class="input pr-8"
-        placeholder="Поиск skills…"
+        placeholder={t('catalog.searchPlaceholder')}
         value={catalog.text}
         oninput={(e) => catalog.setText(e.currentTarget.value)}
       />
       {#if catalog.text}
         <button
           class="absolute inset-y-0 right-2 flex items-center opacity-50 hover:opacity-100"
-          title="Очистить"
+          title={t('common.clear')}
           onclick={() => catalog.setText('')}
         >
           <Icon name="close" size={14} />
@@ -85,31 +98,29 @@
       onchange={(e) => catalog.setSort(e.currentTarget.value as CatalogSort)}
     >
       {#each sorts as s (s.value)}
-        <option value={s.value}>{s.label}</option>
+        <option value={s.value}>{t(s.labelKey)}</option>
       {/each}
     </select>
-    <div class="flex gap-1">
-      {#each statusFilters as f (f.label)}
-        <button
-          class="btn btn-sm {catalog.status === f.value
-            ? 'preset-filled-primary-500'
-            : 'preset-tonal'}"
-          onclick={() => catalog.setStatus(f.value)}
-        >
-          {f.label}
-        </button>
-      {/each}
-    </div>
+    <FilterMenu
+      label={t('catalog.filterStatus')}
+      options={statusOptions}
+      onToggle={(v) => catalog.toggleStatus(v as CatalogStatusFilter)}
+    />
+    <FilterMenu
+      label={t('catalog.filterSources')}
+      options={sourceOptions}
+      onToggle={(v) => catalog.toggleSource(v)}
+    />
     <button
       class="btn btn-sm preset-tonal ml-auto gap-1"
       onclick={() => void catalog.refresh()}
       disabled={catalog.loading}
-      title="Переинициализировать список (как при запуске)"
+      title={t('catalog.refreshTitle')}
     >
       <Icon name="refresh" class={catalog.loading ? 'animate-spin' : ''} />
-      Обновить
+      {t('catalog.refresh')}
     </button>
-    <span class="text-sm opacity-60">Всего: {catalog.result.total}</span>
+    <span class="text-sm opacity-60">{t('catalog.total', { count: catalog.result.total })}</span>
   </div>
 
   {#if initialLoading}
@@ -130,7 +141,7 @@
     </div>
   {:else if items.length === 0}
     <div class="card preset-outlined-surface-200-800 p-8 text-center opacity-70">
-      Ничего не найдено. Добавьте источник во вкладке «Источники» или воспользуйтесь поиском.
+      {t('catalog.empty')}
     </div>
   {:else}
     <!-- Виртуализированный список: рендерим только видимое окно (follow-up [12]). -->
@@ -144,15 +155,23 @@
         <div style="transform: translateY({win.padTop}px)">
           {#each visible as entry (entry.id)}
             <div style="height: {rowH}px" class="pb-2">
+              <!-- Вся карточка кликабельна (верх и низ); интерактивные кнопки внутри
+                   останавливают всплытие, чтобы не открывать деталь по нажатию действия. -->
               <div
-                class="card preset-outlined-surface-200-800 flex h-full px-4 {compact
+                role="button"
+                tabindex="0"
+                class="card preset-outlined-surface-200-800 flex h-full cursor-pointer px-4 hover:preset-tonal {compact
                   ? 'flex-col justify-center gap-2'
                   : 'items-center gap-4'}"
+                onclick={() => ui.openDetail(entry.id)}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    ui.openDetail(entry.id)
+                  }
+                }}
               >
-                <button
-                  class="overflow-hidden text-left {compact ? 'w-full' : 'flex-1'}"
-                  onclick={() => ui.openDetail(entry.id)}
-                >
+                <div class="overflow-hidden {compact ? 'w-full' : 'flex-1'}">
                   <span class="block truncate font-semibold">{entry.name}</span>
                   {#if entry.description}
                     <p class="line-clamp-1 text-sm opacity-70">{entry.description}</p>
@@ -165,7 +184,7 @@
                       {formatInstalls(entry.installs)}
                     {/if}
                   </p>
-                </button>
+                </div>
                 <!-- Статус и действие — в одном месте: кнопка (Обновить/Установить) заменяет
                      дублирующий бейдж; для состояний без действия показываем бейдж статуса. -->
                 <div class="flex shrink-0 items-center gap-2 {compact ? 'w-full justify-end' : ''}">
@@ -174,20 +193,22 @@
                   {:else if entry.hasUpdate}
                     <button
                       class="btn btn-sm preset-filled-warning-500"
-                      onclick={() =>
-                        toasts.guard(
-                          () => api.update.runOne(entry.id),
-                          'Не удалось запустить обновление'
-                        )}
+                      onclick={(e) => {
+                        e.stopPropagation()
+                        void toasts.guard(() => api.update.runOne(entry.id), t('error.updateStart'))
+                      }}
                     >
-                      Обновить
+                      {t('action.update')}
                     </button>
                   {:else if !entry.installed && entry.sourceId !== 'installed'}
                     <button
                       class="btn btn-sm preset-filled-primary-500"
-                      onclick={() => install(entry)}
+                      onclick={(e) => {
+                        e.stopPropagation()
+                        install(entry)
+                      }}
                     >
-                      Установить
+                      {t('action.install')}
                     </button>
                   {:else}
                     <span class="badge {badgeClass(entry)}"

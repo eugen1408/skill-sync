@@ -1,5 +1,6 @@
 import type { Source } from './source'
 import { DEFAULT_AGENT_ID } from './agent'
+import type { LocalePref } from '../i18n/messages'
 
 export type InstallScope = 'global' | 'project'
 
@@ -40,6 +41,12 @@ export interface AppUpdateSettings {
   autoDownload: boolean
 }
 
+/** Настройки интерфейса (доступны и main-процессу — напр. для локализации трея). */
+export interface UiSettings {
+  /** Язык интерфейса: `system` — по локали ОС. */
+  language: LocalePref
+}
+
 export interface AppConfig {
   schemaVersion: number
   sources: Source[]
@@ -47,6 +54,7 @@ export interface AppConfig {
   install: InstallSettings
   network: NetworkSettings
   appUpdate: AppUpdateSettings
+  ui: UiSettings
 }
 
 export const CONFIG_SCHEMA_VERSION = 1
@@ -76,6 +84,9 @@ export function defaultConfig(): AppConfig {
     appUpdate: {
       checkOnLaunch: true,
       autoDownload: false
+    },
+    ui: {
+      language: 'system'
     }
   }
 }

@@ -2,6 +2,7 @@
   import { parseGitSourceInput, type ParsedGitSource } from '@shared/domain/gitSource'
   import { api } from '../lib/api'
   import { sources } from '../lib/stores/sources.svelte'
+  import { t } from '../lib/i18n.svelte'
 
   let type = $state<'git' | 'local'>('git')
   let gitInput = $state('')
@@ -32,7 +33,7 @@
     busy = true
     try {
       if (type === 'git') {
-        if (!parsed) throw new Error('Не удалось разобрать ссылку на репозиторий')
+        if (!parsed) throw new Error(t('addSource.parseErrorThrow'))
         await sources.add({
           type: 'git',
           name: parsed.name,
@@ -47,7 +48,7 @@
         })
         gitInput = ''
       } else {
-        if (!localPath) throw new Error('Выберите каталог')
+        if (!localPath) throw new Error(t('addSource.selectFolder'))
         await sources.add({
           type: 'local',
           name: localName,
@@ -71,7 +72,7 @@
 </script>
 
 <form class="card preset-outlined-surface-200-800 space-y-3 p-4" onsubmit={submit}>
-  <p class="font-semibold">Добавить источник</p>
+  <p class="font-semibold">{t('addSource.title')}</p>
 
   <div class="flex gap-2">
     <button
@@ -79,61 +80,70 @@
       class="btn btn-sm {type === 'git' ? 'preset-filled-primary-500' : 'preset-tonal'}"
       onclick={() => (type = 'git')}
     >
-      Git
+      {t('addSource.git')}
     </button>
     <button
       type="button"
       class="btn btn-sm {type === 'local' ? 'preset-filled-primary-500' : 'preset-tonal'}"
       onclick={() => (type = 'local')}
     >
-      Локальный
+      {t('addSource.local')}
     </button>
   </div>
 
   {#if type === 'git'}
     <input
       class="input"
-      placeholder="Вставьте ссылку на репозиторий (HTTPS, SSH или owner/repo)"
+      placeholder={t('addSource.gitPlaceholder')}
       bind:value={gitInput}
       required
     />
     {#if parsed}
       <dl class="space-y-1 rounded bg-surface-100-900 p-2 text-xs">
         <div class="flex justify-between gap-2">
-          <dt class="opacity-60">Название</dt>
+          <dt class="opacity-60">{t('addSource.name')}</dt>
           <dd class="truncate font-medium">{parsed.name}</dd>
         </div>
         <div class="flex justify-between gap-2">
-          <dt class="opacity-60">URL</dt>
+          <dt class="opacity-60">{t('addSource.url')}</dt>
           <dd class="truncate">{parsed.url}</dd>
         </div>
         <div class="flex justify-between gap-2">
-          <dt class="opacity-60">Авторизация</dt>
+          <dt class="opacity-60">{t('addSource.auth')}</dt>
           <dd>{parsed.authMode === 'ssh' ? 'SSH' : 'HTTPS'}</dd>
         </div>
         {#if parsed.ref}
           <div class="flex justify-between gap-2">
-            <dt class="opacity-60">ref</dt>
+            <dt class="opacity-60">{t('addSource.ref')}</dt>
             <dd>{parsed.ref}</dd>
           </div>
         {/if}
         {#if parsed.subpath}
           <div class="flex justify-between gap-2">
-            <dt class="opacity-60">subpath</dt>
+            <dt class="opacity-60">{t('addSource.subpath')}</dt>
             <dd class="truncate">{parsed.subpath}</dd>
           </div>
         {/if}
       </dl>
     {:else if gitInput.trim()}
-      <p class="text-xs text-error-500">Не удалось распознать ссылку на репозиторий.</p>
+      <p class="text-xs text-error-500">{t('addSource.parseError')}</p>
     {/if}
   {:else}
     <div class="flex gap-2">
-      <input class="input flex-1" placeholder="Каталог не выбран" value={localPath} readonly />
-      <button type="button" class="btn btn-sm preset-tonal" onclick={pickFolder}>Обзор…</button>
+      <input
+        class="input flex-1"
+        placeholder={t('addSource.noFolder')}
+        value={localPath}
+        readonly
+      />
+      <button type="button" class="btn btn-sm preset-tonal" onclick={pickFolder}
+        >{t('addSource.browse')}</button
+      >
     </div>
     {#if localName}
-      <p class="text-xs opacity-60">Название: <span class="font-medium">{localName}</span></p>
+      <p class="text-xs opacity-60">
+        {t('addSource.nameLabel')} <span class="font-medium">{localName}</span>
+      </p>
     {/if}
   {/if}
 
@@ -146,6 +156,6 @@
     class="btn preset-filled-primary-500"
     disabled={busy || (type === 'git' ? !parsed : !localPath)}
   >
-    {busy ? 'Добавление…' : 'Добавить'}
+    {busy ? t('addSource.adding') : t('addSource.add')}
   </button>
 </form>

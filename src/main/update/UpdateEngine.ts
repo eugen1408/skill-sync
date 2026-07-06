@@ -151,7 +151,7 @@ export class UpdateEngine {
     return this.deps.skillRegistry.query({
       text: null,
       sourceIds: null,
-      status: 'installed',
+      statuses: ['installed'],
       sort: 'name-asc',
       page: 0,
       pageSize: 100_000

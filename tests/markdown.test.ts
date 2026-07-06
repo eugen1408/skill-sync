@@ -50,4 +50,20 @@ describe('renderMarkdown', () => {
     expect(html).toContain('логотип')
     expect(html).not.toContain('<img')
   })
+
+  it('YAML-фронтматтер рендерится как таблица key/value, а не как hr + текст', () => {
+    const html = renderMarkdown('---\nname: my-skill\ndescription: "Does things"\n---\n\n# Title')
+    expect(html).toContain('<table class="frontmatter">')
+    expect(html).toContain('<th>name</th><td>my-skill</td>')
+    // Кавычки со значения снимаются.
+    expect(html).toContain('<th>description</th><td>Does things</td>')
+    // Разделитель фронтматтера не превращается в <hr/>, а тело идёт следом.
+    expect(html).not.toContain('<hr')
+    expect(html).toContain('<h1>Title</h1>')
+  })
+
+  it('без фронтматтера ведущий --- остаётся горизонтальной линией', () => {
+    const html = renderMarkdown('text\n\n---\n\nmore')
+    expect(html).toContain('<hr />')
+  })
 })

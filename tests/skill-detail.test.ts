@@ -12,7 +12,9 @@ function entry(id: string, name: string): CatalogEntry {
     sourceId: 'installed',
     sourceType: 'local',
     installed: true,
-    installations: [{ agent: 'claude-code', installedVersion: 'v1', installPath: `/h/${name}` }],
+    installations: [
+      { agent: 'claude-code', installedVersion: 'v1', installPath: `/h/${name}`, isSymlink: false }
+    ],
     latestVersion: null,
     hasUpdate: false,
     lastCheckedAt: null,

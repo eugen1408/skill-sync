@@ -23,6 +23,8 @@ export interface AgentInstallation {
   agent: string
   installedVersion: string | null
   installPath: string
+  /** Каталог установки — симлинк (агентская папка ссылается на общий `.agents/skills`). */
+  isSymlink: boolean
 }
 
 /** Запись единого каталога / локального индекса (Часть 4). */

@@ -38,7 +38,8 @@ export type CatalogStatusFilter = 'installed' | 'not_installed' | 'update_availa
 export interface CatalogQuery {
   text: string | null
   sourceIds: string[] | null
-  status: CatalogStatusFilter | null
+  /** Набор статус-фильтров (OR-семантика); null/пусто — без фильтра по статусу. */
+  statuses: CatalogStatusFilter[] | null
   sort: CatalogSort
   page: number
   pageSize: number

@@ -307,7 +307,8 @@ app.whenReady().then(() => {
         }))
     },
     updateOne: (skillId) => updateEngine.runOne(skillId),
-    updateAll: () => updateEngine.runAll()
+    updateAll: () => updateEngine.runAll(),
+    getLanguage: () => configStore.get().ui.language
   })
 
   registerIpc({
@@ -323,7 +324,8 @@ app.whenReady().then(() => {
     auditService,
     officialCatalog,
     gitCache,
-    officialBaseUrl
+    officialBaseUrl,
+    onUiChanged: () => tray?.rebuild()
   })
   appUpdater.maybeCheckOnLaunch()
 

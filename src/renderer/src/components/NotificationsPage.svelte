@@ -1,6 +1,7 @@
 <script lang="ts">
   import { notifications } from '../lib/stores/notifications.svelte'
-  import { notificationTypeLabel } from '../lib/labels'
+  import { notificationTypeLabel, formatTime } from '../lib/labels'
+  import { t } from '../lib/i18n.svelte'
 
   function badge(type: string): string {
     if (type === 'install_error' || type === 'update_error' || type === 'source_unavailable')
@@ -12,16 +13,18 @@
 
 <div class="space-y-4">
   <div class="flex items-center gap-2">
-    <h2 class="h4 flex-1">Уведомления</h2>
+    <h2 class="h4 flex-1">{t('notifications.title')}</h2>
     <button class="btn btn-sm preset-tonal" onclick={() => notifications.markAllRead()}>
-      Прочитать все
+      {t('notifications.markAllRead')}
     </button>
-    <button class="btn btn-sm preset-tonal" onclick={() => notifications.clear()}>Очистить</button>
+    <button class="btn btn-sm preset-tonal" onclick={() => notifications.clear()}
+      >{t('notifications.clear')}</button
+    >
   </div>
 
   {#if notifications.items.length === 0}
     <div class="card preset-outlined-surface-200-800 p-8 text-center opacity-70">
-      Уведомлений нет.
+      {t('notifications.empty')}
     </div>
   {:else}
     <div class="space-y-2">
@@ -36,7 +39,7 @@
             <p class="font-medium">{n.title}</p>
             <p class="text-sm opacity-80">{n.message}</p>
           </div>
-          <span class="text-xs opacity-50">{new Date(n.createdAt).toLocaleTimeString()}</span>
+          <span class="text-xs opacity-50">{formatTime(n.createdAt)}</span>
         </div>
       {/each}
     </div>

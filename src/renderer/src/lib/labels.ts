@@ -2,38 +2,14 @@ import type { UpdateStatus } from '@shared/domain/skill'
 import type { SourceType, SourceStatus } from '@shared/domain/source'
 import type { NotificationType } from '@shared/domain/notification'
 import type { AuditRisk } from '@shared/domain/audit'
+import { t } from './i18n.svelte'
+import type { MessageKey } from '@shared/i18n/messages'
+
+// Форматтеры дат — из i18n (реэкспорт для обратной совместимости импортов компонентов).
+export { formatDateTime, formatDate, formatTime } from './i18n.svelte'
 
 export function updateStatusLabel(status: UpdateStatus): string {
-  switch (status) {
-    case 'up_to_date':
-      return 'Актуально'
-    case 'update_available':
-      return 'Есть обновление'
-    case 'not_installed':
-      return 'Не установлен'
-    case 'unknown':
-      return 'Неизвестно'
-  }
-}
-
-// Форматирование дат в локали системы (Chromium/Electron берёт локаль ОС из navigator.languages).
-const dateTimeFmt = new Intl.DateTimeFormat(
-  typeof navigator !== 'undefined' ? [...navigator.languages] : undefined,
-  { dateStyle: 'medium', timeStyle: 'short' }
-)
-const dateFmt = new Intl.DateTimeFormat(
-  typeof navigator !== 'undefined' ? [...navigator.languages] : undefined,
-  { dateStyle: 'medium' }
-)
-
-/** Дата + время в системном формате. */
-export function formatDateTime(iso: string | null): string {
-  return iso ? dateTimeFmt.format(new Date(iso)) : '—'
-}
-
-/** Только дата в системном формате. */
-export function formatDate(iso: string | null): string {
-  return iso ? dateFmt.format(new Date(iso)) : ''
+  return t(`updateStatus.${status}` as MessageKey)
 }
 
 /** Тримминг в середине: длинные SHA/версии → «c914440…a0bdfaee» (сохраняет начало и конец). */
@@ -50,44 +26,15 @@ export function formatInstalls(n: number): string {
 }
 
 export function sourceTypeLabel(type: SourceType): string {
-  switch (type) {
-    case 'official':
-      return 'skills.sh'
-    case 'git':
-      return 'Git'
-    case 'local':
-      return 'Локальный'
-  }
+  return t(`sourceType.${type}` as MessageKey)
 }
 
 export function sourceStatusLabel(status: SourceStatus): string {
-  switch (status) {
-    case 'ok':
-      return 'Готов'
-    case 'indexing':
-      return 'Индексация'
-    case 'error':
-      return 'Ошибка'
-    case 'disabled':
-      return 'Отключён'
-  }
+  return t(`sourceStatus.${status}` as MessageKey)
 }
 
 export function riskLabel(risk: AuditRisk): string {
-  switch (risk) {
-    case 'safe':
-      return 'Безопасно'
-    case 'low':
-      return 'Низкий риск'
-    case 'medium':
-      return 'Средний риск'
-    case 'high':
-      return 'Высокий риск'
-    case 'critical':
-      return 'Критический риск'
-    case 'unknown':
-      return 'Нет данных'
-  }
+  return t(`risk.${risk}` as MessageKey)
 }
 
 export function riskBadgeClass(risk: AuditRisk): string {
@@ -118,16 +65,5 @@ export function auditProviderLabel(provider: string): string {
 }
 
 export function notificationTypeLabel(type: NotificationType): string {
-  switch (type) {
-    case 'update_available':
-      return 'Новая версия'
-    case 'update_success':
-      return 'Обновлено'
-    case 'install_error':
-      return 'Ошибка установки'
-    case 'update_error':
-      return 'Ошибка обновления'
-    case 'source_unavailable':
-      return 'Источник недоступен'
-  }
+  return t(`notifType.${type}` as MessageKey)
 }

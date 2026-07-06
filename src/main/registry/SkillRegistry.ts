@@ -134,8 +134,15 @@ export class SkillRegistry {
   applyVersion(skillId: string, info: VersionInfo, checkedAt: string): void {
     const entry = this.entries.get(skillId)
     if (!entry) return
+    // Version Resolver определяет и installed-версию (по выигравшей стратегии) — переносим её
+    // в установки, иначе «Установленная версия» осталась бы только из lock (или пустой).
+    const installations =
+      info.installedVersion != null
+        ? entry.installations.map((i) => ({ ...i, installedVersion: info.installedVersion }))
+        : entry.installations
     this.entries.set(skillId, {
       ...entry,
+      installations,
       latestVersion: info.latestVersion,
       hasUpdate: info.hasUpdate,
       lastCheckedAt: checkedAt,

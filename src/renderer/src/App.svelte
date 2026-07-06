@@ -9,6 +9,7 @@
   import { jobs } from './lib/stores/jobs.svelte'
   import { config } from './lib/stores/config.svelte'
   import { toasts } from './lib/stores/toasts.svelte'
+  import { t, i18n } from './lib/i18n.svelte'
   import CatalogPage from './components/CatalogPage.svelte'
   import SourcesPage from './components/SourcesPage.svelte'
   import NotificationsPage from './components/NotificationsPage.svelte'
@@ -20,23 +21,23 @@
 
   let version = $state('…')
 
-  const nav: Array<{ view: View; label: string; icon: IconName }> = [
-    { view: 'catalog', label: 'Каталог', icon: 'catalog' },
-    { view: 'sources', label: 'Источники', icon: 'sources' },
-    { view: 'notifications', label: 'Уведомления', icon: 'bell' },
-    { view: 'settings', label: 'Настройки', icon: 'settings' }
+  const nav: Array<{ view: View; labelKey: Parameters<typeof t>[0]; icon: IconName }> = [
+    { view: 'catalog', labelKey: 'nav.catalog', icon: 'catalog' },
+    { view: 'sources', labelKey: 'nav.sources', icon: 'git' },
+    { view: 'notifications', labelKey: 'nav.notifications', icon: 'bell' },
+    { view: 'settings', labelKey: 'nav.settings', icon: 'settings' }
   ]
 
   async function handleDeeplink(e: DeeplinkEvent): Promise<void> {
     if (!e.parsed) {
-      toasts.push(`Не удалось разобрать ссылку: ${e.url}`, 'error')
+      toasts.push(t('toast.deeplinkParseFailed', { url: e.url }), 'error')
       return
     }
     const { url, ref, subpath, authMode, name } = e.parsed
     const confirmed = await api.dialog.confirm({
-      message: 'Добавить источник и открыть каталог?',
-      detail: `Название: ${name}\nURL: ${url}\nРежим: ${authMode}`,
-      confirmLabel: 'Добавить'
+      message: t('deeplink.confirmMessage'),
+      detail: t('deeplink.confirmDetail', { name, url, mode: authMode }),
+      confirmLabel: t('deeplink.confirmAdd')
     })
     if (!confirmed) return
     try {
@@ -48,9 +49,12 @@
       ui.go('catalog')
       catalog.sourceIds = [source.id]
       catalog.load()
-      toasts.push(`Источник ${name} добавлен`)
+      toasts.push(t('toast.sourceAdded', { name }))
     } catch (err) {
-      toasts.push(`Ошибка добавления: ${err instanceof Error ? err.message : String(err)}`, 'error')
+      toasts.push(
+        t('toast.addFailed', { error: err instanceof Error ? err.message : String(err) }),
+        'error'
+      )
     }
   }
 
@@ -65,11 +69,16 @@
     // Транзиентная обратная связь по фоновым событиям (ошибки уже идут в уведомления).
     const offInstall = api.events.onInstallResult((r) => {
       if (r.status === 'ok') {
-        toasts.push(r.installedVersion ? `Установлено: ${r.installedVersion}` : 'Skill установлен')
+        toasts.push(
+          r.installedVersion
+            ? t('toast.installed', { name: r.skillId, version: r.installedVersion })
+            : t('toast.installedGeneric', { name: r.skillId })
+        )
       }
     })
     const offChecked = api.events.onUpdateChecked((r) => {
-      if (r.updatesAvailable > 0) toasts.push(`Доступно обновлений: ${r.updatesAvailable}`)
+      if (r.updatesAvailable > 0)
+        toasts.push(t('toast.updatesAvailable', { count: r.updatesAvailable }))
     })
     const offDeeplink = api.events.onDeeplinkReceived((e) => void handleDeeplink(e))
 
@@ -92,14 +101,23 @@
   })
 
   const appUpdateReady = $derived(config.appUpdate?.state === 'downloaded')
+
+  // Конфиг — источник истины для языка; синхронизируем i18n после его загрузки
+  // (localStorage — лишь кэш для мгновенного первого рендера до готовности IPC).
+  $effect(() => {
+    const lang = config.config?.ui.language
+    if (lang && lang !== i18n.pref) i18n.set(lang)
+  })
 </script>
 
 <div class="flex h-full flex-col">
   {#if appUpdateReady}
     <div class="flex items-center gap-3 bg-primary-500 p-2 text-sm text-white">
-      <span class="flex-1">Доступно обновление приложения {config.appUpdate?.version ?? ''}</span>
+      <span class="flex-1"
+        >{t('app.updateBanner', { version: config.appUpdate?.version ?? '' })}</span
+      >
       <button class="btn btn-sm preset-filled" onclick={() => api.app.quitAndInstall()}>
-        Перезапустить
+        {t('app.restart')}
       </button>
     </div>
   {/if}
@@ -118,7 +136,7 @@
           onclick={() => ui.go(item.view)}
         >
           <Icon name={item.icon} size={18} />
-          <span class="flex-1 text-left">{item.label}</span>
+          <span class="flex-1 text-left">{t(item.labelKey)}</span>
           {#if item.view === 'notifications' && notifications.unread > 0}
             <span
               class="absolute right-0 top-0 inline-flex h-5 min-w-5 -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full bg-error-500 px-1.5 text-xs font-semibold text-white"

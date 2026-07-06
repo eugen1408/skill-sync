@@ -53,7 +53,7 @@ function raw(name: string): RawSkill {
 }
 
 function inst(agent: string, path: string): AgentInstallation {
-  return { agent, installedVersion: 'v1', installPath: path }
+  return { agent, installedVersion: 'v1', installPath: path, isSymlink: false }
 }
 
 let dir: string
@@ -73,8 +73,8 @@ describe('queryCatalog', () => {
 
   it('фильтрует по тексту и статусу, сортирует и пагинирует', () => {
     expect(queryCatalog(entries, q({ text: 'ban' })).total).toBe(1)
-    expect(queryCatalog(entries, q({ status: 'installed' })).total).toBe(2)
-    expect(queryCatalog(entries, q({ status: 'update_available' })).items[0].name).toBe('Apple')
+    expect(queryCatalog(entries, q({ statuses: ['installed'] })).total).toBe(2)
+    expect(queryCatalog(entries, q({ statuses: ['update_available'] })).items[0].name).toBe('Apple')
     expect(queryCatalog(entries, q({ sourceIds: ['s2'] })).items[0].name).toBe('Cherry')
     const page = queryCatalog(entries, q({ pageSize: 2, page: 0 }))
     expect(page.items).toHaveLength(2)
@@ -185,7 +185,7 @@ describe('SkillRegistry', () => {
       '2026-07-01T00:00:00Z'
     )
     expect(reg.get(id)?.updateStatus).toBe('update_available')
-    expect(reg.query(q({ status: 'update_available' })).total).toBe(1)
+    expect(reg.query(q({ statuses: ['update_available'] })).total).toBe(1)
   })
 
   it('пересборка (rescan после install/update) сохраняет статус версии установленных', async () => {
@@ -353,7 +353,7 @@ function q(over: Partial<Parameters<typeof queryCatalog>[1]> = {}) {
   return {
     text: null,
     sourceIds: null,
-    status: null,
+    statuses: null,
     sort: 'name-asc' as const,
     page: 0,
     pageSize: 20,

@@ -24,6 +24,8 @@ beforeEach(() => {
   checkAll.mockReset().mockResolvedValue('job-1')
   catalog.result = page([])
   catalog.text = ''
+  catalog.statuses = []
+  catalog.sourceIds = null
 })
 afterEach(() => vi.useRealTimers())
 
@@ -48,8 +50,8 @@ describe('catalog store — стале-гард', () => {
     const resolvers: Array<(p: CatalogPage) => void> = []
     query.mockImplementation(() => new Promise<CatalogPage>((res) => resolvers.push(res)))
 
-    catalog.setStatus('installed') // запрос #1
-    catalog.setStatus('not_installed') // запрос #2 (актуальный)
+    catalog.toggleStatus('installed') // запрос #1
+    catalog.toggleStatus('not_installed') // запрос #2 (актуальный)
     expect(query).toHaveBeenCalledTimes(2)
 
     // Разрешаем сначала актуальный (#2), затем устаревший (#1).

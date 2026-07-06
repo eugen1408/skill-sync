@@ -233,7 +233,12 @@ function mkEntry(over: Partial<CatalogEntry> = {}): CatalogEntry {
     sourceType: 'git',
     installed: false,
     installations: [
-      { agent: 'claude-code', installedVersion: 'v1', installPath: '/h/.claude/skills/alpha' }
+      {
+        agent: 'claude-code',
+        installedVersion: 'v1',
+        installPath: '/h/.claude/skills/alpha',
+        isSymlink: false
+      }
     ],
     latestVersion: null,
     hasUpdate: false,

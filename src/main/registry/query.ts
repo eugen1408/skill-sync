@@ -47,8 +47,10 @@ export function queryCatalog(all: CatalogEntry[], query: CatalogQuery): CatalogP
     const set = new Set(query.sourceIds)
     items = items.filter((e) => set.has(e.sourceId))
   }
-  if (query.status) {
-    items = items.filter((e) => matchesStatus(e, query.status!))
+  if (query.statuses && query.statuses.length > 0) {
+    const statuses = query.statuses
+    // OR-семантика: запись проходит, если совпал хотя бы один выбранный статус.
+    items = items.filter((e) => statuses.some((s) => matchesStatus(e, s)))
   }
 
   items = sortEntries(items, query.sort)

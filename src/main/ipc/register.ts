@@ -39,6 +39,8 @@ export interface IpcDeps {
   gitCache: GitCache
   /** Базовый URL официального каталога (для ссылок на карточки skills.sh). */
   officialBaseUrl: () => string
+  /** Вызывается при изменении секции ui конфига (напр. язык) — для перестройки трея. */
+  onUiChanged?: () => void
 }
 
 /** Разбирает official sourceRef `owner/repo@slug` → { source, skillId }. */
@@ -66,7 +68,8 @@ export function registerIpc(deps: IpcDeps): void {
     auditService,
     officialCatalog,
     gitCache,
-    officialBaseUrl
+    officialBaseUrl,
+    onUiChanged
   } = deps
 
   ipcMain.handle(IpcInvoke.app.getVersion, () => app.getVersion())
@@ -99,6 +102,8 @@ export function registerIpc(deps: IpcDeps): void {
     const next = configStore.update(patch)
     // Настройка прокси применяется процессно (fetch + дочерние процессы).
     if (patch.network) applyProxy(next.network.proxyUrl)
+    // Смена языка (ui) — перестраиваем меню трея на новую локаль.
+    if (patch.ui) onUiChanged?.()
     return next
   })
 

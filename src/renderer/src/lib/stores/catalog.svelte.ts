@@ -5,7 +5,7 @@ const EMPTY: CatalogPage = { items: [], total: 0, page: 0, pageSize: 20 }
 
 class CatalogStore {
   text = $state('')
-  status = $state<CatalogStatusFilter | null>(null)
+  statuses = $state<CatalogStatusFilter[]>([])
   sourceIds = $state<string[] | null>(null)
   sort = $state<CatalogSort>('update-first')
   page = $state(0)
@@ -27,7 +27,7 @@ class CatalogStore {
       const page = await api.catalog.query({
         text: this.text || null,
         sourceIds: this.sourceIds,
-        status: this.status,
+        statuses: this.statuses.length > 0 ? this.statuses : null,
         sort: this.sort,
         page: this.page,
         pageSize: this.pageSize
@@ -81,8 +81,20 @@ class CatalogStore {
     }, this.debounceMs)
   }
 
-  setStatus(status: CatalogStatusFilter | null): void {
-    this.status = status
+  /** Переключает статус-фильтр (мультивыбор; OR-семантика на бэкенде). */
+  toggleStatus(status: CatalogStatusFilter): void {
+    this.statuses = this.statuses.includes(status)
+      ? this.statuses.filter((s) => s !== status)
+      : [...this.statuses, status]
+    this.page = 0
+    void this.load()
+  }
+
+  /** Переключает фильтр по источнику (мультивыбор; пусто → все источники). */
+  toggleSource(id: string): void {
+    const cur = this.sourceIds ?? []
+    const next = cur.includes(id) ? cur.filter((s) => s !== id) : [...cur, id]
+    this.sourceIds = next.length > 0 ? next : null
     this.page = 0
     void this.load()
   }

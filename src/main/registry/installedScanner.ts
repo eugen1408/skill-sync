@@ -34,10 +34,14 @@ export async function scanInstalledSkills(
       const dedupeKey = `${agent.id}::${key}`
       if (seen.has(dedupeKey)) continue
       seen.add(dedupeKey)
+      const rec = lock[entry.name]
       const installation: AgentInstallation = {
         agent: agent.id,
-        installedVersion: lock[entry.name]?.ref ?? null,
-        installPath: join(skillsDir, entry.name)
+        // Глобальный lock CLI хранит не `ref`, а `skillFolderHash` (GitHub tree SHA папки);
+        // используем его как версию установки, когда явного ref нет (иначе поле всегда пустое).
+        installedVersion: rec?.ref || rec?.skillFolderHash || null,
+        installPath: join(skillsDir, entry.name),
+        isSymlink: entry.isSymbolicLink()
       }
       const list = result.get(key)
       if (list) list.push(installation)

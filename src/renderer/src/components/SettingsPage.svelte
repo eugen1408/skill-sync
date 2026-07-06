@@ -6,14 +6,27 @@
   import { config } from '../lib/stores/config.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
   import { theme, type ThemeMode } from '../lib/stores/theme.svelte'
+  import { t, i18n, type LocalePref } from '../lib/i18n.svelte'
 
   const cfg = $derived(config.config)
 
-  const themeModes: Array<{ value: ThemeMode; label: string }> = [
-    { value: 'system', label: 'Как в системе' },
-    { value: 'light', label: 'Светлая' },
-    { value: 'dark', label: 'Тёмная' }
+  const themeModes: Array<{ value: ThemeMode; labelKey: Parameters<typeof t>[0] }> = [
+    { value: 'system', labelKey: 'theme.system' },
+    { value: 'light', labelKey: 'theme.light' },
+    { value: 'dark', labelKey: 'theme.dark' }
   ]
+
+  const langModes: Array<{ value: LocalePref; labelKey: Parameters<typeof t>[0] }> = [
+    { value: 'system', labelKey: 'lang.system' },
+    { value: 'en', labelKey: 'lang.en' },
+    { value: 'ru', labelKey: 'lang.ru' }
+  ]
+
+  // Язык — часть конфига (доступен main для локализации трея); i18n.set — мгновенный отклик UI.
+  function setLanguage(pref: LocalePref): void {
+    i18n.set(pref)
+    if (cfg) void config.update({ ui: { ...cfg.ui, language: pref } })
+  }
 
   // Ключ должен совпадать с GITHUB_TOKEN_KEY в main/secrets/SecretStore.
   const GITHUB_TOKEN_KEY = 'githubToken'
@@ -31,20 +44,20 @@
       await api.secrets.set(GITHUB_TOKEN_KEY, tokenInput)
       tokenInput = ''
       tokenSet = await api.secrets.has(GITHUB_TOKEN_KEY)
-    }, 'Не удалось сохранить токен')
+    }, t('error.saveToken'))
   }
 
   function clearToken(): void {
     void toasts.guard(async () => {
       await api.secrets.delete(GITHUB_TOKEN_KEY)
       tokenSet = false
-    }, 'Не удалось удалить токен')
+    }, t('error.deleteToken'))
   }
 
-  const intervalPresets: Array<{ minutes: number; label: string }> = [
-    { minutes: 60, label: 'Каждый час' },
-    { minutes: 360, label: 'Каждые 6 часов' },
-    { minutes: 1440, label: 'Раз в день' }
+  const intervalPresets: Array<{ minutes: number; labelKey: Parameters<typeof t>[0] }> = [
+    { minutes: 60, labelKey: 'interval.hourly' },
+    { minutes: 360, labelKey: 'interval.6h' },
+    { minutes: 1440, labelKey: 'interval.daily' }
   ]
 
   function toggleAgent(id: string): void {
@@ -63,18 +76,18 @@
         const links = preview.ops.filter((o) => o.action === 'link').length
         const unlinks = preview.ops.filter((o) => o.action === 'unlink').length
         const parts: string[] = []
-        if (links) parts.push(`создать ${links} симлинк(ов)`)
-        if (unlinks) parts.push(`удалить ${unlinks} симлинк(ов)`)
+        if (links) parts.push(t('reconcile.createLinks', { n: links }))
+        if (unlinks) parts.push(t('reconcile.removeLinks', { n: unlinks }))
         const ok = await api.dialog.confirm({
-          message: `Изменение набора агентов затронет ${preview.skillCount} установленных skills.`,
-          detail: `Будет: ${parts.join(', ')}.`,
-          confirmLabel: 'Применить'
+          message: t('reconcile.confirmMessage', { count: preview.skillCount }),
+          detail: t('reconcile.confirmDetail', { parts: parts.join(', ') }),
+          confirmLabel: t('reconcile.apply')
         })
         if (!ok) return
       }
       await config.update({ install: { ...cfg.install, targetAgents: next } })
       await api.install.reconcileAgents({ previousAgents: prev, nextAgents: next, scope })
-    }, 'Не удалось применить набор агентов')
+    }, t('error.applyAgents'))
   }
 
   async function setUpdate(patch: Partial<UpdateSettings>): Promise<void> {
@@ -84,10 +97,9 @@
 
   async function resetApp(): Promise<void> {
     const ok = await api.dialog.confirm({
-      message: 'Сбросить все настройки и кэш приложения?',
-      detail:
-        'Будет удалена вся персистентная информация (источники, конфигурация, токены). Текущие установленные skills затронуты не будут. Приложение перезапустится.',
-      confirmLabel: 'Сбросить'
+      message: t('reset.confirmMessage'),
+      detail: t('reset.confirmDetail'),
+      confirmLabel: t('reset.confirmButton')
     })
     if (!ok) return
     await api.app.reset()
@@ -97,7 +109,7 @@
 {#if cfg}
   <div class="mx-auto max-w-2xl space-y-6">
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5">Оформление</h3>
+      <h3 class="h5">{t('settings.appearance')}</h3>
       <div class="flex gap-2">
         {#each themeModes as m (m.value)}
           <button
@@ -106,17 +118,30 @@
               : 'preset-tonal'}"
             onclick={() => theme.set(m.value)}
           >
-            {m.label}
+            {t(m.labelKey)}
           </button>
         {/each}
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm">{t('settings.language')}</span>
+        <div class="flex gap-2">
+          {#each langModes as m (m.value)}
+            <button
+              class="btn btn-sm {i18n.pref === m.value
+                ? 'preset-filled-primary-500'
+                : 'preset-tonal'}"
+              onclick={() => setLanguage(m.value)}
+            >
+              {t(m.labelKey)}
+            </button>
+          {/each}
+        </div>
       </div>
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5">Целевые агенты</h3>
-      <p class="text-sm opacity-60">
-        При изменении набора симлинки установленных skills автоматически приводятся в соответствие.
-      </p>
+      <h3 class="h5">{t('settings.targetAgents')}</h3>
+      <p class="text-sm opacity-60">{t('settings.targetAgentsHint')}</p>
       <div class="flex flex-wrap gap-2">
         {#each KNOWN_AGENTS as agent (agent.id)}
           <button
@@ -130,7 +155,7 @@
         {/each}
       </div>
       <label class="flex items-center gap-2">
-        <span class="text-sm">Область установки</span>
+        <span class="text-sm">{t('settings.installScope')}</span>
         <select
           class="select max-w-40 ps-3 pr-8"
           value={cfg.install.scope}
@@ -139,14 +164,14 @@
               install: { ...cfg.install, scope: e.currentTarget.value as 'global' | 'project' }
             })}
         >
-          <option value="global">Глобально</option>
-          <option value="project">Проект</option>
+          <option value="global">{t('scope.global')}</option>
+          <option value="project">{t('scope.project')}</option>
         </select>
       </label>
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5">Обновления</h3>
+      <h3 class="h5">{t('settings.updates')}</h3>
       <label class="flex items-center gap-2">
         <input
           type="checkbox"
@@ -154,7 +179,7 @@
           checked={cfg.update.checkOnLaunch}
           onchange={(e) => setUpdate({ checkOnLaunch: e.currentTarget.checked })}
         />
-        <span class="text-sm">Проверять при запуске</span>
+        <span class="text-sm">{t('settings.checkOnLaunch')}</span>
       </label>
       <label class="flex items-center gap-2">
         <input
@@ -163,7 +188,7 @@
           checked={cfg.update.scheduleEnabled}
           onchange={(e) => setUpdate({ scheduleEnabled: e.currentTarget.checked })}
         />
-        <span class="text-sm">Проверять по расписанию</span>
+        <span class="text-sm">{t('settings.checkSchedule')}</span>
       </label>
       {#if cfg.update.scheduleEnabled}
         <div class="flex flex-wrap gap-2">
@@ -174,12 +199,12 @@
                 : 'preset-tonal'}"
               onclick={() => setUpdate({ scheduleIntervalMinutes: p.minutes })}
             >
-              {p.label}
+              {t(p.labelKey)}
             </button>
           {/each}
         </div>
         <label class="flex items-center gap-2">
-          <span class="text-sm">Свой интервал, минут</span>
+          <span class="text-sm">{t('settings.customInterval')}</span>
           <input
             type="number"
             min="1"
@@ -196,28 +221,28 @@
           checked={cfg.update.watchLocalSources}
           onchange={(e) => setUpdate({ watchLocalSources: e.currentTarget.checked })}
         />
-        <span class="text-sm">Следить за локальными источниками</span>
+        <span class="text-sm">{t('settings.watchLocal')}</span>
       </label>
       <button
         class="btn btn-sm preset-tonal"
-        onclick={() => toasts.guard(() => api.update.checkAll(), 'Не удалось запустить проверку')}
+        onclick={() => toasts.guard(() => api.update.checkAll(), t('error.checkStart'))}
       >
-        Проверить обновления сейчас
+        {t('settings.checkNow')}
       </button>
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5">CLI и сеть</h3>
+      <h3 class="h5">{t('settings.cliNetwork')}</h3>
       <input
         class="input"
-        placeholder="Путь к бинарю skills (необязательно)"
+        placeholder={t('settings.cliPathPlaceholder')}
         value={cfg.install.cliPath ?? ''}
         onchange={(e) =>
           config.update({ install: { ...cfg.install, cliPath: e.currentTarget.value || null } })}
       />
       <input
         class="input"
-        placeholder="npm registry (необязательно)"
+        placeholder={t('settings.npmRegistryPlaceholder')}
         value={cfg.install.npmRegistry ?? ''}
         onchange={(e) =>
           config.update({
@@ -226,7 +251,7 @@
       />
       <input
         class="input"
-        placeholder="Прокси (необязательно)"
+        placeholder={t('settings.proxyPlaceholder')}
         value={cfg.network.proxyUrl ?? ''}
         onchange={(e) =>
           config.update({ network: { ...cfg.network, proxyUrl: e.currentTarget.value || null } })}
@@ -234,26 +259,21 @@
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5">GitHub-токен</h3>
-      <p class="text-sm opacity-60">
-        Для лимитов GitHub API (проверка версий) и приватных репозиториев. Хранится в системном
-        хранилище (safeStorage), не в конфигурации.
-      </p>
+      <h3 class="h5">{t('settings.githubToken')}</h3>
+      <p class="text-sm opacity-60">{t('settings.githubTokenHint')}</p>
       {#if !secretsAvailable}
-        <p class="text-sm text-error-500">
-          Защищённое хранилище недоступно — токен не будет сохранён между запусками.
-        </p>
+        <p class="text-sm text-error-500">{t('settings.secretsUnavailable')}</p>
       {/if}
       <div class="flex items-center gap-2">
         <span class="badge {tokenSet ? 'preset-filled-success-500' : 'preset-tonal'}">
-          {tokenSet ? 'Задан' : 'Не задан'}
+          {tokenSet ? t('settings.tokenSet') : t('settings.tokenNotSet')}
         </span>
       </div>
       <div class="flex gap-2">
         <input
           class="input flex-1"
           type="password"
-          placeholder="Новый токен"
+          placeholder={t('settings.newToken')}
           bind:value={tokenInput}
         />
         <button
@@ -261,40 +281,39 @@
           disabled={!tokenInput}
           onclick={saveToken}
         >
-          Сохранить
+          {t('common.save')}
         </button>
         {#if tokenSet}
-          <button class="btn btn-sm preset-tonal" onclick={clearToken}>Удалить</button>
+          <button class="btn btn-sm preset-tonal" onclick={clearToken}>{t('common.remove')}</button>
         {/if}
       </div>
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5">Обновление приложения</h3>
+      <h3 class="h5">{t('settings.appUpdate')}</h3>
       {#if config.appUpdate}
-        <p class="text-sm opacity-70">Статус: {config.appUpdate.state}</p>
+        <p class="text-sm opacity-70">
+          {t('settings.appUpdateStatus', { state: config.appUpdate.state })}
+        </p>
       {/if}
       <button class="btn btn-sm preset-tonal" onclick={() => api.app.checkForUpdates()}>
-        Проверить обновления приложения
+        {t('settings.checkAppUpdate')}
       </button>
       {#if config.appUpdate?.state === 'downloaded'}
         <button
           class="btn btn-sm preset-filled-primary-500"
           onclick={() => api.app.quitAndInstall()}
         >
-          Перезапустить и обновить
+          {t('settings.restartUpdate')}
         </button>
       {/if}
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5 text-error-500">Сброс приложения</h3>
-      <p class="text-sm opacity-60">
-        Удаляет всю персистентную информацию приложения (конфигурацию, секреты, кэш источников).
-        Текущие установленные skills не будут затронуты.
-      </p>
+      <h3 class="h5 text-error-500">{t('settings.reset')}</h3>
+      <p class="text-sm opacity-60">{t('settings.resetHint')}</p>
       <button class="btn btn-sm preset-filled-error-500" onclick={resetApp}>
-        Сбросить настройки и кэш приложения
+        {t('settings.resetButton')}
       </button>
     </section>
   </div>
