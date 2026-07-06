@@ -22,13 +22,6 @@
 
   const STATUS_VALUES: CatalogStatusFilter[] = ['installed', 'not_installed', 'update_available']
 
-  const sorts: Array<{ value: CatalogSort; labelKey: Parameters<typeof t>[0] }> = [
-    { value: 'update-first', labelKey: 'sort.updateFirst' },
-    { value: 'installs-desc', labelKey: 'sort.popular' },
-    { value: 'name-asc', labelKey: 'sort.nameAsc' },
-    { value: 'name-desc', labelKey: 'sort.nameDesc' }
-  ]
-
   const statusOptions = $derived(
     STATUS_VALUES.map((v) => ({
       value: v,
@@ -98,7 +91,7 @@
 
 <div class="flex h-full flex-col">
   <div class="relative z-10 flex flex-wrap items-center gap-3 p-6 pb-4 shrink-0">
-    <div class="relative max-w-xs flex-1">
+    <div class="relative max-w-xs min-w-64 flex-1">
       <input
         class="input pr-8"
         placeholder={t('catalog.searchPlaceholder')}
@@ -115,15 +108,6 @@
         </button>
       {/if}
     </div>
-    <select
-      class="select max-w-48 ps-3 pr-8"
-      value={catalog.sort}
-      onchange={(e) => catalog.setSort(e.currentTarget.value as CatalogSort)}
-    >
-      {#each sorts as s (s.value)}
-        <option value={s.value}>{t(s.labelKey)}</option>
-      {/each}
-    </select>
     <FilterMenu
       label={t('catalog.filterStatus')}
       options={statusOptions}
