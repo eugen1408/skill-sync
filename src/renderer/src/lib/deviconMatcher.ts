@@ -16,6 +16,7 @@ const customAliases: Record<string, string> = {
   'swiftui': 'swift',
   'next': 'nextjs',
   'nuxt': 'nuxtjs',
+  'skeleton': 'svelte',
   
   // ОС / Платформы
   'mac': 'apple',
