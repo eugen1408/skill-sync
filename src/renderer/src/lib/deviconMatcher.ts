@@ -27,7 +27,7 @@ const customAliases: Record<string, string> = {
   'win': 'windows8',
   'windows': 'windows8',
   
-  // ИИ / ML / Данные
+  // ИИ / ML / Данные / Агенты
   'ai': 'tensorflow',
   'ml': 'tensorflow',
   'llm': 'tensorflow',
@@ -38,10 +38,15 @@ const customAliases: Record<string, string> = {
   'wan': 'tensorflow',
   'comfy': 'tensorflow',
   'seedance': 'tensorflow',
+  'bot': 'tensorflow',
+  'robot': 'tensorflow',
+  'agent': 'tensorflow',
+  'mcp': 'tensorflow',
+  'rag': 'tensorflow',
+  'skill': 'tensorflow',
+  'skills': 'tensorflow',
+  'prompt': 'tensorflow',
   'data': 'pandas',
-  'bot': 'android',
-  'robot': 'ros',
-  'agent': 'android',
   
   // Общая терминология
   'log': 'logstash',
@@ -65,8 +70,6 @@ const customAliases: Record<string, string> = {
   'wiki': 'markdown',
   'readme': 'markdown',
   'app': 'android',
-  'skill': 'bash',
-  'skills': 'bash',
   
   // Медиа
   'image': 'photoshop',
@@ -110,7 +113,7 @@ const deviconMap = { ...baseDeviconMap, ...customAliases }
 
 const genericTerms = new Set([
   'ai', 'ml', 'llm', 'neural', 'data', 'bot', 'robot', 'agent',
-  'gpt', 'flux', 'kling', 'wan', 'comfy', 'seedance',
+  'gpt', 'flux', 'kling', 'wan', 'comfy', 'seedance', 'mcp', 'rag', 'prompt',
   'log', 'logging', 'db', 'sql', 'database',
   'backend', 'frontend', 'ui', 'ux', 'design',
   'api', 'terminal', 'console', 'script', 'code', 'edit',
