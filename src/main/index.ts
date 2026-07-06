@@ -94,6 +94,11 @@ async function seedSourcesFromLock(
 function createWindow(): BrowserWindow {
   // Новый экземпляр renderer'а ещё не подписан — до его запроса диплинки буферизуем.
   rendererReady = false
+  const iconPath = join(__dirname, '../../build/icon.png')
+  if (!app.isPackaged && process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(iconPath)
+  }
+
   const window = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -101,6 +106,7 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    ...(!app.isPackaged ? { icon: iconPath } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
