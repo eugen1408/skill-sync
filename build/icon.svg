@@ -40,16 +40,16 @@
   <line x1="512.0" y1="674.2" x2="512.0" y2="530.0" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
   <line x1="512.0" y1="674.2" x2="331.8" y2="638.2" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
 
-  <circle cx="223.6" cy="494.0" r="25" fill="#ffffff"/>
-  <circle cx="331.8" cy="277.7" r="25" fill="#ffffff"/>
-  <circle cx="548.0" cy="241.6" r="25" fill="#ffffff"/>
-  <circle cx="728.3" cy="349.8" r="25" fill="#ffffff"/>
-  <circle cx="800.4" cy="530.0" r="25" fill="#ffffff"/>
-  <circle cx="692.2" cy="782.4" r="25" fill="#ffffff"/>
-  <circle cx="512.0" cy="674.2" r="25" fill="#ffffff"/>
-  <circle cx="331.8" cy="638.2" r="25" fill="#ffffff"/>
-  <circle cx="403.9" cy="421.9" r="25" fill="#ffffff"/>
-  <circle cx="620.1" cy="421.9" r="25" fill="#ffffff"/>
-  <circle cx="512.0" cy="530.0" r="25" fill="#ffffff"/>
+  <circle cx="223.6" cy="494.0" r="32" fill="#ffffff"/>
+  <circle cx="331.8" cy="277.7" r="32" fill="#ffffff"/>
+  <circle cx="548.0" cy="241.6" r="32" fill="#ffffff"/>
+  <circle cx="728.3" cy="349.8" r="32" fill="#ffffff"/>
+  <circle cx="800.4" cy="530.0" r="32" fill="#ffffff"/>
+  <circle cx="692.2" cy="782.4" r="32" fill="#ffffff"/>
+  <circle cx="512.0" cy="674.2" r="32" fill="#ffffff"/>
+  <circle cx="331.8" cy="638.2" r="32" fill="#ffffff"/>
+  <circle cx="403.9" cy="421.9" r="32" fill="#ffffff"/>
+  <circle cx="620.1" cy="421.9" r="32" fill="#ffffff"/>
+  <circle cx="512.0" cy="530.0" r="32" fill="#ffffff"/>
 
 </svg>
