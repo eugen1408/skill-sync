@@ -1,4 +1,5 @@
 import './app.css'
+import './assets/devicon/devicon.min.css'
 import { mount } from 'svelte'
 import App from './App.svelte'
 import { theme } from './lib/stores/theme.svelte'

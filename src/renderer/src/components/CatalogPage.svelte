@@ -15,6 +15,7 @@
   import { getSourceDomain } from '@shared/domain/source'
   import { fade } from 'svelte/transition'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
+  import Devicon from './Devicon.svelte'
   import Icon from './Icon.svelte'
   import Favicon from './Favicon.svelte'
   import FilterMenu from './FilterMenu.svelte'
@@ -260,19 +261,26 @@
       }
     }}
   >
-    <div class="overflow-hidden {compact ? 'w-full' : 'flex-1'}">
-      <span class="block truncate font-semibold">{entry.name}</span>
-      {#if entry.description}
-        <p class="line-clamp-1 text-sm opacity-70">{entry.description}</p>
-      {/if}
-      <p class="flex items-center gap-1 text-xs opacity-50">
-        {sourceTypeLabel(entry.sourceType)}
-        {#if entry.installs != null}
-          <span aria-hidden="true">·</span>
-          <Icon name="download" size={12} />
-          {formatInstalls(entry.installs)}
+    <div class="flex items-center gap-3 overflow-hidden {compact ? 'w-full' : 'flex-1'}">
+      <!-- Devicon placeholder / rendering -->
+      <div class="flex items-center justify-center w-8 shrink-0">
+        <Devicon skillId={entry.id} description={entry.description} class="text-2xl leading-none" />
+      </div>
+      
+      <div class="overflow-hidden flex-1">
+        <span class="block truncate font-semibold">{entry.name}</span>
+        {#if entry.description}
+          <p class="line-clamp-1 text-sm opacity-70">{entry.description}</p>
         {/if}
-      </p>
+        <p class="flex items-center gap-1 text-xs opacity-50">
+          {sourceTypeLabel(entry.sourceType)}
+          {#if entry.installs != null}
+            <span aria-hidden="true">·</span>
+            <Icon name="download" size={12} />
+            {formatInstalls(entry.installs)}
+          {/if}
+        </p>
+      </div>
     </div>
     <!-- Статус и действие — в одном месте: кнопка (Обновить/Установить) заменяет
          дублирующий бейдж; для состояний без действия показываем бейдж статуса. -->

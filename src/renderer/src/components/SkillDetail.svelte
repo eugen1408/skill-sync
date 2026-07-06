@@ -20,6 +20,7 @@
   } from '../lib/labels'
   import { t } from '../lib/i18n.svelte'
   import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
+  import Devicon from './Devicon.svelte'
   import Icon from './Icon.svelte'
 
   let entry = $state<CatalogEntry | null>(null)
@@ -170,7 +171,8 @@
     class="markdown-root flex h-full flex-1 flex-col gap-4 overflow-y-auto border-l border-surface-200-800 p-4 xl:flex-[2]"
   >
     <div class="flex items-start justify-between gap-2">
-      <h2 class="h4 min-w-0">
+      <h2 class="h3 font-bold flex items-center gap-2 overflow-hidden flex-1 mr-4">
+        <Devicon skillId={entry.id} description={entry.description} class="text-3xl shrink-0" />
         {#if officialUrl}
           <button
             class="inline-flex min-w-0 items-center gap-1 text-left hover:underline"
@@ -181,7 +183,7 @@
             <Icon name="external" size={16} class="opacity-60" />
           </button>
         {:else}
-          {entry.name}
+          <span class="truncate">{entry.name}</span>
         {/if}
       </h2>
       <button
