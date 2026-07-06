@@ -3,6 +3,7 @@
   import type { SecurityAudit } from '@shared/domain/audit'
   import { hasAuditData } from '@shared/domain/audit'
   import { api } from '../lib/api'
+  import { fly } from 'svelte/transition'
   import { config } from '../lib/stores/config.svelte'
   import { ui } from '../lib/stores/ui.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
@@ -106,7 +107,16 @@
 
   function refetchEntry(id: string): void {
     void run(() => api.catalog.get(id)).then((e) => {
-      if (e !== undefined && ui.detailId === id) entry = e
+      if (e !== undefined && ui.detailId === id) {
+        if (e === null) {
+          ui.closeDetail()
+        } else {
+          entry = e
+          void run(() => api.catalog.canonicalPath(id)).then((p) => {
+            if (p !== undefined && ui.detailId === id) canonicalPath = p
+          })
+        }
+      }
     })
   }
 
@@ -156,6 +166,7 @@
 
 {#if entry}
   <aside
+    transition:fly={{ x: 300, duration: 250 }}
     class="markdown-root flex h-full flex-1 flex-col gap-4 overflow-y-auto border-l border-surface-200-800 p-4 xl:flex-[2]"
   >
     <div class="flex items-start justify-between gap-2">
@@ -384,7 +395,7 @@
       </li>
     {/snippet}
 
-    {#if canonicalPath || installations.length > 0}
+    {#if entry.installed && (canonicalPath || installations.length > 0)}
       <div>
         <p class="mb-1 text-sm font-semibold">{t('detail.installedForAgents')}</p>
         <ul class="space-y-1 text-sm">

@@ -268,6 +268,7 @@ app.whenReady().then(() => {
     configStore,
     gitCache,
     officialCatalog,
+    auditService,
     onChecked: (result) => {
       send(IpcEvent.updateChecked, result)
       tray?.rebuild()

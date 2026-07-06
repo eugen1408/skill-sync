@@ -8,6 +8,7 @@ class CatalogStore {
   statuses = $state<CatalogStatusFilter[]>([])
   sourceIds = $state<string[] | null>(null)
   sort = $state<CatalogSort>('update-first')
+  groupBySource = $state(true)
   page = $state(0)
   // Индекс каталога держится в памяти — грузим все совпадения одним запросом,
   // список рендерится виртуализированно (follow-up [12]).
@@ -26,8 +27,8 @@ class CatalogStore {
     try {
       const page = await api.catalog.query({
         text: this.text || null,
-        sourceIds: this.sourceIds,
-        statuses: this.statuses.length > 0 ? this.statuses : null,
+        sourceIds: this.sourceIds ? $state.snapshot(this.sourceIds) : null,
+        statuses: this.statuses.length > 0 ? $state.snapshot(this.statuses) : null,
         sort: this.sort,
         page: this.page,
         pageSize: this.pageSize
@@ -103,6 +104,10 @@ class CatalogStore {
     this.sort = sort
     this.page = 0
     void this.load()
+  }
+
+  setGroupBySource(value: boolean): void {
+    this.groupBySource = value
   }
 
   setPage(page: number): void {

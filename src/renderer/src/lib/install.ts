@@ -38,7 +38,7 @@ export async function installWithAuditGuard(
       skillId: entry.id,
       sourceId: entry.sourceId,
       sourceRef: entry.sourceRef,
-      targetAgents,
+      targetAgents: [...targetAgents],
       scope: cfg.install.scope,
       force
     })

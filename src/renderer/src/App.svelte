@@ -70,10 +70,13 @@
     // Транзиентная обратная связь по фоновым событиям (ошибки уже идут в уведомления).
     const offInstall = api.events.onInstallResult((r) => {
       if (r.status === 'ok') {
+        const key = r.wasUpdate ? 'toast.updated' : 'toast.installed'
+        const genericKey = r.wasUpdate ? 'toast.updatedGeneric' : 'toast.installedGeneric'
         toasts.push(
           r.installedVersion
-            ? t('toast.installed', { name: r.skillId, version: r.installedVersion })
-            : t('toast.installedGeneric', { name: r.skillId })
+            ? t(key, { name: r.skillId, version: r.installedVersion })
+            : t(genericKey, { name: r.skillId }),
+          'success'
         )
       }
     })

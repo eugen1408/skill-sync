@@ -76,6 +76,7 @@ export class InstallerService {
 
       const provider = this.deps.registry.resolve(source.type)
       const result = await provider.install(resolved, ctx)
+      result.wasUpdate = entry?.installed ?? false
       await this.deps.skillRegistry.rescanInstalled()
       return result
     })

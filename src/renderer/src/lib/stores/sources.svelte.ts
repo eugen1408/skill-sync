@@ -1,5 +1,6 @@
 import type { Source, AddSourceInput } from '@shared/domain/source'
 import { api } from '../api'
+import { catalog } from './catalog.svelte'
 
 class SourcesStore {
   items = $state<Source[]>([])
@@ -35,11 +36,13 @@ class SourcesStore {
   async remove(id: string): Promise<void> {
     await api.source.remove(id)
     await this.load()
+    await catalog.load()
   }
 
   async setEnabled(id: string, enabled: boolean): Promise<void> {
     await api.source.setEnabled(id, enabled)
     await this.load()
+    await catalog.load()
   }
 
   async refresh(id: string): Promise<void> {

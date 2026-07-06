@@ -12,6 +12,8 @@ import type { ConfigStore } from '../config/ConfigStore'
 import type { VersionResolver } from '../version'
 import { findLockEntry } from '../version'
 import type { NotificationCenter } from '../notifications/NotificationCenter'
+import type { AuditService } from '../security/AuditService'
+import { getSourceDomain } from '@shared/domain/source'
 import { logger } from '../logger'
 import { mapWithConcurrency } from '../util/pool'
 import { resolveConcurrency } from '../util/concurrency'
@@ -27,6 +29,7 @@ export interface UpdateEngineDeps {
   configStore: ConfigStore
   gitCache: GitCache
   officialCatalog: OfficialCatalog
+  auditService: AuditService
   onChecked: (result: UpdateCheckResult) => void
 }
 
@@ -107,6 +110,57 @@ export class UpdateEngine {
     const { jobId } = this.deps.jobRunner.start('update.check', async (ctx) => {
       const result = await this.checkEntries(this.installedEntries(), ctx)
       this.deps.onChecked(result)
+
+      const autoDomains = this.settings().autoUpdateDomains ?? []
+      if (autoDomains.length > 0 && result.updatesAvailable > 0) {
+        const updateableIds = new Set(result.entries.filter((r) => r.hasUpdate).map((r) => r.skillId))
+        const candidates = this.installedEntries().filter((e) => updateableIds.has(e.id))
+
+        const toUpdate: CatalogEntry[] = []
+        const skippedOfficial: CatalogEntry[] = []
+
+        for (const entry of candidates) {
+          const source = this.deps.sourceManager.get(entry.sourceId)
+          const domain = getSourceDomain(source || { type: entry.sourceType, config: {} })
+          if (autoDomains.includes(domain)) {
+            if (entry.sourceType === 'official') {
+              const audit = await this.deps.auditService.get('skills.sh', entry.name)
+              if (
+                audit.worstRisk === 'medium' ||
+                audit.worstRisk === 'high' ||
+                audit.worstRisk === 'critical'
+              ) {
+                skippedOfficial.push(entry)
+                continue
+              }
+            }
+            toUpdate.push(entry)
+          }
+        }
+
+        if (toUpdate.length > 0) {
+          this.deps.jobRunner.start('update.run', async (runCtx) => {
+            const summary = await this.runEntries(toUpdate, runCtx, true)
+            let msg = `Обновлено: ${summary.ok}. Ошибок: ${summary.failed}.`
+            if (skippedOfficial.length > 0) {
+              msg += ` Пропущено из-за риска (Medium+): ${skippedOfficial.map((e) => e.name).join(', ')}.`
+            }
+            this.deps.notifications.add({
+              type: 'update_success',
+              title: 'Автообновление завершено',
+              message: msg
+            })
+            return summary
+          })
+        } else if (skippedOfficial.length > 0) {
+          this.deps.notifications.add({
+            type: 'update_available',
+            title: 'Автообновление пропущено',
+            message: `Доступны обновления, но пропущены из-за риска: ${skippedOfficial.map((e) => e.name).join(', ')}.`
+          })
+        }
+      }
+
       return result
     })
     return jobId
@@ -225,7 +279,11 @@ export class UpdateEngine {
     }
   }
 
-  private async runEntries(entries: CatalogEntry[], ctx: JobContext): Promise<UpdateRunSummary> {
+  private async runEntries(
+    entries: CatalogEntry[],
+    ctx: JobContext,
+    silent = false
+  ): Promise<UpdateRunSummary> {
     const config = this.deps.configStore.get().install
     let done = 0
 
@@ -247,21 +305,25 @@ export class UpdateEngine {
       )
 
       if (!result || result.status === 'failed') {
-        this.deps.notifications.add({
-          type: 'update_error',
-          title: 'Ошибка обновления',
-          message: `Не удалось обновить ${entry.name}`,
-          skillId: entry.id
-        })
+        if (!silent) {
+          this.deps.notifications.add({
+            type: 'update_error',
+            title: 'Ошибка обновления',
+            message: `Не удалось обновить ${entry.name}`,
+            skillId: entry.id
+          })
+        }
         return 'failed' as const
       }
       if (result.status === 'skipped') return 'skipped' as const
-      this.deps.notifications.add({
-        type: 'update_success',
-        title: 'Обновление установлено',
-        message: `${entry.name} обновлён`,
-        skillId: entry.id
-      })
+      if (!silent) {
+        this.deps.notifications.add({
+          type: 'update_success',
+          title: 'Обновление установлено',
+          message: `${entry.name} обновлён`,
+          skillId: entry.id
+        })
+      }
       return 'ok' as const
     })
 

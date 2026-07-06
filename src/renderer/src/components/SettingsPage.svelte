@@ -6,7 +6,9 @@
   import { config } from '../lib/stores/config.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
   import { theme, type ThemeMode } from '../lib/stores/theme.svelte'
+  import { ui } from '../lib/stores/ui.svelte'
   import { t, i18n, type LocalePref } from '../lib/i18n.svelte'
+  import { Switch } from '@skeletonlabs/skeleton-svelte'
 
   const cfg = $derived(config.config)
 
@@ -47,7 +49,13 @@
     }, t('error.saveToken'))
   }
 
-  function clearToken(): void {
+  async function clearToken(): Promise<void> {
+    const ok = await api.dialog.confirm({
+      message: t('settings.confirmDeleteToken'),
+      detail: t('settings.confirmDeleteTokenDetail'),
+      confirmLabel: t('common.remove')
+    })
+    if (!ok) return
     void toasts.guard(async () => {
       await api.secrets.delete(GITHUB_TOKEN_KEY)
       tokenSet = false
@@ -68,8 +76,8 @@
     void toasts.guard(async () => {
       // Предпросмотр операций реконсиляции и подтверждение до применения (follow-up [13]).
       const preview = await api.install.previewReconcile({
-        previousAgents: prev,
-        nextAgents: next,
+        previousAgents: $state.snapshot(prev),
+        nextAgents: $state.snapshot(next),
         scope
       })
       if (preview.ops.length > 0) {
@@ -85,8 +93,12 @@
         })
         if (!ok) return
       }
-      await config.update({ install: { ...cfg.install, targetAgents: next } })
-      await api.install.reconcileAgents({ previousAgents: prev, nextAgents: next, scope })
+      await config.update({ install: { ...$state.snapshot(cfg.install), targetAgents: next } })
+      await api.install.reconcileAgents({
+        previousAgents: $state.snapshot(prev),
+        nextAgents: $state.snapshot(next),
+        scope
+      })
     }, t('error.applyAgents'))
   }
 
@@ -172,24 +184,35 @@
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.updates')}</h3>
-      <label class="flex items-center gap-2">
-        <input
-          type="checkbox"
-          class="checkbox"
-          checked={cfg.update.checkOnLaunch}
-          onchange={(e) => setUpdate({ checkOnLaunch: e.currentTarget.checked })}
-        />
-        <span class="text-sm">{t('settings.checkOnLaunch')}</span>
-      </label>
-      <label class="flex items-center gap-2">
-        <input
-          type="checkbox"
-          class="checkbox"
-          checked={cfg.update.scheduleEnabled}
-          onchange={(e) => setUpdate({ scheduleEnabled: e.currentTarget.checked })}
-        />
-        <span class="text-sm">{t('settings.checkSchedule')}</span>
-      </label>
+      <p class="text-sm opacity-60">
+        {t('settings.autoUpdateHint')}
+        <button
+          class="anchor bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
+          onclick={() => ui.go('sources')}
+        >
+          {t('settings.autoUpdateLink')}
+        </button>
+      </p>
+      <Switch
+        checked={cfg.update.checkOnLaunch}
+        onCheckedChange={(details) => setUpdate({ checkOnLaunch: details.checked })}
+        class="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 w-full"
+      >
+        <Switch.Control>
+          <Switch.Thumb />
+        </Switch.Control>
+        <span>{t('settings.checkOnLaunch')}</span>
+      </Switch>
+      <Switch
+        checked={cfg.update.scheduleEnabled}
+        onCheckedChange={(details) => setUpdate({ scheduleEnabled: details.checked })}
+        class="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 w-full"
+      >
+        <Switch.Control>
+          <Switch.Thumb />
+        </Switch.Control>
+        <span>{t('settings.checkSchedule')}</span>
+      </Switch>
       {#if cfg.update.scheduleEnabled}
         <div class="flex flex-wrap gap-2">
           {#each intervalPresets as p (p.minutes)}
@@ -214,15 +237,16 @@
           />
         </label>
       {/if}
-      <label class="flex items-center gap-2">
-        <input
-          type="checkbox"
-          class="checkbox"
-          checked={cfg.update.watchLocalSources}
-          onchange={(e) => setUpdate({ watchLocalSources: e.currentTarget.checked })}
-        />
-        <span class="text-sm">{t('settings.watchLocal')}</span>
-      </label>
+      <Switch
+        checked={cfg.update.watchLocalSources}
+        onCheckedChange={(details) => setUpdate({ watchLocalSources: details.checked })}
+        class="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 w-full"
+      >
+        <Switch.Control>
+          <Switch.Thumb />
+        </Switch.Control>
+        <span>{t('settings.watchLocal')}</span>
+      </Switch>
       <button
         class="btn btn-sm preset-tonal"
         onclick={() => toasts.guard(() => api.update.checkAll(), t('error.checkStart'))}
@@ -278,6 +302,11 @@
         <span class="badge {tokenSet ? 'preset-filled-success-500' : 'preset-tonal'}">
           {tokenSet ? t('settings.tokenSet') : t('settings.tokenNotSet')}
         </span>
+        {#if tokenSet}
+          <button class="btn btn-sm preset-tonal-error" onclick={clearToken}>
+            {t('common.remove')}
+          </button>
+        {/if}
       </div>
       <div class="flex gap-2">
         <input
@@ -293,9 +322,6 @@
         >
           {t('common.save')}
         </button>
-        {#if tokenSet}
-          <button class="btn btn-sm preset-tonal" onclick={clearToken}>{t('common.remove')}</button>
-        {/if}
       </div>
     </section>
 

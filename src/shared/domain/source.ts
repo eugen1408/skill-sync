@@ -51,3 +51,29 @@ export const DEFAULT_OFFICIAL_URL = 'https://skills.sh'
 
 /** Фиксированный id единственного официального источника (skills.sh), добавляемого по умолчанию. */
 export const OFFICIAL_SOURCE_ID = 'official'
+
+export function getSourceDomain(source: Source | { type: SourceType; config: Partial<SourceConfig> }): string {
+  if (source.type === 'official') return 'skills.sh'
+  if (source.type === 'local') return 'local'
+  if (!source.config?.url) return 'other'
+
+  let domain = 'other'
+  const url = source.config.url
+
+  if (url.startsWith('git@')) {
+    const match = url.match(/git@([^:]+):/)
+    if (match) domain = match[1]
+  } else {
+    try {
+      domain = new URL(url).hostname
+    } catch {
+      // ignore
+    }
+  }
+
+  if (domain.startsWith('git.')) {
+    domain = domain.substring(4)
+  }
+
+  return domain
+}

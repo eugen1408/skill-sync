@@ -10,8 +10,8 @@ export interface UpdateSettings {
   scheduleEnabled: boolean
   scheduleIntervalMinutes: number | null
   watchLocalSources: boolean
-  /** Авто-применять обновления или только уведомлять. */
-  autoInstallUpdates: boolean
+  /** Домены источников, для которых включено авто-применение обновлений. */
+  autoUpdateDomains: string[]
 }
 
 /** Параметры установки (Часть 5/7). */
@@ -68,7 +68,7 @@ export function defaultConfig(): AppConfig {
       scheduleEnabled: false,
       scheduleIntervalMinutes: null,
       watchLocalSources: true,
-      autoInstallUpdates: false
+      autoUpdateDomains: []
     },
     install: {
       installDir: null,

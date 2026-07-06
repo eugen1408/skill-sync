@@ -148,6 +148,7 @@ describe('UpdateEngine', () => {
       resolver: { resolve: async () => info } as never,
       gitCache: { existingDir: async () => null } as never,
       officialCatalog: { repoPublished: async () => null } as never,
+      auditService: { get: async () => ({ worstRisk: 'low' }) } as never,
       notifications,
       configStore: {
         get: () => ({

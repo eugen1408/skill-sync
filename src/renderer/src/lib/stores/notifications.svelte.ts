@@ -40,6 +40,12 @@ class NotificationsStore {
     await api.notifications.clear()
     this.items = []
   }
+
+  async markRead(id: string): Promise<void> {
+    await api.notifications.markRead(id)
+    const n = this.items.find((x) => x.id === id)
+    if (n) n.read = true
+  }
 }
 
 export const notifications = new NotificationsStore()

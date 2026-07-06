@@ -237,7 +237,11 @@ export class SkillRegistry {
       latestVersion: prev?.latestVersion ?? null,
       hasUpdate: prev?.hasUpdate ?? false,
       lastCheckedAt: prev?.lastCheckedAt ?? null,
-      updateStatus: prev?.updateStatus ?? (installed ? 'unknown' : 'not_installed'),
+      updateStatus: !installed
+        ? 'not_installed'
+        : prev?.updateStatus === 'not_installed'
+          ? 'unknown'
+          : (prev?.updateStatus ?? 'unknown'),
       sourceRef: raw.sourceRef,
       installs: prev?.installs ?? null
     }
@@ -338,7 +342,7 @@ export class SkillRegistry {
       latestVersion: prev?.latestVersion ?? null,
       hasUpdate: prev?.hasUpdate ?? false,
       lastCheckedAt: prev?.lastCheckedAt ?? null,
-      updateStatus: prev?.updateStatus ?? 'unknown',
+      updateStatus: prev?.updateStatus === 'not_installed' ? 'unknown' : (prev?.updateStatus ?? 'unknown'),
       sourceRef,
       installs: prev?.installs ?? null
     }

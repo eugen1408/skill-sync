@@ -1,7 +1,7 @@
 export interface Toast {
   id: number
   message: string
-  kind: 'error' | 'info'
+  kind: 'error' | 'info' | 'success'
 }
 
 class ToastsStore {

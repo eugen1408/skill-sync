@@ -25,6 +25,7 @@ export interface InstallResult {
   skillId: string
   status: InstallStatus
   installedVersion: string | null
+  wasUpdate?: boolean
   outcomes: AgentInstallOutcome[]
   error: AppError | null
 }

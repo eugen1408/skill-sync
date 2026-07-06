@@ -7,6 +7,7 @@ import type { InstallerService } from '../installer'
 import type { ConfigStore } from '../config/ConfigStore'
 import type { VersionResolver } from '../version'
 import type { NotificationCenter } from '../notifications/NotificationCenter'
+import type { AuditService } from '../security/AuditService'
 import { UpdateEngine } from './UpdateEngine'
 
 export { UpdateEngine } from './UpdateEngine'
@@ -22,6 +23,7 @@ export interface UpdateEngineFactoryDeps {
   configStore: ConfigStore
   gitCache: GitCache
   officialCatalog: OfficialCatalog
+  auditService: AuditService
   onChecked: (result: UpdateCheckResult) => void
 }
 
