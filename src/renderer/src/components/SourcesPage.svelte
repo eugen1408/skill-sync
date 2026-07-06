@@ -9,6 +9,7 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
   import { sourceTypeLabel, sourceStatusLabel } from '../lib/labels'
   import { t } from '../lib/i18n.svelte'
   import Icon from './Icon.svelte'
+  import Favicon from './Favicon.svelte'
   import AddSourceForm from './AddSourceForm.svelte'
 
   function statusBadge(status: string): string {
@@ -61,7 +62,8 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
             <summary
               class="flex items-center justify-between p-4 cursor-pointer hover:preset-tonal-surface"
             >
-              <div class="flex flex-1 items-center gap-4 min-w-0">
+              <div class="flex flex-1 items-center gap-3 min-w-0">
+                <Favicon {domain} class="w-5 h-5 rounded-sm" />
                 <span class="font-bold text-lg">{domain}</span>
               </div>
               <div class="flex items-center gap-4 shrink-0" onclick={(e) => e.stopPropagation()}>

@@ -16,6 +16,7 @@
   import { fade } from 'svelte/transition'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import Icon from './Icon.svelte'
+  import Favicon from './Favicon.svelte'
   import FilterMenu from './FilterMenu.svelte'
 
   const STATUS_VALUES: CatalogStatusFilter[] = ['installed', 'not_installed', 'update_available']
@@ -210,7 +211,10 @@
               <summary
                 class="flex items-center justify-between p-4 cursor-pointer hover:preset-tonal-surface"
               >
-                <span class="font-bold text-lg">{domain}</span>
+                <div class="flex items-center gap-3">
+                  <Favicon {domain} class="w-5 h-5 rounded-sm" />
+                  <span class="font-bold text-lg">{domain}</span>
+                </div>
                 <Icon name="chevron" class="transition-transform group-open:rotate-180 ml-4" size={20} />
               </summary>
               <div class="border-t border-surface-200-800 flex flex-col">

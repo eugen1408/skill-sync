@@ -1,4 +1,5 @@
 import { setGlobalDispatcher, ProxyAgent, Agent } from 'undici'
+import { session } from 'electron'
 import { logger } from '../logger'
 
 const PROXY_ENV_KEYS = ['HTTPS_PROXY', 'HTTP_PROXY', 'https_proxy', 'http_proxy'] as const
@@ -18,10 +19,20 @@ export function applyProxy(proxyUrl: string | null): void {
     } catch (err) {
       logger.warn('Не удалось применить прокси к fetch', err)
     }
+    if (session.defaultSession) {
+      session.defaultSession.setProxy({ proxyRules: url }).catch((e) => {
+        logger.warn('Не удалось применить прокси к session', e)
+      })
+    }
     for (const key of PROXY_ENV_KEYS) process.env[key] = url
     logger.info('Прокси включён')
   } else {
     setGlobalDispatcher(new Agent())
+    if (session.defaultSession) {
+      session.defaultSession.setProxy({ proxyRules: '' }).catch((e) => {
+        logger.warn('Не удалось очистить прокси session', e)
+      })
+    }
     for (const key of PROXY_ENV_KEYS) delete process.env[key]
   }
 }

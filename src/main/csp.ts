@@ -9,7 +9,7 @@ export function buildCsp(isDev: boolean): string {
     "script-src 'self'",
     // Tailwind/Skeleton инжектят inline-стили.
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    "img-src 'self' data: https:",
     "font-src 'self' data:",
     isDev ? "connect-src 'self' ws: http://localhost:*" : "connect-src 'self'"
   ]
