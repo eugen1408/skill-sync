@@ -108,7 +108,8 @@ const api: IpcApi = {
     onInstallResult: (cb) => subscribe<InstallResult>(IpcEvent.installResult, cb),
     onUpdateChecked: (cb) => subscribe<UpdateCheckResult>(IpcEvent.updateChecked, cb),
     onNotification: (cb) => subscribe<AppNotification>(IpcEvent.notification, cb),
-    onDeeplinkReceived: (cb) => subscribe<DeeplinkEvent>(IpcEvent.deeplinkReceived, cb)
+    onDeeplinkReceived: (cb) => subscribe<DeeplinkEvent>(IpcEvent.deeplinkReceived, cb),
+    onGithubRateLimit: (cb) => subscribe<void>(IpcEvent.githubRateLimit, () => cb())
   }
 }
 

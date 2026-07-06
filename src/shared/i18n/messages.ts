@@ -21,6 +21,8 @@ const en = {
   // Баннер обновления приложения
   'app.updateBanner': 'App update {version} available',
   'app.restart': 'Restart',
+  'app.githubRateLimitBanner': 'GitHub API rate limit exceeded. Updates may be incomplete.',
+  'app.configureToken': 'Set token',
 
   // Тосты / события
   'toast.copied': 'Copied',
@@ -205,6 +207,7 @@ const en = {
   'settings.githubToken': 'GitHub token',
   'settings.githubTokenHint':
     'For GitHub API limits (version checks) and private repositories. Stored in the system keychain (safeStorage), not in the config.',
+  'settings.createGithubToken': 'Create new token on GitHub',
   'settings.secretsUnavailable':
     'Secure storage is unavailable — the token will not persist between launches.',
   'settings.tokenSet': 'Set',
@@ -278,6 +281,8 @@ const ru: Record<keyof typeof en, string> = {
 
   'app.updateBanner': 'Доступно обновление приложения {version}',
   'app.restart': 'Перезапустить',
+  'app.githubRateLimitBanner': 'Исчерпан лимит GitHub API. Проверка обновлений ограничена.',
+  'app.configureToken': 'Указать токен',
 
   'toast.copied': 'Скопировано',
   'toast.copyFailed': 'Не удалось скопировать',
@@ -446,6 +451,7 @@ const ru: Record<keyof typeof en, string> = {
   'settings.githubToken': 'GitHub-токен',
   'settings.githubTokenHint':
     'Для лимитов GitHub API (проверка версий) и приватных репозиториев. Хранится в системном хранилище (safeStorage), не в конфигурации.',
+  'settings.createGithubToken': 'Создать токен на GitHub',
   'settings.secretsUnavailable':
     'Защищённое хранилище недоступно — токен не будет сохранён между запусками.',
   'settings.tokenSet': 'Задан',

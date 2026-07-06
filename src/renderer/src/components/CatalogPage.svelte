@@ -73,8 +73,8 @@
   }
 </script>
 
-<div class="flex h-full flex-col gap-4">
-  <div class="flex flex-wrap items-center gap-3">
+<div class="flex h-full flex-col">
+  <div class="flex flex-wrap items-center gap-3 p-6 pb-4 shrink-0">
     <div class="relative max-w-xs flex-1">
       <input
         class="input pr-8"
@@ -125,7 +125,7 @@
 
   {#if initialLoading}
     <!-- Первичная загрузка: скелетоны вместо пустоты/«Неизвестно». -->
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2 px-6 pb-6">
       {#each Array(6) as _, idx (idx)}
         <div
           class="card preset-outlined-surface-200-800 flex items-center gap-4 px-4"
@@ -140,13 +140,13 @@
       {/each}
     </div>
   {:else if items.length === 0}
-    <div class="card preset-outlined-surface-200-800 p-8 text-center opacity-70">
+    <div class="card preset-outlined-surface-200-800 p-8 text-center opacity-70 mx-6 mb-6">
       {t('catalog.empty')}
     </div>
   {:else}
     <!-- Виртуализированный список: рендерим только видимое окно (follow-up [12]). -->
     <div
-      class="min-h-0 flex-1 overflow-y-auto"
+      class="min-h-0 flex-1 overflow-y-auto px-6 pb-6"
       bind:clientHeight={viewportH}
       bind:clientWidth={viewportW}
       onscroll={(e) => (scrollTop = e.currentTarget.scrollTop)}

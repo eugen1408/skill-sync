@@ -87,5 +87,6 @@ export const IpcEvent = {
   installResult: 'install:result',
   updateChecked: 'update:checked',
   notification: 'notification:new',
-  deeplinkReceived: 'app:deeplinkReceived'
+  deeplinkReceived: 'app:deeplinkReceived',
+  githubRateLimit: 'app:githubRateLimit'
 } as const

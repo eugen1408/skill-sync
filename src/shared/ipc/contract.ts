@@ -171,5 +171,6 @@ export interface IpcApi {
     onUpdateChecked(cb: (e: UpdateCheckResult) => void): Unsubscribe
     onNotification(cb: (e: AppNotification) => void): Unsubscribe
     onDeeplinkReceived(cb: (e: DeeplinkEvent) => void): Unsubscribe
+    onGithubRateLimit(cb: () => void): Unsubscribe
   }
 }

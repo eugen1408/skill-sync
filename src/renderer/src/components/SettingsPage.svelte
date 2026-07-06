@@ -260,7 +260,17 @@
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.githubToken')}</h3>
-      <p class="text-sm opacity-60">{t('settings.githubTokenHint')}</p>
+      <p class="text-sm opacity-60">
+        {t('settings.githubTokenHint')}
+        <br />
+        <button
+          class="anchor bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
+          onclick={() =>
+            api.shell.openExternal('https://github.com/settings/personal-access-tokens/new')}
+        >
+          {t('settings.createGithubToken')}
+        </button>
+      </p>
       {#if !secretsAvailable}
         <p class="text-sm text-error-500">{t('settings.secretsUnavailable')}</p>
       {/if}

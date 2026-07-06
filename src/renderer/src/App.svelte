@@ -20,6 +20,7 @@
   import Icon, { type IconName } from './components/Icon.svelte'
 
   let version = $state('…')
+  let githubRateLimitExceeded = $state(false)
 
   const nav: Array<{ view: View; labelKey: Parameters<typeof t>[0]; icon: IconName }> = [
     { view: 'catalog', labelKey: 'nav.catalog', icon: 'catalog' },
@@ -81,6 +82,9 @@
         toasts.push(t('toast.updatesAvailable', { count: r.updatesAvailable }))
     })
     const offDeeplink = api.events.onDeeplinkReceived((e) => void handleDeeplink(e))
+    const offRateLimit = api.events.onGithubRateLimit(() => {
+      githubRateLimitExceeded = true
+    })
 
     // Диплинки холодного старта копятся в main до готовности renderer'а — забираем их
     // после регистрации подписки, чтобы не потерять и не продублировать событие.
@@ -97,6 +101,7 @@
       offInstall()
       offChecked()
       offDeeplink()
+      offRateLimit()
     }
   })
 
@@ -111,6 +116,28 @@
 </script>
 
 <div class="flex h-full flex-col">
+  {#if githubRateLimitExceeded}
+    <div class="flex items-center gap-3 bg-warning-500 p-2 pl-4 pr-2 text-sm text-black">
+      <span class="flex-1 font-medium">{t('app.githubRateLimitBanner')}</span>
+      <button
+        class="btn btn-sm bg-black/10 hover:bg-black/20 text-black border-none"
+        onclick={() => {
+          githubRateLimitExceeded = false
+          ui.go('settings')
+        }}
+      >
+        {t('app.configureToken')}
+      </button>
+      <button
+        class="btn-icon btn-icon-sm hover:bg-black/10 text-black"
+        title={t('common.close')}
+        onclick={() => (githubRateLimitExceeded = false)}
+      >
+        <Icon name="close" size={16} />
+      </button>
+    </div>
+  {/if}
+
   {#if appUpdateReady}
     <div class="flex items-center gap-3 bg-primary-500 p-2 text-sm text-white">
       <span class="flex-1"
@@ -149,15 +176,15 @@
     </nav>
 
     <div class="flex flex-1 overflow-hidden">
-      <main class="flex-1 overflow-auto p-6">
+      <main class="flex-1 overflow-auto bg-surface-base">
         {#if ui.view === 'catalog'}
           <CatalogPage />
         {:else if ui.view === 'sources'}
-          <SourcesPage />
+          <div class="p-6"><SourcesPage /></div>
         {:else if ui.view === 'notifications'}
-          <NotificationsPage />
+          <div class="p-6"><NotificationsPage /></div>
         {:else if ui.view === 'settings'}
-          <SettingsPage />
+          <div class="p-6"><SettingsPage /></div>
         {/if}
       </main>
 

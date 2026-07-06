@@ -16,7 +16,7 @@
     return 'preset-tonal'
   }
 
-  function getDomain(source: typeof sources.items[0]): string {
+  function getDomain(source: (typeof sources.items)[0]): string {
     if (source.type === 'official') return 'skills.sh'
     if (source.type === 'local') return 'local'
     if (!source.config.url) return 'other'
@@ -63,14 +63,18 @@
       {#each groupedSources as [domain, group] (domain)}
         <div class="card preset-outlined-surface-200-800 p-0 overflow-hidden">
           <details class="group" open>
-            <summary class="flex items-center justify-between p-4 cursor-pointer hover:preset-tonal-surface">
+            <summary
+              class="flex items-center justify-between p-4 cursor-pointer hover:preset-tonal-surface"
+            >
               <span class="font-bold text-lg">{domain}</span>
               <Icon name="chevron" class="transition-transform group-open:rotate-180" size={20} />
             </summary>
             <div class="border-t border-surface-200-800">
               {#each group as source (source.id)}
                 {@const repoUrl = source.config.url ? gitRepoWebUrl(source.config.url) : null}
-                <div class="flex items-center gap-3 p-4 border-b border-surface-200-800 last:border-0">
+                <div
+                  class="flex items-center gap-3 p-4 border-b border-surface-200-800 last:border-0"
+                >
                   <div class="flex-1">
                     <div class="flex items-center gap-2">
                       <span class="font-semibold">{source.name}</span>

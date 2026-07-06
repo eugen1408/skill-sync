@@ -2,6 +2,7 @@
   import { notifications } from '../lib/stores/notifications.svelte'
   import { notificationTypeLabel, formatTime } from '../lib/labels'
   import { t } from '../lib/i18n.svelte'
+  import { ui } from '../lib/stores/ui.svelte'
 
   function badge(type: string): string {
     if (type === 'install_error' || type === 'update_error' || type === 'source_unavailable')
@@ -29,10 +30,20 @@
   {:else}
     <div class="space-y-2">
       {#each notifications.items as n (n.id)}
-        <div
-          class="card preset-outlined-surface-200-800 flex items-start gap-3 p-3 {n.read
+        <button
+          type="button"
+          class="card w-full text-left preset-outlined-surface-200-800 flex items-start gap-3 p-3 {n.read
             ? 'opacity-60'
-            : ''}"
+            : ''} {n.skillId || n.sourceId ? 'hover:bg-surface-100-900 cursor-pointer' : ''}"
+          onclick={() => {
+            if (!n.read) notifications.markRead(n.id)
+            if (n.skillId) {
+              ui.go('catalog')
+              ui.openDetail(n.skillId)
+            } else if (n.sourceId) {
+              ui.go('sources')
+            }
+          }}
         >
           <span class="badge {badge(n.type)}">{notificationTypeLabel(n.type)}</span>
           <div class="flex-1">
@@ -40,7 +51,7 @@
             <p class="text-sm opacity-80">{n.message}</p>
           </div>
           <span class="text-xs opacity-50">{formatTime(n.createdAt)}</span>
-        </div>
+        </button>
       {/each}
     </div>
   {/if}

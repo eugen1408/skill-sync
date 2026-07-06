@@ -3,6 +3,8 @@ import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
+import { BrowserWindow } from 'electron'
+import { IpcEvent } from '@shared/ipc/channels'
 import type { VersionPorts } from './types'
 import { logger } from '../logger'
 
@@ -32,8 +34,17 @@ export function createVersionPorts(): VersionPorts {
         try {
           const res = await fetch(url, { headers })
           if (!res.ok) {
-            // 403 + исчерпанный лимит → «неизвестно» (не бросаем).
-            logger.warn(`GitHub trees API ${owner}/${repo}@${ref}: HTTP ${res.status}`)
+            if (res.status === 403 || res.status === 429) {
+              logger.warn(
+                `GitHub API rate limit exceeded (HTTP ${res.status}). Укажите GITHUB_TOKEN для стабильной проверки обновлений.`
+              )
+              BrowserWindow.getAllWindows().forEach((w) =>
+                w.webContents.send(IpcEvent.githubRateLimit)
+              )
+              logger.debug(`GitHub trees API ${owner}/${repo}@${ref}: HTTP ${res.status}`)
+            } else {
+              logger.warn(`GitHub trees API ${owner}/${repo}@${ref}: HTTP ${res.status}`)
+            }
             return null
           }
           const body = (await res.json()) as {
