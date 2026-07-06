@@ -26,14 +26,27 @@ function sortEntries(entries: CatalogEntry[], sort: CatalogQuery['sort']): Catal
     case 'name-desc':
       return [...entries].sort((a, b) => byName(b, a))
     case 'update-first':
-      return [...entries].sort((a, b) => 
-        Number(b.hasUpdate) - Number(a.hasUpdate) || 
-        (b.installs ?? -1) - (a.installs ?? -1) || 
-        byName(a, b)
-      )
+      return [...entries].sort((a, b) => {
+        if (a.hasUpdate && !b.hasUpdate) return -1
+        if (!a.hasUpdate && b.hasUpdate) return 1
+        
+        const aInstalls = a.installs ?? -1
+        const bInstalls = b.installs ?? -1
+        if (aInstalls !== bInstalls) {
+          return bInstalls - aInstalls
+        }
+        
+        return byName(a, b)
+      })
     case 'installs-desc':
-      // Больше установок — выше; записи без счётчика (не official) в конце, затем по имени.
-      return [...entries].sort((a, b) => (b.installs ?? -1) - (a.installs ?? -1) || byName(a, b))
+      return [...entries].sort((a, b) => {
+        const aInstalls = a.installs ?? -1
+        const bInstalls = b.installs ?? -1
+        if (aInstalls !== bInstalls) {
+          return bInstalls - aInstalls
+        }
+        return byName(a, b)
+      })
     case 'name-asc':
     default:
       return [...entries].sort(byName)
