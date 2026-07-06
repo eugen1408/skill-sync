@@ -53,7 +53,13 @@ export interface CatalogPage {
 }
 
 export type AppUpdateState =
-  'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+  | 'manual-download'
 
 export interface AppUpdateStatus {
   state: AppUpdateState

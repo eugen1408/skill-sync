@@ -14,6 +14,7 @@ publish:
   provider: github
   owner: eugen1408
   repo: skill-sync
+  releaseType: release
 mac:
   target:
     - target: dmg

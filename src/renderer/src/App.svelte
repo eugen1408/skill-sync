@@ -109,6 +109,7 @@
   })
 
   const appUpdateReady = $derived(config.appUpdate?.state === 'downloaded')
+  const appUpdateManual = $derived(config.appUpdate?.state === 'manual-download')
 
   // Конфиг — источник истины для языка; синхронизируем i18n после его загрузки
   // (localStorage — лишь кэш для мгновенного первого рендера до готовности IPC).
@@ -148,6 +149,17 @@
       >
       <button class="btn btn-sm preset-filled" onclick={() => api.app.quitAndInstall()}>
         {t('app.restart')}
+      </button>
+    </div>
+  {/if}
+
+  {#if appUpdateManual}
+    <div class="flex items-center gap-3 bg-tertiary-500 p-2 text-sm text-white">
+      <span class="flex-1"
+        >{t('app.updateManualBanner', { version: config.appUpdate?.version ?? '' })}</span
+      >
+      <button class="btn btn-sm preset-filled" onclick={() => api.shell.openExternal('https://github.com/eugen1408/skill-sync/releases/latest')}>
+        {t('app.download')}
       </button>
     </div>
   {/if}

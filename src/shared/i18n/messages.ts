@@ -19,7 +19,9 @@ const en = {
   'common.dash': '—',
 
   // Баннер обновления приложения
-  'app.updateBanner': 'App update {version} available',
+  'app.updateBanner': 'App update {version} is ready to install',
+  'app.updateManualBanner': 'App update {version} is available for download',
+  'app.download': 'Download',
   'app.restart': 'Restart',
   'app.githubRateLimitBanner': 'GitHub API rate limit exceeded. Updates may be incomplete.',
   'app.configureToken': 'Set token',
@@ -290,7 +292,9 @@ const ru: Record<keyof typeof en, string> = {
   'common.error': 'Ошибка',
   'common.dash': '—',
 
-  'app.updateBanner': 'Доступно обновление приложения {version}',
+  'app.updateBanner': 'Обновление {version} готово к установке',
+  'app.updateManualBanner': 'Доступно обновление {version}',
+  'app.download': 'Скачать',
   'app.restart': 'Перезапустить',
   'app.githubRateLimitBanner': 'Исчерпан лимит GitHub API. Проверка обновлений ограничена.',
   'app.configureToken': 'Указать токен',

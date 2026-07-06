@@ -34,6 +34,13 @@ cd skill-sync
 npm install
 ```
 
+
+> [!IMPORTANT]
+> **macOS Users:** If you download the `.dmg` from GitHub Releases, the app is currently unsigned. macOS Gatekeeper will show a "damaged app" error. To fix this, after moving it to Applications, open Terminal and run:
+> ```bash
+> xattr -rd com.apple.quarantine /Applications/Skill\ Sync.app/
+> ```
+
 ### Development
 
 Start the application in development mode with HMR:
@@ -85,6 +92,13 @@ git clone https://github.com/evaganov/skill-sync.git
 cd skill-sync
 npm install
 ```
+
+
+> [!IMPORTANT]
+> **Пользователи macOS:** Если вы скачиваете `.dmg` из релизов GitHub, приложение пока не подписано сертификатом Apple. Gatekeeper может выдать ошибку «Приложение повреждено». Чтобы это исправить, переместите его в Программы (Applications) и выполните в Терминале:
+> ```bash
+> xattr -rd com.apple.quarantine /Applications/Skill\ Sync.app/
+> ```
 
 ### Разработка
 
