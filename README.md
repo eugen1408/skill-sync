@@ -1,12 +1,26 @@
-# Skill Sync 🧠
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+# Skill Sync
 
 _Read this in other languages: [English](#english), [Русский](#русский)._
 
+<details>
+<summary>📸 Screenshots / Скриншоты</summary>
+
+<br>
+
+**Catalog / Каталог**
+![Catalog](docs/images/catalog.png)
+
+**Sources / Источники**
+![Sources](docs/images/sources.png)
+
+**Settings / Настройки**
+![Settings](docs/images/settings.png)
+
+</details>
+
 ---
 
-<h2 id="english">🇬🇧 English</h2>
+<h2 id="english">🇺🇸 English</h2>
 
 **Skill Sync** is a centralized installer and updater manager for LLM-agent skills. It allows developers and users to easily synchronize, update, and manage capabilities across different AI agents right from their desktop.
 
@@ -26,20 +40,25 @@ Built on modern web technologies:
 
 ### Installation
 
-To run this project locally, clone the repository and install the dependencies:
-
-```bash
-git clone https://github.com/evaganov/skill-sync.git
-cd skill-sync
-npm install
-```
-
+**The easiest way to install Skill Sync is to download the latest release.**
+👉 [**Download the latest release from GitHub**](https://github.com/eugen1408/skill-sync/releases/latest)
 
 > [!IMPORTANT]
 > **macOS Users:** If you download the `.dmg` from GitHub Releases, the app is currently unsigned. macOS Gatekeeper will show a "damaged app" error. To fix this, after moving it to Applications, open Terminal and run:
+>
 > ```bash
 > xattr -rd com.apple.quarantine /Applications/Skill\ Sync.app/
 > ```
+
+#### Build from source
+
+To run this project locally, clone the repository and install the dependencies:
+
+```bash
+git clone https://github.com/eugen1408/skill-sync.git
+cd skill-sync
+npm install
+```
 
 ### Development
 
@@ -85,20 +104,25 @@ npm run dist
 
 ### Установка
 
-Для локального запуска клонируйте репозиторий и установите зависимости:
-
-```bash
-git clone https://github.com/evaganov/skill-sync.git
-cd skill-sync
-npm install
-```
-
+**Самый простой способ установки — скачать готовый релиз.**
+👉 [**Скачать последнюю версию из GitHub Releases**](https://github.com/eugen1408/skill-sync/releases/latest)
 
 > [!IMPORTANT]
 > **Пользователи macOS:** Если вы скачиваете `.dmg` из релизов GitHub, приложение пока не подписано сертификатом Apple. Gatekeeper может выдать ошибку «Приложение повреждено». Чтобы это исправить, переместите его в Программы (Applications) и выполните в Терминале:
+>
 > ```bash
 > xattr -rd com.apple.quarantine /Applications/Skill\ Sync.app/
 > ```
+
+#### Сборка из исходников
+
+Для локального запуска клонируйте репозиторий и установите зависимости:
+
+```bash
+git clone https://github.com/eugen1408/skill-sync.git
+cd skill-sync
+npm install
+```
 
 ### Разработка
 
