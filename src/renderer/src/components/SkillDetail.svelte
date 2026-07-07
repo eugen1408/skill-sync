@@ -168,7 +168,7 @@
 {#if entry}
   <aside
     transition:fly={{ x: 300, duration: 250 }}
-    class="markdown-root flex h-full flex-1 flex-col gap-4 overflow-y-auto border-l border-surface-200-800 p-4 xl:flex-[2]"
+    class="markdown-root flex h-full w-[60%] flex-none flex-col gap-4 overflow-y-auto border-l border-surface-200-800 p-4"
   >
     <div class="flex items-start justify-between gap-2">
       <h2 class="h3 font-bold flex items-center gap-2 overflow-hidden flex-1 mr-4">

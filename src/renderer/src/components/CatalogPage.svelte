@@ -235,7 +235,7 @@
     role="button"
     tabindex="0"
     in:fade={{ duration: 250 }}
-    class="flex cursor-pointer px-4 hover:preset-tonal {catalog.groupBySource ? 'border-b border-surface-200-800 last:border-0 py-4' : 'card preset-outlined-surface-200-800 h-full'} {compact
+    class="flex cursor-pointer px-4 {ui.detailId === entry.id ? 'preset-tonal' : 'hover:preset-tonal'} {catalog.groupBySource ? 'border-b border-surface-200-800 last:border-0 py-4' : 'card preset-outlined-surface-200-800 h-full'} {compact
       ? 'flex-col justify-center gap-2'
       : 'items-center gap-4'}"
     style={catalog.groupBySource ? '' : `height: ${rowH}px`}

@@ -4,6 +4,7 @@ import { OFFICIAL_SOURCE_ID } from '@shared/domain/source'
 import type { AppError } from '@shared/domain/error'
 import { makeAppError } from '@shared/domain/error'
 import type { ConfigStore } from '../config/ConfigStore'
+import { resolveLocale, mt } from '../i18n'
 import type { JobRunner } from '../jobs/JobRunner'
 import { logger } from '../logger'
 import type { SourceAdapter, AddSourceInput } from './types'
@@ -28,10 +29,14 @@ function basename(p: string): string {
 function defaultName(input: AddSourceInput): string {
   if (input.name.trim()) return input.name.trim()
   if (input.type === 'local') {
-    return input.config.localPath ? basename(input.config.localPath) : 'Локальный каталог'
+    return input.config.localPath 
+      ? basename(input.config.localPath) 
+      : mt(resolveLocale('system'), 'source.defaultLocalName' as any)
   }
   if (input.type === 'git') {
-    return input.config.url ? basename(input.config.url.replace(/\.git$/i, '')) : 'Git-репозиторий'
+    return input.config.url 
+      ? basename(input.config.url.replace(/\.git$/i, '')) 
+      : mt(resolveLocale('system'), 'source.defaultGitName' as any)
   }
   return 'skills.sh'
 }
@@ -225,12 +230,12 @@ export class SourceManager {
         const failed = this.updateSource(id, (s) => ({
           ...s,
           status: 'error',
-          lastError: 'Индексация не завершена'
+          lastError: mt(resolveLocale(this.configStore.get().ui.language), 'source.indexingNotFinished' as any)
         }))
         this.emitIndexed({
           source: failed,
           skills: [],
-          error: makeAppError('SOURCE_UNAVAILABLE', 'Индексация не завершена')
+          error: makeAppError('SOURCE_UNAVAILABLE', mt(resolveLocale(this.configStore.get().ui.language), 'source.indexingNotFinished' as any))
         })
         return
       }

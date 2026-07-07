@@ -194,7 +194,7 @@
     </nav>
 
     <div class="flex flex-1 overflow-hidden">
-      <main class="flex-1 overflow-auto bg-surface-base">
+      <main class="overflow-auto bg-surface-base {ui.view === 'catalog' && ui.detailId ? 'w-[40%] flex-none' : 'flex-1'}">
         {#if ui.view === 'catalog'}
           <CatalogPage />
         {:else if ui.view === 'sources'}

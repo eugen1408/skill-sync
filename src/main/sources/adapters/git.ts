@@ -1,3 +1,5 @@
+import { resolveLocale, mt } from '../../i18n'
+
 import type { Source, RawSkill } from '@shared/domain/source'
 import { makeAppError } from '@shared/domain/error'
 import type { SourceAdapter, IndexContext } from '../types'
@@ -17,17 +19,17 @@ export class GitSourceAdapter implements SourceAdapter {
 
   async validate(source: Source): Promise<void> {
     const url = source.config.url?.trim()
-    if (!url) throw makeAppError('SOURCE_UNAVAILABLE', 'Не задан URL Git-репозитория')
+    if (!url) throw makeAppError('SOURCE_UNAVAILABLE', mt(resolveLocale('system'), 'source.noGitUrl' as any))
     const looksLikeGit =
       /^https?:\/\//i.test(url) || /^git@/i.test(url) || Boolean(parseGithubRepo(url))
     if (!looksLikeGit) {
-      throw makeAppError('SOURCE_UNAVAILABLE', 'URL не похож на Git-репозиторий')
+      throw makeAppError('SOURCE_UNAVAILABLE', mt(resolveLocale('system'), 'source.notGitUrl' as any))
     }
   }
 
   async listSkills(source: Source, ctx: IndexContext): Promise<RawSkill[]> {
     const dir = await this.cache.ensure(source, ctx)
-    ctx.progress(null, `Индексация ${source.name}…`)
+    ctx.progress(null, mt(resolveLocale('system'), 'source.indexingProgress' as any, { name: source.name }))
     const skills = await discoverSkills(dir)
     const ref = source.config.ref?.trim() || null
     return skills.map((s) => ({ ...s, ref }))

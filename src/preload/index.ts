@@ -117,3 +117,6 @@ const api: IpcApi = {
 }
 
 contextBridge.exposeInMainWorld('api', api)
+contextBridge.exposeInMainWorld('env', {
+  isDemoMode: process.argv.includes('--demo') || !!process.env.SKILL_SYNC_DEMO
+})

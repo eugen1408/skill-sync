@@ -50,7 +50,7 @@ const en = {
   'catalog.groupBySource': 'Group by sources',
   'catalog.installWordOne': 'install',
   'catalog.total': 'Total: {count}',
-  'catalog.empty': 'Nothing found. Add a source on the “Sources” tab or use search.',
+  'catalog.empty': 'Nothing found. Add your own skill sources or use search.',
   'catalog.filterStatus': 'Status',
   'catalog.filterSources': 'Sources',
 
@@ -107,6 +107,14 @@ const en = {
   'sourceType.official': 'skills.sh',
   'sourceType.git': 'Git',
   'sourceType.local': 'Local',
+
+  'source.indexingProgress': 'Indexing {name}…',
+  'source.indexingNotFinished': 'Indexing not finished',
+  'source.noGitUrl': 'Git repository URL is missing',
+  'source.notGitUrl': 'URL does not look like a Git repository',
+  'source.officialLive': 'Official catalog is live — no indexing required',
+  'source.defaultLocalName': 'Local directory',
+  'source.defaultGitName': 'Git repository',
 
   // Статус источника
   'sourceStatus.ok': 'Ready',
@@ -335,7 +343,7 @@ const ru: Record<keyof typeof en, string> = {
   'catalog.installWordOne': 'установка',
   'catalog.total': 'Всего: {count}',
   'catalog.empty':
-    'Ничего не найдено. Добавьте источник во вкладке «Источники» или воспользуйтесь поиском.',
+    'Ничего не найдено. Добавьте свои источники скилов или воспользуйтесь поиском.',
   'catalog.filterStatus': 'Статус',
   'catalog.filterSources': 'Источники',
 
@@ -386,6 +394,14 @@ const ru: Record<keyof typeof en, string> = {
   'sourceType.official': 'skills.sh',
   'sourceType.git': 'Git',
   'sourceType.local': 'Локальный',
+
+  'source.indexingProgress': 'Индексация {name}…',
+  'source.indexingNotFinished': 'Индексация не завершена',
+  'source.noGitUrl': 'Не задан URL Git-репозитория',
+  'source.notGitUrl': 'URL не похож на Git-репозиторий',
+  'source.officialLive': 'Официальный каталог живой — индексация отсутствует.',
+  'source.defaultLocalName': 'Локальный каталог',
+  'source.defaultGitName': 'Git-репозиторий',
 
   'sourceStatus.ok': 'Готов',
   'sourceStatus.indexing': 'Индексация',
