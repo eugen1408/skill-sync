@@ -1,4 +1,3 @@
-import { resolveLocale, mt } from '../../i18n'
 import type { Source, RawSkill } from '@shared/domain/source'
 import { DEFAULT_OFFICIAL_URL } from '@shared/domain/source'
 import { makeAppError } from '@shared/domain/error'
