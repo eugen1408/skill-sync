@@ -53,14 +53,49 @@ export function parseFrontmatter(content: string): SkillMeta {
   const meta: SkillMeta = { name: null, description: null }
   const match = /^﻿?---\r?\n([\s\S]*?)\r?\n---/.exec(content)
   if (!match) return meta
-  for (const line of match[1].split(/\r?\n/)) {
-    const kv = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line)
-    if (!kv) continue
-    const key = kv[1].toLowerCase()
-    const value = stripQuotes(kv[2].trim())
-    if (key === 'name') meta.name = value || null
-    else if (key === 'description') meta.description = value || null
+
+  const lines = match[1].split(/\r?\n/)
+  let currentKey: string | null = null
+  let multilineValue: string[] = []
+  let joinChar = '\n'
+
+  const flush = () => {
+    if (currentKey) {
+      const val = multilineValue.join(joinChar).trim()
+      if (currentKey === 'name') meta.name = stripQuotes(val) || null
+      else if (currentKey === 'description') meta.description = stripQuotes(val) || null
+    }
   }
+
+  for (const line of lines) {
+    if (currentKey && (line.startsWith(' ') || line.startsWith('\t') || line.trim() === '')) {
+      if (line.trim() !== '') {
+        multilineValue.push(line.trim())
+      }
+      continue
+    }
+
+    const kv = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line)
+    if (kv) {
+      flush()
+      currentKey = kv[1].toLowerCase()
+      const val = kv[2].trim()
+      if (val.startsWith('>')) {
+        joinChar = ' '
+        multilineValue = []
+      } else if (val.startsWith('|')) {
+        joinChar = '\n'
+        multilineValue = []
+      } else {
+        joinChar = '\n'
+        multilineValue = [val]
+      }
+    } else {
+      flush()
+      currentKey = null
+    }
+  }
+  flush()
   return meta
 }
 
