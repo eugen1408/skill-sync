@@ -1,6 +1,6 @@
 {
   "name": "skill-sync",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Централизованный менеджер установки и обновления skills для LLM-агентов",
   "author": "eugen1408",
   "license": "MIT",
