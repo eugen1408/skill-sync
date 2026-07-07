@@ -50,7 +50,9 @@ const api: IpcApi = {
     setEnabled: (id: string, enabled: boolean) =>
       ipcRenderer.invoke(IpcInvoke.source.setEnabled, id, enabled),
     refresh: (id: string) => ipcRenderer.invoke(IpcInvoke.source.refresh, id),
-    listSkills: (id: string) => ipcRenderer.invoke(IpcInvoke.source.listSkills, id)
+    listSkills: (id: string) => ipcRenderer.invoke(IpcInvoke.source.listSkills, id),
+    hideSkill: (id: string, skillName: string) => ipcRenderer.invoke(IpcInvoke.source.hideSkill, id, skillName),
+    restoreHiddenSkills: (id: string) => ipcRenderer.invoke(IpcInvoke.source.restoreHiddenSkills, id)
   },
   catalog: {
     query: (query: CatalogQuery) => ipcRenderer.invoke(IpcInvoke.catalog.query, query),

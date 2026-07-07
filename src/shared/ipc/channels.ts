@@ -30,7 +30,9 @@ export const IpcInvoke = {
     remove: 'source:remove',
     setEnabled: 'source:setEnabled',
     refresh: 'source:refresh',
-    listSkills: 'source:listSkills'
+    listSkills: 'source:listSkills',
+    hideSkill: 'source:hideSkill',
+    restoreHiddenSkills: 'source:restoreHiddenSkills'
   },
   catalog: {
     query: 'catalog:query',

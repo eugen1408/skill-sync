@@ -70,6 +70,8 @@ const en = {
   'action.update': 'Update',
   'action.reinstall': 'Reinstall',
   'action.remove': 'Remove',
+  'action.hide': 'Hide',
+  'action.restoreHidden': 'Restore hidden',
 
   // Карточка skill
   'detail.source': 'Source',
@@ -338,6 +340,8 @@ const ru: Record<keyof typeof en, string> = {
   'action.update': 'Обновить',
   'action.reinstall': 'Переустановить',
   'action.remove': 'Удалить',
+  'action.hide': 'Скрыть',
+  'action.restoreHidden': 'Восстановить скрытые',
 
   'detail.source': 'Источник',
   'detail.installs': 'Установок (skills.sh)',

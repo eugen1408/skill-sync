@@ -148,6 +148,16 @@ export class SourceManager {
     return source
   }
 
+
+  /** Запускает переиндексацию всех включённых неофициальных источников (Git/Local). */
+  refreshAllNonOfficial(): void {
+    for (const source of this.list()) {
+      if (source.enabled && source.type !== 'official') {
+        this.refresh(source.id)
+      }
+    }
+  }
+
   remove(id: string): void {
     if (id === OFFICIAL_SOURCE_ID) {
       throw new Error('Источник skills.sh нельзя удалить (можно отключить)')
@@ -167,6 +177,26 @@ export class SourceManager {
     return source
   }
 
+  hideSkill(id: string, skillName: string): Source {
+    return this.updateSource(id, (s) => ({
+      ...s,
+      config: {
+        ...s.config,
+        hiddenSkills: [...(s.config.hiddenSkills ?? []), skillName]
+      }
+    }))
+  }
+
+  restoreHiddenSkills(id: string): Source {
+    return this.updateSource(id, (s) => ({
+      ...s,
+      config: {
+        ...s.config,
+        hiddenSkills: []
+      }
+    }))
+  }
+
   /** Запускает переиндексацию источника; возвращает jobId (результат — через onIndexed/IPC). */
   refresh(id: string): string | null {
     const source = this.get(id)
@@ -176,7 +206,17 @@ export class SourceManager {
 
     const { jobId, promise } = this.jobRunner.start(
       source.type === 'official' || source.type === 'git' ? 'source.refresh' : 'source.index',
-      (ctx) => adapter.listSkills(source, ctx)
+      async (ctx) => {
+        try {
+          return await adapter.listSkills(source, ctx)
+        } catch (err: any) {
+          const msg = err?.message || String(err)
+          if (err && typeof err === 'object' && 'code' in err) {
+            throw { ...err, message: `[${source.name}] ${msg}` }
+          }
+          throw new Error(`[${source.name}] ${msg}`)
+        }
+      }
     )
 
     void promise.then((skills) => {

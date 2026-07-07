@@ -290,6 +290,7 @@ app.whenReady().then(() => {
   const registryReady = skillRegistry
     .init()
     .then(() => seedSourcesFromLock(sourceManager, skillRegistry, officialCatalog))
+    .then(() => { sourceManager.refreshAllNonOfficial() })
     .catch((err) => logger.error('Ошибка атрибуции установленных skills из lock', err))
   // Проверка при запуске стартует только после готовности реестра — иначе она
   // отработает по пустому набору и все skills останутся в статусе «Неизвестно».

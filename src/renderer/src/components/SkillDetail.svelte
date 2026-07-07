@@ -420,9 +420,21 @@
           {t('action.update')}
         </button>
       {:else if !entry.installed && entry.sourceId !== 'installed'}
-        <button class="btn btn-sm preset-filled-primary-500" onclick={install}
-          >{t('action.install')}</button
-        >
+        <div class="flex items-center gap-2">
+          <button class="btn btn-sm preset-filled-primary-500" onclick={install}>
+            {t('action.install')}
+          </button>
+          <button
+            class="btn-icon btn-sm preset-tonal"
+            title={t('action.hide')}
+            onclick={() => toasts.guard(() => {
+              ui.closeDetail()
+              return window.api.source.hideSkill(entry!.sourceId, entry!.name)
+            }, t('common.error'))}
+          >
+            <Icon name="eye-off" size={16} />
+          </button>
+        </div>
       {/if}
       {#if entry.installed}
         <button class="btn btn-sm preset-tonal-primary" onclick={reinstall}

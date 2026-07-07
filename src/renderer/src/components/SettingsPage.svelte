@@ -193,26 +193,54 @@
           {t('settings.autoUpdateLink')}
         </button>
       </p>
-      <Switch
-        checked={cfg.update.checkOnLaunch}
-        onCheckedChange={(details) => setUpdate({ checkOnLaunch: details.checked })}
-        class="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 w-full"
+      <div
+        role="button"
+        tabindex="0"
+        class="flex items-center cursor-pointer hover:opacity-80 w-full"
+        onclick={() => setUpdate({ checkOnLaunch: !cfg.update.checkOnLaunch })}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setUpdate({ checkOnLaunch: !cfg.update.checkOnLaunch })
+          }
+        }}
       >
-        <Switch.Control>
-          <Switch.Thumb />
-        </Switch.Control>
-        <span>{t('settings.checkOnLaunch')}</span>
-      </Switch>
-      <Switch
-        checked={cfg.update.scheduleEnabled}
-        onCheckedChange={(details) => setUpdate({ scheduleEnabled: details.checked })}
-        class="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 w-full"
+        <div class="pointer-events-none w-full">
+          <Switch
+            checked={cfg.update.checkOnLaunch}
+            class="flex items-center gap-3 text-sm w-full"
+          >
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+            <span>{t('settings.checkOnLaunch')}</span>
+          </Switch>
+        </div>
+      </div>
+      <div
+        role="button"
+        tabindex="0"
+        class="flex items-center cursor-pointer hover:opacity-80 w-full"
+        onclick={() => setUpdate({ scheduleEnabled: !cfg.update.scheduleEnabled })}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setUpdate({ scheduleEnabled: !cfg.update.scheduleEnabled })
+          }
+        }}
       >
-        <Switch.Control>
-          <Switch.Thumb />
-        </Switch.Control>
-        <span>{t('settings.checkSchedule')}</span>
-      </Switch>
+        <div class="pointer-events-none w-full">
+          <Switch
+            checked={cfg.update.scheduleEnabled}
+            class="flex items-center gap-3 text-sm w-full"
+          >
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+            <span>{t('settings.checkSchedule')}</span>
+          </Switch>
+        </div>
+      </div>
       {#if cfg.update.scheduleEnabled}
         <div class="flex flex-wrap gap-2">
           {#each intervalPresets as p (p.minutes)}
@@ -237,16 +265,30 @@
           />
         </label>
       {/if}
-      <Switch
-        checked={cfg.update.watchLocalSources}
-        onCheckedChange={(details) => setUpdate({ watchLocalSources: details.checked })}
-        class="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 w-full"
+      <div
+        role="button"
+        tabindex="0"
+        class="flex items-center cursor-pointer hover:opacity-80 w-full"
+        onclick={() => setUpdate({ watchLocalSources: !cfg.update.watchLocalSources })}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setUpdate({ watchLocalSources: !cfg.update.watchLocalSources })
+          }
+        }}
       >
-        <Switch.Control>
-          <Switch.Thumb />
-        </Switch.Control>
-        <span>{t('settings.watchLocal')}</span>
-      </Switch>
+        <div class="pointer-events-none w-full">
+          <Switch
+            checked={cfg.update.watchLocalSources}
+            class="flex items-center gap-3 text-sm w-full"
+          >
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+            <span>{t('settings.watchLocal')}</span>
+          </Switch>
+        </div>
+      </div>
       <button
         class="btn btn-sm preset-tonal"
         onclick={() => toasts.guard(() => api.update.checkAll(), t('error.checkStart'))}
@@ -282,7 +324,7 @@
       />
     </section>
 
-    <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
+    <section id="github-token" class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.githubToken')}</h3>
       <p class="text-sm opacity-60">
         {t('settings.githubTokenHint')}

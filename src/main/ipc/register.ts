@@ -145,6 +145,14 @@ export function registerIpc(deps: IpcDeps): void {
   )
   ipcMain.handle(IpcInvoke.source.refresh, (_e, id: string) => sourceManager.refresh(id))
   ipcMain.handle(IpcInvoke.source.listSkills, (_e, id: string) => sourceManager.listSkills(id))
+  ipcMain.handle(IpcInvoke.source.hideSkill, async (_e, id: string, skillName: string) => {
+    sourceManager.hideSkill(id, skillName)
+    await skillRegistry.refreshIndex()
+  })
+  ipcMain.handle(IpcInvoke.source.restoreHiddenSkills, async (_e, id: string) => {
+    sourceManager.restoreHiddenSkills(id)
+    await skillRegistry.refreshIndex()
+  })
 
   ipcMain.handle(IpcInvoke.catalog.query, async (_e, query: CatalogQuery) => {
     // Официальный каталог — живой: при поиске (≥2 символов) подмешиваем результаты API.
@@ -155,7 +163,10 @@ export function registerIpc(deps: IpcDeps): void {
     return skillRegistry.queryWith(query, skillRegistry.buildOfficialEntries(skills))
   })
   ipcMain.handle(IpcInvoke.catalog.get, (_e, id: string) => skillRegistry.get(id))
-  ipcMain.handle(IpcInvoke.catalog.refreshIndex, () => skillRegistry.refreshIndex())
+    ipcMain.handle(IpcInvoke.catalog.refreshIndex, async () => {
+    sourceManager.refreshAllNonOfficial()
+    await skillRegistry.refreshIndex()
+  })
   ipcMain.handle(IpcInvoke.catalog.audit, (_e, skillId: string) => {
     const entry = skillRegistry.get(skillId)
     if (!entry || entry.sourceType !== 'official') return null

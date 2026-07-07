@@ -81,9 +81,13 @@ export class SkillRegistry {
         .filter((s) => s.enabled)
         .map((s) => s.id)
     )
-    return [...this.entries.values()].filter(
-      (e) => e.sourceId === ORPHAN_SOURCE_ID || enabled.has(e.sourceId)
-    )
+    return [...this.entries.values()].filter((e) => {
+      if (e.sourceId !== ORPHAN_SOURCE_ID && !enabled.has(e.sourceId)) return false
+      if (e.installed) return true
+      const source = this.sourceManager.get(e.sourceId)
+      if (source?.config?.hiddenSkills?.includes(e.name)) return false
+      return true
+    })
   }
 
   /**
@@ -94,6 +98,9 @@ export class SkillRegistry {
   buildOfficialEntries(skills: OfficialSkill[]): CatalogEntry[] {
     const existing = new Set([...this.entries.values()].map((e) => normalizeSkillKey(e.name)))
     const seen = new Set<string>()
+    const officialSource = this.sourceManager.get(OFFICIAL_SOURCE_ID)
+    const hidden = new Set(officialSource?.config?.hiddenSkills ?? [])
+
     const out: CatalogEntry[] = []
     for (const s of skills) {
       const key = normalizeSkillKey(s.name)
@@ -101,6 +108,7 @@ export class SkillRegistry {
       seen.add(key)
       const installations = this.installed.get(key) ?? []
       const installed = installations.length > 0
+      if (!installed && hidden.has(s.name)) continue
       out.push({
         id: catalogEntryId(OFFICIAL_SOURCE_ID, s.name),
         name: s.name,
@@ -147,7 +155,7 @@ export class SkillRegistry {
       hasUpdate: info.hasUpdate,
       lastCheckedAt: checkedAt,
       updateStatus: info.unknown
-        ? 'unknown'
+        ? (entry.updateStatus === 'not_installed' ? 'unknown' : entry.updateStatus)
         : !entry.installed
           ? 'not_installed'
           : info.hasUpdate
@@ -259,7 +267,7 @@ export class SkillRegistry {
       updateStatus: !installed
         ? 'not_installed'
         : prev?.updateStatus === 'not_installed'
-          ? 'unknown'
+          ? (source.type === 'official' ? 'unknown' : 'up_to_date')
           : (prev?.updateStatus ?? 'unknown'),
       sourceRef: raw.sourceRef,
       installs: prev?.installs ?? null
@@ -361,7 +369,7 @@ export class SkillRegistry {
       latestVersion: prev?.latestVersion ?? null,
       hasUpdate: prev?.hasUpdate ?? false,
       lastCheckedAt: prev?.lastCheckedAt ?? null,
-      updateStatus: prev?.updateStatus === 'not_installed' ? 'unknown' : (prev?.updateStatus ?? 'unknown'),
+      updateStatus: prev?.updateStatus === 'not_installed' ? (sourceType === 'official' ? 'unknown' : 'up_to_date') : (prev?.updateStatus ?? 'unknown'),
       sourceRef,
       installs: prev?.installs ?? null
     }

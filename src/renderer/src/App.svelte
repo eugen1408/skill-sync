@@ -128,6 +128,9 @@
         onclick={() => {
           githubRateLimitExceeded = false
           ui.go('settings')
+          setTimeout(() => {
+            document.getElementById('github-token')?.scrollIntoView({ behavior: 'smooth' })
+          }, 100)
         }}
       >
         {t('app.configureToken')}

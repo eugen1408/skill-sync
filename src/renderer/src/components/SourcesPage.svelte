@@ -66,17 +66,34 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
                 <Favicon {domain} class="w-5 h-5 rounded-sm" />
                 <span class="font-bold text-lg">{domain}</span>
               </div>
-              <div class="flex items-center gap-4 shrink-0" onclick={(e) => e.stopPropagation()}>
-                <Switch
-                  checked={(config.config?.update.autoUpdateDomains ?? []).includes(domain)}
-                  onCheckedChange={(details) => toggleAutoUpdate(domain, details.checked)}
-                  class="flex items-center gap-2 text-sm font-normal opacity-80 hover:opacity-100 cursor-pointer"
-                >
+              <div 
+                class="flex items-center gap-4 shrink-0" 
+                role="button"
+                tabindex="0"
+                onclick={(e) => {
+                  e.stopPropagation()
+                  const isChecked = (config.config?.update.autoUpdateDomains ?? []).includes(domain)
+                  toggleAutoUpdate(domain, !isChecked)
+                }}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const isChecked = (config.config?.update.autoUpdateDomains ?? []).includes(domain)
+                    toggleAutoUpdate(domain, !isChecked)
+                  }
+                }}
+              >
+                <div class="pointer-events-none flex items-center gap-2 text-sm font-normal opacity-80 hover:opacity-100 cursor-pointer">
                   <span class="hidden sm:inline">{t('settings.update.autoUpdate')}</span>
-                  <Switch.Control>
-                    <Switch.Thumb />
-                  </Switch.Control>
-                </Switch>
+                  <Switch
+                    checked={(config.config?.update.autoUpdateDomains ?? []).includes(domain)}
+                  >
+                    <Switch.Control>
+                      <Switch.Thumb />
+                    </Switch.Control>
+                  </Switch>
+                </div>
               </div>
               <Icon name="chevron" class="transition-transform group-open:rotate-180 ml-4" size={20} />
             </summary>
@@ -123,6 +140,15 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
                     >
                       {t('sources.refresh')}
                     </button>
+                    {#if source.config.hiddenSkills && source.config.hiddenSkills.length > 0}
+                      <button
+                        class="btn btn-sm preset-tonal"
+                        onclick={() =>
+                          toasts.guard(() => window.api.source.restoreHiddenSkills(source.id), t('common.error'))}
+                      >
+                        {t('action.restoreHidden')} ({source.config.hiddenSkills.length})
+                      </button>
+                    {/if}
                     <button
                       class="btn btn-sm preset-tonal"
                       onclick={() =>

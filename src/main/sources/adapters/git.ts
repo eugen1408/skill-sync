@@ -27,7 +27,7 @@ export class GitSourceAdapter implements SourceAdapter {
 
   async listSkills(source: Source, ctx: IndexContext): Promise<RawSkill[]> {
     const dir = await this.cache.ensure(source, ctx)
-    ctx.progress(null, 'Индексация skills…')
+    ctx.progress(null, `Индексация ${source.name}…`)
     const skills = await discoverSkills(dir)
     const ref = source.config.ref?.trim() || null
     return skills.map((s) => ({ ...s, ref }))

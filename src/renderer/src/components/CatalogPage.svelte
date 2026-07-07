@@ -30,11 +30,13 @@
     }))
   )
   const sourceOptions = $derived(
-    sources.items.map((s) => ({
-      value: s.id,
-      label: `${getSourceDomain(s)} / ${s.name}`,
-      checked: catalog.sourceIds?.includes(s.id) ?? false
-    }))
+    sources.items
+      .filter((s) => s.enabled)
+      .map((s) => ({
+        value: s.id,
+        label: `${getSourceDomain(s)} / ${s.name}`,
+        checked: catalog.sourceIds?.includes(s.id) ?? false
+      }))
   )
 
   let scrollTop = $state(0)
@@ -282,15 +284,27 @@
           {t('action.update')}
         </button>
       {:else if !entry.installed && entry.sourceId !== 'installed'}
-        <button
-          class="btn btn-sm preset-filled-primary-500"
-          onclick={(e) => {
-            e.stopPropagation()
-            install(entry)
-          }}
-        >
-          {t('action.install')}
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            class="btn btn-sm preset-filled-primary-500"
+            onclick={(e) => {
+              e.stopPropagation()
+              install(entry)
+            }}
+          >
+            {t('action.install')}
+          </button>
+          <button
+            class="btn-icon btn-sm preset-tonal"
+            title={t('action.hide')}
+            onclick={(e) => {
+              e.stopPropagation()
+              void toasts.guard(() => window.api.source.hideSkill(entry.sourceId, entry.name), t('common.error'))
+            }}
+          >
+            <Icon name="eye-off" size={16} />
+          </button>
+        </div>
       {:else}
         <span class="badge {badgeClass(entry)}">{updateStatusLabel(entry.updateStatus)}</span>
       {/if}

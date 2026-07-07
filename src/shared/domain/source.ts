@@ -17,6 +17,8 @@ export interface SourceConfig {
   localPath: string | null
   /** local: включён ли watch. */
   watch: boolean
+  /** Скрытые пользователем skills (по имени). */
+  hiddenSkills?: string[]
 }
 
 export interface Source {

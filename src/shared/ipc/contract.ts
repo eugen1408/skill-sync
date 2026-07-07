@@ -108,6 +108,8 @@ export interface IpcApi {
     /** Запускает переиндексацию; возвращает jobId (null, если источник отключён/не найден). */
     refresh(id: string): Promise<string | null>
     listSkills(id: string): Promise<RawSkill[]>
+    hideSkill(sourceId: string, skillName: string): Promise<void>
+    restoreHiddenSkills(sourceId: string): Promise<void>
   }
   catalog: {
     query(query: CatalogQuery): Promise<CatalogPage>
