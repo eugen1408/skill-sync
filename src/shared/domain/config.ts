@@ -83,7 +83,7 @@ export function defaultConfig(): AppConfig {
     },
     appUpdate: {
       checkOnLaunch: true,
-      autoDownload: false
+      autoDownload: true
     },
     ui: {
       language: 'system'

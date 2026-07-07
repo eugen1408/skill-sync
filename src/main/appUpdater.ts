@@ -6,7 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { spawn } from 'child_process'
-import { request } from 'undici'
+import { fetch } from 'undici'
 import { logger } from './logger'
 
 const { autoUpdater } = electronUpdater
@@ -27,7 +27,7 @@ export class AppUpdater {
     this.emit = emit
     this.settings = settings
 
-    autoUpdater.autoDownload = settings.autoDownload
+    autoUpdater.autoDownload = process.platform !== 'darwin'
     autoUpdater.autoInstallOnAppQuit = true
     autoUpdater.logger = null
 
@@ -37,6 +37,10 @@ export class AppUpdater {
     autoUpdater.on('update-available', (info) => {
       this.latestAvailableVersion = info.version
       this.emit({ state: 'available', version: info.version, percent: null, error: null })
+      if (process.platform === 'darwin') {
+        this.isCustomMacUpdate = true
+        void this.startCustomMacDownload()
+      }
     })
     autoUpdater.on('update-not-available', () =>
       this.emit({ state: 'not-available', version: null, percent: null, error: null })
@@ -74,11 +78,11 @@ export class AppUpdater {
     this.emit({ state: 'downloading', percent: 0, version, error: null })
     
     try {
-      const res = await request(`https://api.github.com/repos/eugen1408/skill-sync/releases/tags/v${version}`, {
+      const res = await fetch(`https://api.github.com/repos/eugen1408/skill-sync/releases/tags/v${version}`, {
         headers: { 'User-Agent': 'skill-sync-updater' }
       })
-      if (res.statusCode !== 200) throw new Error(`GitHub API returned ${res.statusCode}`)
-      const release = (await res.body.json()) as any
+      if (!res.ok) throw new Error(`GitHub API returned ${res.status}`)
+      const release = (await res.json()) as any
       
       const isArm = process.arch === 'arm64'
       const assets = release.assets || []
@@ -89,14 +93,15 @@ export class AppUpdater {
       const downloadUrl = zipAsset.browser_download_url
       const zipPath = path.join(os.tmpdir(), `skill-sync-update-${version}.zip`)
       
-      const dlRes = await request(downloadUrl, { maxRedirections: 5 } as any)
-      if (dlRes.statusCode !== 200 && dlRes.statusCode !== 302) throw new Error(`Download failed with ${dlRes.statusCode}`)
+      const dlRes = await fetch(downloadUrl)
+      if (!dlRes.ok) throw new Error(`Download failed with ${dlRes.status}`)
       
-      const totalBytes = Number(dlRes.headers['content-length']) || 0
+      const totalBytes = Number(dlRes.headers.get('content-length')) || 0
       let downloadedBytes = 0
       
       const dest = fs.createWriteStream(zipPath)
-      for await (const chunk of dlRes.body) {
+      if (!dlRes.body) throw new Error('No body in response')
+      for await (const chunk of dlRes.body as any) {
         dest.write(chunk)
         downloadedBytes += chunk.length
         if (totalBytes > 0) {
