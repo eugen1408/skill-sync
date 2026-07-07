@@ -47,6 +47,27 @@ export class ConfigStore {
   private load(): AppConfig {
     if (!existsSync(this.filePath)) {
       const fresh = defaultConfig()
+      
+      try {
+        const xdgStateHome = process.env.XDG_STATE_HOME
+        // path.join requires 'node:path', homedir requires 'node:os'
+        // Let's make sure they are imported. They are at the top of the file!
+        const os = require('node:os')
+        const path = require('node:path')
+        const lockPath = xdgStateHome 
+          ? path.join(xdgStateHome, 'skills', '.skill-lock.json') 
+          : path.join(os.homedir(), '.agents', '.skill-lock.json')
+          
+        if (existsSync(lockPath)) {
+          const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
+          if (Array.isArray(lock.lastSelectedAgents) && lock.lastSelectedAgents.length > 0) {
+            fresh.install.targetAgents = lock.lastSelectedAgents
+          }
+        }
+      } catch (err) {
+        // silently ignore issues with reading the lockfile
+      }
+
       this.config = fresh
       this.persist()
       return fresh

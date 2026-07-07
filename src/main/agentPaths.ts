@@ -11,6 +11,9 @@ export function resolveGlobalAgentSkillsDir(
   home: string,
   env: NodeJS.ProcessEnv = process.env
 ): string {
+  if (!agent.globalDir) {
+    throw new Error(`Agent ${agent.id} does not support global scope installations`)
+  }
   const raw = agent.globalEnvVar ? env[agent.globalEnvVar]?.trim() : undefined
   if (raw) {
     const base = isAbsolute(raw) ? raw : join(home, raw)

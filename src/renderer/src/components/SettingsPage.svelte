@@ -1,14 +1,15 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
   import { KNOWN_AGENTS } from '@shared/domain/agent'
   import type { UpdateSettings } from '@shared/domain/config'
-  import { api } from '../lib/api'
-  import { config } from '../lib/stores/config.svelte'
-  import { toasts } from '../lib/stores/toasts.svelte'
-  import { theme, type ThemeMode } from '../lib/stores/theme.svelte'
-  import { ui } from '../lib/stores/ui.svelte'
-  import { t, i18n, type LocalePref } from '../lib/i18n.svelte'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
+  import { onMount } from 'svelte'
+  import { api } from '../lib/api'
+  import { i18n, t, type LocalePref } from '../lib/i18n.svelte'
+  import { config } from '../lib/stores/config.svelte'
+  import { theme, type ThemeMode } from '../lib/stores/theme.svelte'
+  import { toasts } from '../lib/stores/toasts.svelte'
+  import { ui } from '../lib/stores/ui.svelte'
+  import Icon from './Icon.svelte'
 
   const cfg = $derived(config.config)
 
@@ -35,10 +36,16 @@
   let secretsAvailable = $state(true)
   let tokenSet = $state(false)
   let tokenInput = $state('')
-
+  let installedAgentIds = $state<string[]>([])
+  const globalAgents = $derived(
+    KNOWN_AGENTS.filter((a) => a.globalDir && !a.globalDir.endsWith('agents/skills'))
+  )
+  const installedAgents = $derived(globalAgents.filter((a) => installedAgentIds.includes(a.id)))
+  const uninstalledAgents = $derived(globalAgents.filter((a) => !installedAgentIds.includes(a.id)))
   onMount(async () => {
     secretsAvailable = await api.secrets.available()
     tokenSet = await api.secrets.has(GITHUB_TOKEN_KEY)
+    installedAgentIds = await api.install.getInstalledAgents()
   })
 
   function saveToken(): void {
@@ -154,40 +161,85 @@
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.targetAgents')}</h3>
       <p class="text-sm opacity-60">{t('settings.targetAgentsHint')}</p>
-      <div class="flex flex-wrap gap-2">
-        {#each KNOWN_AGENTS as agent (agent.id)}
-          <button
-            class="btn btn-sm {cfg.install.targetAgents.includes(agent.id)
-              ? 'preset-filled-primary-500'
-              : 'preset-tonal'}"
-            onclick={() => toggleAgent(agent.id)}
+      <div class="flex flex-col gap-4">
+        {#if installedAgents.length > 0}
+          <div class="flex flex-wrap gap-2">
+            {#each installedAgents as agent (agent.id)}
+              <button
+                class="btn btn-sm {cfg.install.targetAgents.includes(agent.id)
+                  ? 'preset-filled-primary-500'
+                  : 'preset-tonal'}"
+                onclick={() => toggleAgent(agent.id)}
+              >
+                {agent.label}
+              </button>
+            {/each}
+          </div>
+        {/if}
+        {#if uninstalledAgents.length > 0}
+          <details class="text-sm">
+            <summary
+              class="cursor-pointer opacity-70 hover:opacity-100 select-none outline-none mb-2"
+            >
+              {t('settings.uninstalledAgents', { count: uninstalledAgents.length.toString() })}
+            </summary>
+            <div class="flex flex-wrap gap-2 mt-2">
+              {#each uninstalledAgents as agent (agent.id)}
+                <button
+                  class="btn btn-sm {cfg.install.targetAgents.includes(agent.id)
+                    ? 'preset-filled-primary-500'
+                    : 'preset-outlined'}"
+                  onclick={() => toggleAgent(agent.id)}
+                >
+                  {agent.label}
+                </button>
+              {/each}
+            </div>
+          </details>
+        {/if}
+        <details class="text-sm">
+          <summary
+            class="cursor-pointer opacity-80 hover:opacity-100 select-none outline-none mb-2 font-bold"
           >
-            {agent.label}
-          </button>
-        {/each}
+            {t('settings.universalAgentsTitle') || 'Общая папка:'}
+          </summary>
+          <div class="card preset-tonal p-3 mt-2">
+            {t('settings.universalAgentsHint') ||
+              'Следующие агенты по умолчанию автоматически читают скилы из папки'}
+            <code>.agents/skills</code>:
+            <span class="opacity-80">
+              {KNOWN_AGENTS.filter((a) => a.globalDir && a.globalDir.endsWith('agents/skills'))
+                .map((a) => a.label)
+                .join(', ')}.
+            </span>
+          </div>
+        </details>
       </div>
-      <label class="flex items-center gap-2">
-        <span class="text-sm">{t('settings.installScope')}</span>
-        <select
-          class="select max-w-40 ps-3 pr-8"
-          value={cfg.install.scope}
-          onchange={(e) =>
-            config.update({
-              install: { ...cfg.install, scope: e.currentTarget.value as 'global' | 'project' }
-            })}
-        >
-          <option value="global">{t('scope.global')}</option>
-          <option value="project">{t('scope.project')}</option>
-        </select>
-      </label>
+      <!-- TODO: Implement Project Scopes -->
+      {#if false}
+        <label class="flex items-center gap-2">
+          <span class="text-sm">{t('settings.installScope')}</span>
+          <select
+            class="select max-w-40 ps-3 pr-8"
+            value={cfg.install.scope}
+            onchange={(e) =>
+              config.update({
+                install: { ...cfg.install, scope: e.currentTarget.value as 'global' | 'project' }
+              })}
+          >
+            <option value="global">{t('scope.global')}</option>
+            <option value="project">{t('scope.project')}</option>
+          </select>
+        </label>
+      {/if}
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.updates')}</h3>
-      <p class="text-sm opacity-60">
-        {t('settings.autoUpdateHint')}
+      <p class="text-sm">
+        <span class="opacity-60">{t('settings.autoUpdateHint')}</span>
         <button
-          class="anchor bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
+          class="text-primary-500 hover:underline bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
           onclick={() => ui.go('sources')}
         >
           {t('settings.autoUpdateLink')}
@@ -206,10 +258,7 @@
         }}
       >
         <div class="pointer-events-none w-full">
-          <Switch
-            checked={cfg.update.checkOnLaunch}
-            class="flex items-center gap-3 text-sm w-full"
-          >
+          <Switch checked={cfg.update.checkOnLaunch} class="flex items-center gap-3 text-sm w-full">
             <Switch.Control>
               <Switch.Thumb />
             </Switch.Control>
@@ -326,15 +375,16 @@
 
     <section id="github-token" class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.githubToken')}</h3>
-      <p class="text-sm opacity-60">
-        {t('settings.githubTokenHint')}
+      <p class="text-sm">
+        <span class="opacity-60">{t('settings.githubTokenHint')}</span>
         <br />
         <button
-          class="anchor bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
+          class="text-primary-500 hover:underline bg-transparent border-0 p-0 cursor-pointer text-left text-sm inline-flex items-center gap-1 mt-1"
           onclick={() =>
-            api.shell.openExternal('https://github.com/settings/personal-access-tokens/new')}
+            api.shell.openExternal('https://github.com/settings/personal-access-tokens')}
         >
           {t('settings.createGithubToken')}
+          <Icon name="external" size={12} />
         </button>
       </p>
       {#if !secretsAvailable}
@@ -370,8 +420,10 @@
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.appUpdate')}</h3>
       {#if config.appUpdate}
-        <p class="text-sm opacity-70">
-          {t('settings.appUpdateStatus', { state: config.appUpdate.state })}
+        <p class="text-sm">
+          {t('settings.appUpdateStatus', {
+            state: t(`appUpdateState.${config.appUpdate.state}` as any)
+          })}
         </p>
       {/if}
       <button class="btn btn-sm preset-tonal" onclick={() => api.app.checkForUpdates()}>

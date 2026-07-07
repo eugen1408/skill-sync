@@ -71,7 +71,8 @@ const api: IpcApi = {
     reconcileAgents: (request: ReconcileAgentsRequest) =>
       ipcRenderer.invoke(IpcInvoke.install.reconcileAgents, request),
     previewReconcile: (request: ReconcileAgentsRequest) =>
-      ipcRenderer.invoke(IpcInvoke.install.previewReconcile, request)
+      ipcRenderer.invoke(IpcInvoke.install.previewReconcile, request),
+    getInstalledAgents: () => ipcRenderer.invoke(IpcInvoke.install.getInstalledAgents)
   },
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke(IpcInvoke.shell.openExternal, url),

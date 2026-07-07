@@ -48,7 +48,8 @@ export const IpcInvoke = {
     run: 'install:run',
     uninstall: 'install:uninstall',
     reconcileAgents: 'install:reconcileAgents',
-    previewReconcile: 'install:previewReconcile'
+    previewReconcile: 'install:previewReconcile',
+    getInstalledAgents: 'install:getInstalledAgents'
   },
   shell: {
     openExternal: 'shell:openExternal',

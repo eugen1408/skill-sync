@@ -34,7 +34,7 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
   function toggleAutoUpdate(domain: string, checked: boolean): void {
     const current = config.config?.update.autoUpdateDomains ?? []
     const next = checked ? [...current, domain] : current.filter((d) => d !== domain)
-    void api.config.update({ update: { ...$state.snapshot(config.config!.update), autoUpdateDomains: next } })
+    void config.update({ update: { ...$state.snapshot(config.config!.update), autoUpdateDomains: next } })
   }
 
   async function confirmRemoveSource(sourceId: string, name: string) {
@@ -71,6 +71,7 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
                 role="button"
                 tabindex="0"
                 onclick={(e) => {
+                  e.preventDefault()
                   e.stopPropagation()
                   const isChecked = (config.config?.update.autoUpdateDomains ?? []).includes(domain)
                   toggleAutoUpdate(domain, !isChecked)

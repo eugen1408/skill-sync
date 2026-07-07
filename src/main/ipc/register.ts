@@ -2,6 +2,9 @@ import { app, ipcMain, dialog, shell, BrowserWindow, type OpenDialogOptions } fr
 import { rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import * as path from 'node:path'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
 import { findLockEntry } from '../version'
 import { gitRepoWebUrl } from '@shared/domain/gitSource'
 import { IpcInvoke } from '@shared/ipc/channels'
@@ -9,6 +12,7 @@ import type { ConfigPatch, CatalogQuery } from '@shared/ipc/contract'
 import type { AddSourceInput } from '@shared/domain/source'
 import type { InstallRequest, ReconcileAgentsRequest } from '@shared/domain/install'
 import type { UpdateSettings } from '@shared/domain/config'
+import { KNOWN_AGENTS } from '@shared/domain/agent'
 import type { AuditService } from '../security/AuditService'
 import type { OfficialCatalog } from '../sources/officialCatalog'
 import type { ConfigStore } from '../config/ConfigStore'
@@ -227,12 +231,28 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle(IpcInvoke.install.uninstall, (_e, skillId: string) =>
     installerService.uninstall(skillId)
   )
-  ipcMain.handle(IpcInvoke.install.reconcileAgents, (_e, request: ReconcileAgentsRequest) =>
-    installerService.reconcile(request)
-  )
-  ipcMain.handle(IpcInvoke.install.previewReconcile, (_e, request: ReconcileAgentsRequest) =>
-    installerService.previewReconcile(request)
-  )
+  ipcMain.handle(IpcInvoke.install.reconcileAgents, async (_e, request: ReconcileAgentsRequest) => {
+    return installerService.reconcile(request)
+  })
+  ipcMain.handle(IpcInvoke.install.previewReconcile, async (_e, request: ReconcileAgentsRequest) => {
+    return installerService.previewReconcile(request)
+  })
+  ipcMain.handle(IpcInvoke.install.getInstalledAgents, async () => {
+    const installed: string[] = []
+    const home = os.homedir()
+    for (const agent of KNOWN_AGENTS) {
+      if (!agent.globalDir) continue
+      try {
+        const agentConfigDir = path.join(home, path.dirname(agent.globalDir))
+        if (fs.existsSync(agentConfigDir)) {
+          installed.push(agent.id)
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    return installed
+  })
 
   ipcMain.handle(IpcInvoke.update.checkAll, () => updateEngine.checkAll())
   ipcMain.handle(IpcInvoke.update.checkOne, (_e, skillId: string) => updateEngine.checkOne(skillId))

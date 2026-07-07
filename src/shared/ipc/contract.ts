@@ -136,6 +136,8 @@ export interface IpcApi {
     reconcileAgents(request: ReconcileAgentsRequest): Promise<string>
     /** Предпросмотр реконсиляции (link/unlink) без изменения ФС. */
     previewReconcile(request: ReconcileAgentsRequest): Promise<ReconcilePreview>
+    /** Возвращает список id установленных агентов по наличию их глобального конфига */
+    getInstalledAgents(): Promise<string[]>
   }
   /** Открытие внешних ресурсов средствами ОС. */
   shell: {

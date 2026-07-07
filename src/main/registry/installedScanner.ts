@@ -22,6 +22,7 @@ export async function scanInstalledSkills(
   const seen = new Set<string>()
 
   for (const agent of KNOWN_AGENTS) {
+    if (!agent.globalDir) continue
     const skillsDir = resolveGlobalAgentSkillsDir(agent, home)
     const entries = await readdir(skillsDir, { withFileTypes: true }).catch(() => null)
     if (!entries) continue
