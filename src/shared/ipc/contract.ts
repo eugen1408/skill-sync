@@ -6,7 +6,8 @@ import type {
   InstallRequest,
   InstallResult,
   ReconcileAgentsRequest,
-  ReconcilePreview
+  ReconcilePreview,
+  InstallPreview
 } from '../domain/install'
 import type { UpdateSettings } from '../domain/config'
 import type { UpdateCheckResult } from '../domain/update'
@@ -136,6 +137,8 @@ export interface IpcApi {
     reconcileAgents(request: ReconcileAgentsRequest): Promise<string>
     /** Предпросмотр реконсиляции (link/unlink) без изменения ФС. */
     previewReconcile(request: ReconcileAgentsRequest): Promise<ReconcilePreview>
+    /** Предпросмотр установки/переустановки: изменения структуры файлов без применения. */
+    previewInstall(request: InstallRequest): Promise<InstallPreview>
     /** Возвращает список id установленных агентов по наличию их глобального конфига */
     getInstalledAgents(): Promise<string[]>
   }

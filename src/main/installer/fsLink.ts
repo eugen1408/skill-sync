@@ -18,6 +18,15 @@ export async function isDirectory(p: string): Promise<boolean> {
   }
 }
 
+/** true — путь существует и является симлинком (а не реальной папкой/файлом). */
+export async function isSymlink(p: string): Promise<boolean> {
+  try {
+    return (await lstat(p)).isSymbolicLink()
+  } catch {
+    return false
+  }
+}
+
 /** Удаляет файл/симлинк/каталог по пути (идемпотентно). */
 export async function removePath(target: string): Promise<void> {
   await rm(target, { recursive: true, force: true })

@@ -1,4 +1,4 @@
-import type { UpdateStatus } from '@shared/domain/skill'
+import type { UpdateStatus, CatalogEntry } from '@shared/domain/skill'
 import type { SourceType, SourceStatus } from '@shared/domain/source'
 import type { NotificationType } from '@shared/domain/notification'
 import type { AuditRisk } from '@shared/domain/audit'
@@ -10,6 +10,24 @@ export { formatDateTime, formatDate, formatTime } from './i18n.svelte'
 
 export function updateStatusLabel(status: UpdateStatus): string {
   return t(`updateStatus.${status}` as MessageKey)
+}
+
+/** Пояснение к статусу версии (tooltip): почему «Неизвестно»/«Актуально» и т.п. (follow-up C2). */
+export function updateStatusHint(entry: CatalogEntry): string {
+  switch (entry.updateStatus) {
+    case 'not_installed':
+      return t('statusHint.not_installed')
+    case 'up_to_date':
+      return t('statusHint.up_to_date')
+    case 'update_available':
+      return t('statusHint.update_available')
+    default: {
+      if (entry.sourceType === 'official') return t('statusHint.unknown.official')
+      if (entry.sourceId === 'installed') return t('statusHint.unknown.orphan')
+      if (entry.lastCheckedAt == null) return t('statusHint.unknown.notChecked')
+      return t('statusHint.unknown.generic')
+    }
+  }
 }
 
 /** Тримминг в середине: длинные SHA/версии → «c914440…a0bdfaee» (сохраняет начало и конец). */

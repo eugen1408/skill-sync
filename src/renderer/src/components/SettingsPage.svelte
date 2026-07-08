@@ -93,9 +93,26 @@
         const parts: string[] = []
         if (links) parts.push(t('reconcile.createLinks', { n: links }))
         if (unlinks) parts.push(t('reconcile.removeLinks', { n: unlinks }))
+        // Раскрытый список операций (skill · действие · пути) — не только счётчик (follow-up B2).
+        const MAX_OPS = 20
+        const opLines = preview.ops
+          .slice(0, MAX_OPS)
+          .map((o) =>
+            o.action === 'link'
+              ? t('reconcile.opLink', { skill: o.skill, path: o.toPath ?? '' })
+              : t('reconcile.opUnlink', { skill: o.skill, path: o.fromPath })
+          )
+        const more = preview.ops.length - opLines.length
+        if (more > 0) opLines.push(t('reconcile.andMore', { n: more }))
+        const detail =
+          t('reconcile.confirmDetail', { parts: parts.join(', ') }) +
+          '\n\n' +
+          t('reconcile.opsHeader') +
+          '\n' +
+          opLines.join('\n')
         const ok = await api.dialog.confirm({
           message: t('reconcile.confirmMessage', { count: preview.skillCount }),
-          detail: t('reconcile.confirmDetail', { parts: parts.join(', ') }),
+          detail,
           confirmLabel: t('reconcile.apply')
         })
         if (!ok) return
@@ -107,6 +124,19 @@
         scope
       })
     }, t('error.applyAgents'))
+  }
+
+  // Явная индикация сохранения пути к CLI + показ ошибки в UI (follow-up C3).
+  let cliPathSaved = $state(false)
+  let cliPathSavedTimer: ReturnType<typeof setTimeout> | null = null
+  function saveCliPath(value: string | null): void {
+    if (!cfg) return
+    void toasts.guard(async () => {
+      await config.update({ install: { ...$state.snapshot(cfg.install), cliPath: value } })
+      cliPathSaved = true
+      if (cliPathSavedTimer) clearTimeout(cliPathSavedTimer)
+      cliPathSavedTimer = setTimeout(() => (cliPathSaved = false), 2000)
+    }, t('error.saveSettings'))
   }
 
   async function setUpdate(patch: Partial<UpdateSettings>): Promise<void> {
@@ -348,13 +378,27 @@
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
       <h3 class="h5">{t('settings.cliNetwork')}</h3>
-      <input
-        class="input"
-        placeholder={t('settings.cliPathPlaceholder')}
-        value={cfg.install.cliPath ?? ''}
-        onchange={(e) =>
-          config.update({ install: { ...cfg.install, cliPath: e.currentTarget.value || null } })}
-      />
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium" for="cli-path-input">
+            {t('settings.cliPathLabel')}
+          </label>
+          {#if cliPathSaved}
+            <span class="inline-flex items-center gap-1 text-xs text-success-600-400">
+              <Icon name="check" size={13} />
+              {t('settings.saved')}
+            </span>
+          {/if}
+        </div>
+        <input
+          id="cli-path-input"
+          class="input"
+          placeholder={t('settings.cliPathPlaceholder')}
+          value={cfg.install.cliPath ?? ''}
+          onchange={(e) => saveCliPath(e.currentTarget.value || null)}
+        />
+        <p class="text-xs opacity-60">{t('settings.cliPathHint')}</p>
+      </div>
       <input
         class="input"
         placeholder={t('settings.npmRegistryPlaceholder')}

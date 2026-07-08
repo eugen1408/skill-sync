@@ -68,7 +68,7 @@
       {#each jobs.visible as job (job.jobId)}
         <div class="px-2 py-1 text-sm">
           <div class="flex items-center gap-3">
-            {#if job.logs.length > 0}
+            {#if job.logs.length > 0 || job.errorDetails}
               <button
                 class="opacity-60 hover:opacity-100"
                 title={t('jobs.logs')}
@@ -109,11 +109,53 @@
               </button>
             {/if}
           </div>
-          {#if expanded.has(job.jobId) && job.logs.length > 0}
-            <pre
-              class="mt-1 ml-6 max-h-40 overflow-auto rounded bg-surface-100-900 p-2 text-xs opacity-80">{job.logs.join(
-                '\n'
-              )}</pre>
+          {#if expanded.has(job.jobId)}
+            {#if job.errorDetails}
+              {@const d = job.errorDetails}
+              <dl
+                class="mt-1 ml-6 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded bg-surface-100-900 p-2 text-xs"
+              >
+                {#if d.skillName}
+                  <dt class="opacity-60">{t('jobs.diag.skill')}</dt>
+                  <dd class="font-mono break-all">{d.skillName}</dd>
+                {/if}
+                {#if d.sourceId}
+                  <dt class="opacity-60">{t('jobs.diag.source')}</dt>
+                  <dd class="font-mono break-all">
+                    {d.sourceId}{d.sourceRef ? ` · ${d.sourceRef}` : ''}
+                  </dd>
+                {/if}
+                {#if d.command}
+                  <dt class="opacity-60">{t('jobs.diag.command')}</dt>
+                  <dd class="font-mono break-all">{d.command} {(d.args ?? []).join(' ')}</dd>
+                {/if}
+                {#if d.exitCode !== undefined && d.exitCode !== null}
+                  <dt class="opacity-60">{t('jobs.diag.exitCode')}</dt>
+                  <dd class="font-mono">{d.exitCode}</dd>
+                {/if}
+                {#if d.expectedPath}
+                  <dt class="opacity-60">{t('jobs.diag.expectedPath')}</dt>
+                  <dd class="font-mono break-all">{d.expectedPath}</dd>
+                {/if}
+                {#if d.stderr}
+                  <dt class="col-span-2 opacity-60">{t('jobs.diag.stderr')}</dt>
+                  <dd class="col-span-2">
+                    <pre
+                      class="max-h-32 overflow-auto rounded bg-surface-200-800/50 p-1.5 whitespace-pre-wrap">{d.stderr}</pre>
+                  </dd>
+                {/if}
+                {#if d.suggestion}
+                  <dt class="opacity-60">{t('jobs.diag.suggestion')}</dt>
+                  <dd>{d.suggestion}</dd>
+                {/if}
+              </dl>
+            {/if}
+            {#if job.logs.length > 0}
+              <pre
+                class="mt-1 ml-6 max-h-40 overflow-auto rounded bg-surface-100-900 p-2 text-xs opacity-80">{job.logs.join(
+                  '\n'
+                )}</pre>
+            {/if}
           {/if}
         </div>
       {/each}

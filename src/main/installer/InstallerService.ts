@@ -5,13 +5,15 @@ import type {
   ReconcileAgentsRequest,
   ReconcileSummary,
   ReconcilePreview,
-  ReconcileOp
+  ReconcileOp,
+  InstallPreview,
+  InstallOp
 } from '@shared/domain/install'
 import type { AgentInfo } from '@shared/domain/agent'
 import { getAgent } from '@shared/domain/agent'
 import { makeAppError } from '@shared/domain/error'
 import type { ConfigStore } from '../config/ConfigStore'
-import type { JobRunner } from '../jobs/JobRunner'
+import type { JobRunner, JobContext } from '../jobs/JobRunner'
 import type { SourceManager } from '../sources'
 import type { SkillRegistry } from '../registry'
 import { logger } from '../logger'
@@ -19,12 +21,14 @@ import type { InstallerRegistry } from './registry'
 import type { ResolvedInstall } from './types'
 import { reconcileAgents, type ReconcilableSkill } from './agentReconciler'
 import {
+  agentSkillPath,
   canonicalSkillPath,
   defaultPathContext,
   isCanonicalAgentDir,
   type PathContext
 } from './paths'
-import { removePath } from './fsLink'
+import { isSymlink, pathExists, removePath } from './fsLink'
+import type { CatalogEntry } from '@shared/domain/skill'
 import { removeGlobalLockEntry } from '../version'
 
 export interface InstallerServiceDeps {
@@ -56,9 +60,22 @@ export class InstallerService {
   } {
     const started = this.deps.jobRunner.start('install', async (ctx) => {
       const source = this.deps.sourceManager.get(request.sourceId)
-      if (!source) throw makeAppError('INSTALL_FAILED', 'Источник не найден')
-
       const entry = this.deps.skillRegistry.get(request.skillId)
+
+      // Источник недоступен (удалён / осиротевший skill). Если skill уже установлен —
+      // «ремонтируем» симлинки агентов из канонической копии, не требуя живого источника
+      // (follow-up A1). Иначе — понятная ошибка вместо generic «Источник не найден».
+      if (!source) {
+        if (entry?.installed) return this.repair(request, entry, ctx)
+        throw makeAppError('INSTALL_FAILED', 'Источник не найден', null, {
+          skillName: entry?.name,
+          sourceId: request.sourceId,
+          sourceRef: request.sourceRef,
+          suggestion:
+            'Источник этого skill удалён или недоступен. Добавьте источник заново или установите skill из другого источника.'
+        })
+      }
+
       const config = this.deps.configStore.get().install
       const resolved: ResolvedInstall = {
         request,
@@ -78,6 +95,23 @@ export class InstallerService {
       const result = await provider.install(resolved, ctx)
       result.wasUpdate = entry?.installed ?? false
       await this.deps.skillRegistry.rescanInstalled()
+
+      // Гарантируем симлинки для всех целевых агентов после official CLI-установки
+      // (follow-up C4): внешний `skills` CLI может не создать ссылку для части агентов
+      // (напр. codex). Идемпотентно, канон уже создан CLI.
+      if (source.type === 'official' && (result.status === 'ok' || result.status === 'skipped')) {
+        try {
+          await reconcileAgents(
+            [{ name: resolved.skillName, installPaths: [] }],
+            resolved.agents,
+            [],
+            resolved.pathCtx
+          )
+          await this.deps.skillRegistry.rescanInstalled()
+        } catch (e) {
+          logger.warn('Реконсиляция агентов после official-установки не удалась', e)
+        }
+      }
       return result
     })
 
@@ -85,6 +119,69 @@ export class InstallerService {
       if (result) this.deps.onResult(result)
     })
     return started
+  }
+
+  /**
+   * Переустановка/ремонт установленного skill без живого источника (follow-up A1):
+   * восстанавливает симлинки целевых агентов из канонической копии `.agents/skills/<name>`.
+   * Если ни канона, ни известной установки нет — понятная ошибка (skill фактически удалён).
+   */
+  private async repair(
+    request: InstallRequest,
+    entry: CatalogEntry,
+    ctx: JobContext
+  ): Promise<InstallResult> {
+    const pathCtx = this.pathContext(request.scope)
+    const canonical = canonicalSkillPath(pathCtx, entry.name)
+    const installPaths = entry.installations.map((i) => i.installPath)
+    const agentIds = request.targetAgents.length
+      ? request.targetAgents
+      : entry.installations.map((i) => i.agent)
+    const agents = agentsFrom(agentIds)
+
+    // Есть ли откуда «посеять» канон, если его нет.
+    let hasSeed = await pathExists(canonical)
+    if (!hasSeed) {
+      for (const p of installPaths) {
+        if (await pathExists(p)) {
+          hasSeed = true
+          break
+        }
+      }
+    }
+    if (!hasSeed) {
+      throw makeAppError(
+        'INSTALL_FAILED',
+        `Не найдена копия skill «${entry.name}» для восстановления`,
+        null,
+        {
+          skillName: entry.name,
+          expectedPath: canonical,
+          suggestion:
+            'Канонической копии skill больше нет на диске. Удалите skill и установите заново из источника.'
+        }
+      )
+    }
+
+    ctx.progress(null, `Восстановление «${entry.name}»…`)
+    await reconcileAgents([{ name: entry.name, installPaths }], agents, [], pathCtx)
+    await this.deps.skillRegistry.rescanInstalled()
+    logger.info('Skill восстановлен без источника', { skill: entry.name, agents: agentIds })
+
+    return {
+      skillId: request.skillId,
+      status: 'ok',
+      installedVersion: null,
+      wasUpdate: true,
+      outcomes: agents.map((a) => ({
+        agent: a.id,
+        status: 'ok' as const,
+        installPath: isCanonicalAgentDir(pathCtx, a)
+          ? canonical
+          : agentSkillPath(pathCtx, a, entry.name)
+      })),
+      error: null
+    }
   }
 
   /**
@@ -129,15 +226,80 @@ export class InstallerService {
     const skills = this.installedSkills()
     const ops: ReconcileOp[] = []
     for (const skill of skills) {
-      for (const agent of added) ops.push({ agent: agent.id, skill: skill.name, action: 'link' })
+      const canonical = canonicalSkillPath(pathCtx, skill.name)
+      for (const agent of added)
+        ops.push({
+          agent: agent.id,
+          skill: skill.name,
+          action: 'link',
+          fromPath: canonical,
+          toPath: agentSkillPath(pathCtx, agent, skill.name),
+          touchesRealFolder: false
+        })
       for (const agent of removed)
-        ops.push({ agent: agent.id, skill: skill.name, action: 'unlink' })
+        ops.push({
+          agent: agent.id,
+          skill: skill.name,
+          action: 'unlink',
+          fromPath: agentSkillPath(pathCtx, agent, skill.name),
+          toPath: null,
+          touchesRealFolder: false
+        })
     }
     return {
       addedAgents: added.map((a) => a.id),
       removedAgents: removed.map((a) => a.id),
       skillCount: skills.length,
       ops
+    }
+  }
+
+  /**
+   * Предпросмотр установки/переустановки для файловой модели (local/git): какие пути станут
+   * каноном/симлинками и будет ли реальная папка заменена ссылкой (follow-up B1).
+   * Для official (CLI сам управляет ФС) возвращает пустой предпросмотр.
+   */
+  async previewInstall(request: InstallRequest): Promise<InstallPreview> {
+    const entry = this.deps.skillRegistry.get(request.skillId)
+    const skillName = entry?.name ?? request.sourceRef
+    const pathCtx = this.pathContext(request.scope)
+    const canonical = canonicalSkillPath(pathCtx, skillName)
+    const source = this.deps.sourceManager.get(request.sourceId)
+
+    // official-источник ставится внешним CLI — файловый предпросмотр неприменим.
+    if (source?.type === 'official') {
+      return { skillName, canonicalPath: canonical, ops: [], replacesRealFolders: false }
+    }
+
+    const agents = agentsFrom(request.targetAgents)
+    const ops: InstallOp[] = []
+    ops.push({
+      agent: null,
+      action: 'copy-canonical',
+      path: canonical,
+      target: null,
+      replacesRealFolder: false
+    })
+    for (const agent of agents) {
+      // Универсальный агент читает канон напрямую — отдельного симлинка нет.
+      if (isCanonicalAgentDir(pathCtx, agent)) continue
+      const linkPath = agentSkillPath(pathCtx, agent, skillName)
+      const exists = await pathExists(linkPath)
+      const sym = exists ? await isSymlink(linkPath) : false
+      const replaces = exists && !sym
+      ops.push({
+        agent: agent.id,
+        action: replaces ? 'replace-folder' : 'create-symlink',
+        path: linkPath,
+        target: canonical,
+        replacesRealFolder: replaces
+      })
+    }
+    return {
+      skillName,
+      canonicalPath: canonical,
+      ops,
+      replacesRealFolders: ops.some((o) => o.replacesRealFolder)
     }
   }
 

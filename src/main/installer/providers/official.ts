@@ -3,7 +3,7 @@ import type { SourceType } from '@shared/domain/source'
 import { makeAppError } from '@shared/domain/error'
 import type { InstallerProvider, ResolvedInstall } from '../types'
 import type { JobContext } from '../../jobs/JobRunner'
-import { buildOfficialInvocation, runCli, cliEnv, detectAlreadyInstalled } from '../exec'
+import { buildOfficialInvocation, runCli, cliEnv, detectAlreadyInstalled, tail } from '../exec'
 
 /** Official Provider: установка через `npx skills add …` (одним вызовом на все агенты). */
 export class OfficialProvider implements InstallerProvider {
@@ -23,7 +23,12 @@ export class OfficialProvider implements InstallerProvider {
     })
 
     ctx.progress(null, `Установка через ${command} ${args.join(' ')}`)
-    const { code, output } = await runCli(command, args, cliEnv(resolved.npmRegistry), ctx)
+    const {
+      code,
+      output,
+      stderr,
+      command: ranCommand
+    } = await runCli(command, args, cliEnv(resolved.npmRegistry), ctx)
 
     const status: InstallStatus =
       code === 0 ? (detectAlreadyInstalled(output) ? 'skipped' : 'ok') : 'failed'
@@ -41,7 +46,17 @@ export class OfficialProvider implements InstallerProvider {
       outcomes,
       error:
         status === 'failed'
-          ? makeAppError('INSTALL_FAILED', `CLI завершился с кодом ${code}`)
+          ? makeAppError('INSTALL_FAILED', `CLI завершился с кодом ${code}`, null, {
+              skillName: resolved.skillName,
+              sourceId: resolved.source.id,
+              sourceRef: resolved.sourceRef,
+              command: ranCommand,
+              args,
+              exitCode: code,
+              stderr: stderr || tail(output),
+              suggestion:
+                'Проверьте доступность сети/npm-реестра и корректность источника. Подробности — в stderr выше.'
+            })
           : null
     }
   }

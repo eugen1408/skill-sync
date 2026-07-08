@@ -143,6 +143,61 @@ describe('InstallerService.previewReconcile', () => {
   })
 })
 
+describe('InstallerService.previewInstall', () => {
+  let base: string
+  beforeEach(() => {
+    base = mkdtempSync(join(tmpdir(), 'skillsync-prev-'))
+  })
+  afterEach(() => rmSync(base, { recursive: true, force: true }))
+
+  function service(): InstallerService {
+    return new InstallerService({
+      jobRunner: {} as never,
+      sourceManager: { get: () => ({ id: 's', type: 'local' }) } as never,
+      skillRegistry: { get: () => ({ name: 'foo' }) } as never,
+      configStore: { get: () => ({ install: { installDir: base } }) } as never,
+      registry: {} as never,
+      onResult: () => {}
+    })
+  }
+
+  const req = {
+    skillId: 's:foo',
+    sourceId: 's',
+    sourceRef: '.',
+    targetAgents: ['claude-code'],
+    scope: 'global' as const,
+    force: true
+  }
+
+  it('помечает replace-folder, если на месте агента реальная папка', async () => {
+    mkdirSync(join(base, '.claude', 'skills', 'foo'), { recursive: true })
+    const preview = await service().previewInstall(req)
+    expect(preview.replacesRealFolders).toBe(true)
+    expect(preview.ops.find((o) => o.agent === 'claude-code')?.action).toBe('replace-folder')
+  })
+
+  it('для отсутствующего пути агента — create-symlink без замены реальной папки', async () => {
+    const preview = await service().previewInstall(req)
+    expect(preview.replacesRealFolders).toBe(false)
+    expect(preview.ops.find((o) => o.agent === 'claude-code')?.action).toBe('create-symlink')
+  })
+
+  it('official-источник не даёт файловых операций (ФС управляет CLI)', async () => {
+    const svc = new InstallerService({
+      jobRunner: {} as never,
+      sourceManager: { get: () => ({ id: 'official', type: 'official' }) } as never,
+      skillRegistry: { get: () => ({ name: 'foo' }) } as never,
+      configStore: { get: () => ({ install: { installDir: base } }) } as never,
+      registry: {} as never,
+      onResult: () => {}
+    })
+    const preview = await svc.previewInstall({ ...req, sourceId: 'official' })
+    expect(preview.ops).toHaveLength(0)
+    expect(preview.replacesRealFolders).toBe(false)
+  })
+})
+
 describe('файловая установка и реконсиляция', () => {
   let base: string
   let pathCtx: PathContext

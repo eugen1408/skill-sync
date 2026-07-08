@@ -1,4 +1,5 @@
 import type { JobKind } from '@shared/domain/job'
+import type { AppErrorDetails } from '@shared/domain/error'
 import { api } from '../api'
 
 export interface TrackedJob {
@@ -8,6 +9,8 @@ export interface TrackedJob {
   message: string | null
   status: 'running' | 'done' | 'error' | 'cancelled'
   error: string | null
+  /** Диагностический контекст ошибки для раскрываемого блока (follow-up A3). */
+  errorDetails: AppErrorDetails | null
   logs: string[]
 }
 
@@ -49,6 +52,7 @@ class JobsStore {
         const job = this.ensure(e.jobId, e.kind)
         job.status = 'error'
         job.error = e.error.message
+        job.errorDetails = e.error.details ?? null
         this.trimFinished()
       })
     )
@@ -84,7 +88,16 @@ class JobsStore {
   private ensure(jobId: string, kind: JobKind): TrackedJob {
     let job = this.jobs.find((j) => j.jobId === jobId)
     if (!job) {
-      job = { jobId, kind, percent: null, message: null, status: 'running', error: null, logs: [] }
+      job = {
+        jobId,
+        kind,
+        percent: null,
+        message: null,
+        status: 'running',
+        error: null,
+        errorDetails: null,
+        logs: []
+      }
       this.jobs = [...this.jobs, job]
     }
     return job

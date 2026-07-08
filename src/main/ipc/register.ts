@@ -237,6 +237,9 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle(IpcInvoke.install.previewReconcile, async (_e, request: ReconcileAgentsRequest) => {
     return installerService.previewReconcile(request)
   })
+  ipcMain.handle(IpcInvoke.install.previewInstall, async (_e, request: InstallRequest) => {
+    return installerService.previewInstall(request)
+  })
   ipcMain.handle(IpcInvoke.install.getInstalledAgents, async () => {
     const installed: string[] = []
     const home = os.homedir()

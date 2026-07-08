@@ -34,14 +34,39 @@ export async function installWithAuditGuard(
       targetAgents = entry.installations.map((i) => i.agent)
     }
 
-    await api.install.run({
+    const request = {
       skillId: entry.id,
       sourceId: entry.sourceId,
       sourceRef: entry.sourceRef,
       targetAgents: [...targetAgents],
       scope: cfg.install.scope,
       force
-    })
+    }
+
+    // Предпросмотр изменений структуры файлов: подтверждаем, если реальная папка
+    // (напр. в ~/.codex/skills) будет заменена симлинком на канон (follow-up B1).
+    if (entry.sourceType !== 'official') {
+      const preview = await api.install.previewInstall(request)
+      if (preview.replacesRealFolders) {
+        const lines = preview.ops
+          .filter((o) => o.replacesRealFolder)
+          .map((o) => t('install.structureReplaceLine', { path: o.path }))
+        const detail =
+          t('install.structureCanonical', { path: preview.canonicalPath }) +
+          '\n\n' +
+          t('install.structureReplaceHeader') +
+          '\n' +
+          lines.join('\n')
+        const ok = await api.dialog.confirm({
+          message: t('install.structureWarning', { name: preview.skillName }),
+          detail,
+          confirmLabel: t('install.structureConfirm')
+        })
+        if (!ok) return
+      }
+    }
+
+    await api.install.run(request)
   }, t('error.installStart'))
 }
 

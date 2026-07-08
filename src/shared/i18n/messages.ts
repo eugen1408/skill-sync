@@ -102,6 +102,14 @@ const en = {
   'updateStatus.update_available': 'Update available',
   'updateStatus.not_installed': 'Not installed',
   'updateStatus.unknown': 'Unknown',
+  // Пояснения к статусу (tooltip)
+  'statusHint.up_to_date': 'The latest available version is installed.',
+  'statusHint.update_available': 'A newer version is available.',
+  'statusHint.not_installed': 'The skill is not installed.',
+  'statusHint.unknown.official': 'skills.sh does not report a version for this skill.',
+  'statusHint.unknown.orphan': 'Installed, but its source is unknown — the version cannot be determined.',
+  'statusHint.unknown.notChecked': 'Updates have not been checked yet.',
+  'statusHint.unknown.generic': 'This source cannot determine the latest version.',
 
   // Тип источника
   'sourceType.official': 'skills.sh',
@@ -194,6 +202,14 @@ const en = {
   'jobs.status.done': 'Done',
   'jobs.status.error': 'Error',
   'jobs.status.cancelled': 'Cancelled',
+  'jobs.diagnostics': 'Diagnostics',
+  'jobs.diag.skill': 'Skill',
+  'jobs.diag.source': 'Source',
+  'jobs.diag.command': 'Command',
+  'jobs.diag.exitCode': 'Exit code',
+  'jobs.diag.expectedPath': 'Expected path',
+  'jobs.diag.stderr': 'Error output',
+  'jobs.diag.suggestion': 'What to do',
 
   // Настройки
   'settings.appearance': 'Appearance',
@@ -226,9 +242,13 @@ const en = {
   'settings.watchLocal': 'Watch local sources',
   'settings.checkNow': 'Check for updates now',
   'settings.cliNetwork': 'CLI and network',
+  'settings.cliPathLabel': 'Path to the skills executable',
+  'settings.cliPathHint':
+    'Expects the path to the “skills” binary itself (e.g. /opt/homebrew/bin/skills), not to npx. Leave empty to auto-detect npx/skills in PATH.',
   'settings.cliPathPlaceholder': 'Path to skills executable (optional)',
   'settings.npmRegistryPlaceholder': 'NPM registry URL (e.g. https://registry.npmjs.org)',
   'settings.proxyPlaceholder': 'HTTP/HTTPS proxy URL (e.g. http://127.0.0.1:8080) (optional)',
+  'settings.saved': 'Saved',
   'settings.githubToken': 'GitHub token',
   'settings.githubTokenHint':
     'For GitHub API limits (version checks) and private repositories. Stored in the system keychain (safeStorage), not in the config.',
@@ -258,6 +278,7 @@ const en = {
   'settings.resetButton': 'Reset app settings and cache',
   'error.checkStart': 'Failed to start check',
   'error.saveToken': 'Failed to save token',
+  'error.saveSettings': 'Failed to save settings',
   'error.deleteToken': 'Failed to delete token',
 
   // Реконсиляция агентов
@@ -266,6 +287,10 @@ const en = {
   'reconcile.createLinks': 'create {n} symlink(s)',
   'reconcile.removeLinks': 'remove {n} symlink(s)',
   'reconcile.apply': 'Apply',
+  'reconcile.opsHeader': 'Operations:',
+  'reconcile.opLink': '+ {skill} → {path}',
+  'reconcile.opUnlink': '− {skill} (remove link {path})',
+  'reconcile.andMore': '…and {n} more',
   'error.applyAgents': 'Failed to apply the agent set',
 
   // Сброс приложения
@@ -278,6 +303,14 @@ const en = {
   'install.auditWarning': '“{name}”: security warnings ({risk}).',
   'install.auditDetail': '{detail}\n\nInstall anyway?',
   'install.installConfirm': 'Install',
+  'install.structureWarning': '“{name}”: this will change the file structure.',
+  'install.structureCanonical': 'Main copy will live at:\n{path}',
+  'install.structureReplaceHeader':
+    'These real folders will be replaced by symlinks to the main copy:',
+  'install.structureReplaceLine': '• {path}',
+  'install.structureConfirm': 'Continue',
+  'install.willInstallFor': 'Will install for: {agents}',
+  'install.changeAgents': 'change',
   'error.installStart': 'Failed to start installation',
   'uninstall.confirmMessage': 'Remove “{name}”?',
   'uninstall.confirmDetailAgents': 'The skill will be removed from agents: {agents}.',
@@ -390,6 +423,14 @@ const ru: Record<keyof typeof en, string> = {
   'updateStatus.update_available': 'Есть обновление',
   'updateStatus.not_installed': 'Не установлен',
   'updateStatus.unknown': 'Неизвестно',
+  'statusHint.up_to_date': 'Установлена последняя доступная версия.',
+  'statusHint.update_available': 'Доступна новая версия.',
+  'statusHint.not_installed': 'Skill не установлен.',
+  'statusHint.unknown.official': 'skills.sh не сообщает версию для этого skill.',
+  'statusHint.unknown.orphan':
+    'Установлен, но источник неизвестен — версию определить нельзя.',
+  'statusHint.unknown.notChecked': 'Проверка обновлений ещё не выполнялась.',
+  'statusHint.unknown.generic': 'Этот источник не умеет определять последнюю версию.',
 
   'sourceType.official': 'skills.sh',
   'sourceType.git': 'Git',
@@ -474,6 +515,14 @@ const ru: Record<keyof typeof en, string> = {
   'jobs.status.done': 'Готово',
   'jobs.status.error': 'Ошибка',
   'jobs.status.cancelled': 'Отменено',
+  'jobs.diagnostics': 'Диагностика',
+  'jobs.diag.skill': 'Skill',
+  'jobs.diag.source': 'Источник',
+  'jobs.diag.command': 'Команда',
+  'jobs.diag.exitCode': 'Код выхода',
+  'jobs.diag.expectedPath': 'Ожидаемый путь',
+  'jobs.diag.stderr': 'Вывод ошибки',
+  'jobs.diag.suggestion': 'Что делать',
 
   'settings.appearance': 'Оформление',
   'theme.system': 'Как в системе',
@@ -506,9 +555,13 @@ const ru: Record<keyof typeof en, string> = {
   'settings.watchLocal': 'Следить за локальными источниками',
   'settings.checkNow': 'Проверить обновления сейчас',
   'settings.cliNetwork': 'CLI и сеть',
+  'settings.cliPathLabel': 'Путь к исполняемому файлу skills',
+  'settings.cliPathHint':
+    'Ожидается путь к самому бинарю «skills» (напр. /opt/homebrew/bin/skills), а не к npx. Оставьте пустым — npx/skills будут найдены в PATH автоматически.',
   'settings.cliPathPlaceholder': 'Путь к исполняемому файлу skills (опционально)',
   'settings.npmRegistryPlaceholder': 'NPM registry URL (напр. https://registry.npmjs.org)',
   'settings.proxyPlaceholder': 'HTTP/HTTPS прокси (напр. http://127.0.0.1:8080) (необязательно)',
+  'settings.saved': 'Сохранено',
   'settings.githubToken': 'GitHub-токен',
   'settings.githubTokenHint':
     'Для лимитов GitHub API (проверка версий) и приватных репозиториев. Хранится в системном хранилище (safeStorage), не в конфигурации.',
@@ -538,6 +591,7 @@ const ru: Record<keyof typeof en, string> = {
   'settings.resetButton': 'Сбросить настройки и кэш приложения',
   'error.checkStart': 'Не удалось запустить проверку',
   'error.saveToken': 'Не удалось сохранить токен',
+  'error.saveSettings': 'Не удалось сохранить настройки',
   'error.deleteToken': 'Не удалось удалить токен',
 
   'reconcile.confirmMessage': 'Изменение набора агентов затронет {count} установленных skills.',
@@ -545,6 +599,10 @@ const ru: Record<keyof typeof en, string> = {
   'reconcile.createLinks': 'создать {n} симлинк(ов)',
   'reconcile.removeLinks': 'удалить {n} симлинк(ов)',
   'reconcile.apply': 'Применить',
+  'reconcile.opsHeader': 'Операции:',
+  'reconcile.opLink': '+ {skill} → {path}',
+  'reconcile.opUnlink': '− {skill} (снять ссылку {path})',
+  'reconcile.andMore': '…и ещё {n}',
   'error.applyAgents': 'Не удалось применить набор агентов',
 
   'reset.confirmMessage': 'Сбросить все настройки и кэш приложения?',
@@ -555,6 +613,14 @@ const ru: Record<keyof typeof en, string> = {
   'install.auditWarning': '«{name}»: предупреждения безопасности ({risk}).',
   'install.auditDetail': '{detail}\n\nВсё равно установить?',
   'install.installConfirm': 'Установить',
+  'install.structureWarning': '«{name}»: изменится структура файлов.',
+  'install.structureCanonical': 'Основная копия будет здесь:\n{path}',
+  'install.structureReplaceHeader':
+    'Эти реальные папки будут заменены симлинками на основную копию:',
+  'install.structureReplaceLine': '• {path}',
+  'install.structureConfirm': 'Продолжить',
+  'install.willInstallFor': 'Будет установлено для: {agents}',
+  'install.changeAgents': 'изменить',
   'error.installStart': 'Не удалось запустить установку',
   'uninstall.confirmMessage': 'Удалить «{name}»?',
   'uninstall.confirmDetailAgents': 'Skill будет удалён у агентов: {agents}.',

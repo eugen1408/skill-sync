@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import type { Source } from '@shared/domain/source'
 import type { IndexContext } from './types'
 import { makeAppError } from '@shared/domain/error'
+import { resolvedPath } from '../installer/resolvePath'
 
 const exec = promisify(execFile)
 const GIT_TIMEOUT = 120_000
@@ -66,7 +67,12 @@ export class GitCache {
 
   private async git(args: string[], ctx: IndexContext): Promise<void> {
     try {
-      const { stderr } = await exec('git', args, { signal: ctx.signal, timeout: GIT_TIMEOUT })
+      // Расширенный PATH: GUI-приложение macOS не наследует shell-PATH (follow-up A2).
+      const { stderr } = await exec('git', args, {
+        signal: ctx.signal,
+        timeout: GIT_TIMEOUT,
+        env: { ...process.env, PATH: resolvedPath() }
+      })
       if (stderr) ctx.log('err', stderr.trim())
     } catch (err) {
       throw makeAppError('SOURCE_UNAVAILABLE', `git ${args[0]} не удался`, err)

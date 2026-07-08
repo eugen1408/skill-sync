@@ -3,6 +3,7 @@ import type { InstallScope } from '@shared/domain/config'
 import type { JobContext } from '../jobs/JobRunner'
 import { makeAppError } from '@shared/domain/error'
 import { cleanCliOutput } from './cleanCliOutput'
+import { resolveBinary, resolvedPath } from './resolvePath'
 
 /** Зафиксированная версия CLI (Q-03): обновляется осознанно вместе с релизами приложения. */
 export const PINNED_SKILLS_VERSION = '1.5.14'
@@ -52,6 +53,15 @@ export function detectAlreadyInstalled(output: string): boolean {
 export interface CliRunResult {
   code: number | null
   output: string
+  /** Хвост stderr для диагностики ошибок (follow-up A3). */
+  stderr: string
+  /** Фактически запущенная команда (может быть резолвнута в абсолютный путь). */
+  command: string
+}
+
+/** Оставляет последние N строк для компактной диагностики. */
+export function tail(text: string, lines = 20): string {
+  return text.split('\n').filter(Boolean).slice(-lines).join('\n')
 }
 
 /** Запускает CLI, стримит вывод в лог задачи, поддерживает отмену/kill по сигналу. */
@@ -61,13 +71,16 @@ export function runCli(
   env: NodeJS.ProcessEnv,
   ctx: JobContext
 ): Promise<CliRunResult> {
+  // Резолвим бинарь через расширенный PATH (macOS GUI не наследует shell-PATH, follow-up A2).
+  const resolvedCommand = resolveBinary(command) ?? command
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn(resolvedCommand, args, {
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: process.platform === 'win32'
     })
     let output = ''
+    let errOutput = ''
     const onAbort = (): void => {
       child.kill('SIGTERM')
       setTimeout(() => child.kill('SIGKILL'), 2000)
@@ -78,17 +91,37 @@ export function runCli(
       const cleaned = cleanCliOutput(raw)
       if (!cleaned) return
       output += cleaned + '\n'
+      if (stream === 'err') errOutput += cleaned + '\n'
       ctx.log(stream, cleaned)
     }
     child.stdout.on('data', (chunk: Buffer) => onData(chunk.toString(), 'out'))
     child.stderr.on('data', (chunk: Buffer) => onData(chunk.toString(), 'err'))
-    child.on('error', (err) => {
+    child.on('error', (err: NodeJS.ErrnoException) => {
       ctx.signal.removeEventListener('abort', onAbort)
-      reject(makeAppError('INSTALL_FAILED', `Не удалось запустить ${command}`, err))
+      const notFound = err.code === 'ENOENT'
+      const suggestion = notFound
+        ? `Не найден исполняемый файл «${command}». Установите Node.js/skills или укажите путь к CLI в Настройках → «Путь к исполняемому файлу skills».`
+        : undefined
+      reject(
+        makeAppError(
+          'INSTALL_FAILED',
+          notFound
+            ? `Не найден исполняемый файл: ${command} (${err.code})`
+            : `Не удалось запустить ${command}`,
+          err,
+          {
+            command: resolvedCommand,
+            args,
+            exitCode: null,
+            stderr: tail(errOutput),
+            suggestion
+          }
+        )
+      )
     })
     child.on('close', (code) => {
       ctx.signal.removeEventListener('abort', onAbort)
-      resolve({ code, output })
+      resolve({ code, output, stderr: tail(errOutput), command: resolvedCommand })
     })
   })
 }
@@ -97,6 +130,8 @@ export function runCli(
 export function cliEnv(npmRegistry: string | null): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
+    // Расширенный PATH: GUI-приложение macOS не наследует shell-PATH (follow-up A2).
+    PATH: resolvedPath(),
     CI: '1',
     NO_COLOR: '1',
     FORCE_COLOR: '0',

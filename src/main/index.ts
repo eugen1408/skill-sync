@@ -16,6 +16,7 @@ import { createSourceManager, GitCache, type SourceManager } from './sources'
 import { createSkillRegistry, buildLockAttribution, type SkillRegistry } from './registry'
 import { readGlobalLock } from './version'
 import { createInstallerService } from './installer'
+import { initEnvPath } from './installer/resolvePath'
 import { createDefaultVersionResolver } from './version'
 import { NotificationCenter } from './notifications/NotificationCenter'
 import { createUpdateEngine } from './update'
@@ -174,6 +175,10 @@ ipcMain.handle(IpcInvoke.app.consumePendingDeeplinks, (): DeeplinkEvent[] => {
 
 app.whenReady().then(() => {
   initLogger(join(app.getPath('userData'), 'logs'))
+
+  // Расширяем PATH из login-shell + стандартных каталогов: GUI-приложение macOS не наследует
+  // shell-PATH, из-за чего npx/skills из /opt/homebrew/bin не находятся (follow-up A2).
+  void initEnvPath().catch((e) => logger.error('Не удалось инициализировать PATH для CLI', e))
 
   const configStore = new ConfigStore(join(app.getPath('userData'), 'config.json'), {
     events: { onError: (message, cause) => logger.error(message, cause) }

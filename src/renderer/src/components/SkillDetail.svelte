@@ -9,6 +9,7 @@
   import { toasts } from '../lib/stores/toasts.svelte'
   import {
     updateStatusLabel,
+    updateStatusHint,
     sourceTypeLabel,
     riskLabel,
     riskBadgeClass,
@@ -19,6 +20,7 @@
     formatDate
   } from '../lib/labels'
   import { t } from '../lib/i18n.svelte'
+  import { getAgent } from '@shared/domain/agent'
   import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
   import Devicon from './Devicon.svelte'
   import Icon from './Icon.svelte'
@@ -163,6 +165,12 @@
     if (!cfg || !entry) return
     void installWithAuditGuard(entry, cfg, true)
   }
+
+  // Целевые агенты, для которых пойдёт установка (по умолчанию из настроек) — показываем
+  // явно, чтобы пользователь не устанавливал не туда (follow-up C1).
+  const targetAgentLabels = $derived(
+    (config.config?.install.targetAgents ?? []).map((id) => getAgent(id)?.label ?? id).join(', ')
+  )
 </script>
 
 {#if entry}
@@ -254,7 +262,10 @@
       {/if}
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">{t('detail.status')}</dt>
-        <dd>{updateStatusLabel(entry.updateStatus)}</dd>
+        <dd class="inline-flex items-center gap-1" title={updateStatusHint(entry)}>
+          {updateStatusLabel(entry.updateStatus)}
+          <Icon name="info" size={13} class="opacity-50" />
+        </dd>
       </div>
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">{t('detail.installedVersion')}</dt>
@@ -411,7 +422,19 @@
       </div>
     {/if}
 
-    <div class="mt-auto flex flex-wrap gap-2 pt-2">
+    {#if !entry.installed && entry.sourceId !== 'installed'}
+      <p class="mt-auto pt-2 text-xs opacity-70">
+        {t('install.willInstallFor', { agents: targetAgentLabels || t('common.dash') })}
+        <button
+          class="ml-1 underline decoration-dotted hover:opacity-100"
+          onclick={() => ui.go('settings')}
+        >
+          {t('install.changeAgents')}
+        </button>
+      </p>
+    {/if}
+
+    <div class="flex flex-wrap gap-2 pt-2" class:mt-auto={entry.installed || entry.hasUpdate}>
       {#if entry.hasUpdate}
         <button
           class="btn btn-sm preset-filled-warning-500"
