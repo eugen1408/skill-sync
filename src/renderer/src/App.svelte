@@ -14,9 +14,11 @@
   import SourcesPage from './components/SourcesPage.svelte'
   import NotificationsPage from './components/NotificationsPage.svelte'
   import SettingsPage from './components/SettingsPage.svelte'
+  import HelpPage from './components/HelpPage.svelte'
   import SkillDetail from './components/SkillDetail.svelte'
   import JobsBar from './components/JobsBar.svelte'
   import Toaster from './components/Toaster.svelte'
+  import Onboarding from './components/Onboarding.svelte'
   import Icon, { type IconName } from './components/Icon.svelte'
 
   let version = $state('…')
@@ -26,7 +28,8 @@
     { view: 'catalog', labelKey: 'nav.catalog', icon: 'catalog' },
     { view: 'sources', labelKey: 'nav.sources', icon: 'git' },
     { view: 'notifications', labelKey: 'nav.notifications', icon: 'bell' },
-    { view: 'settings', labelKey: 'nav.settings', icon: 'settings' }
+    { view: 'settings', labelKey: 'nav.settings', icon: 'settings' },
+    { view: 'help', labelKey: 'nav.help', icon: 'info' }
   ]
 
   async function handleDeeplink(e: DeeplinkEvent): Promise<void> {
@@ -111,6 +114,16 @@
   const appUpdateReady = $derived(config.appUpdate?.state === 'downloaded')
   const appUpdateManual = $derived(config.appUpdate?.state === 'manual-download')
 
+  // Онбординг первого запуска: показываем, пока пользователь его не закрыл (флаг в конфиге).
+  const showOnboarding = $derived(
+    config.config != null && !config.config.ui.onboardingDismissed
+  )
+  function dismissOnboarding(): void {
+    const cfg = config.config
+    if (!cfg) return
+    void config.update({ ui: { ...cfg.ui, onboardingDismissed: true } })
+  }
+
   // Конфиг — источник истины для языка; синхронизируем i18n после его загрузки
   // (localStorage — лишь кэш для мгновенного первого рендера до готовности IPC).
   $effect(() => {
@@ -119,7 +132,7 @@
   })
 </script>
 
-<div class="flex h-full flex-col">
+<div class="relative flex h-full flex-col">
   {#if githubRateLimitExceeded}
     <div class="flex items-center gap-3 bg-warning-500 p-2 pl-4 pr-2 text-sm text-black">
       <span class="flex-1 font-medium">{t('app.githubRateLimitBanner')}</span>
@@ -203,6 +216,8 @@
           <div class="p-6"><NotificationsPage /></div>
         {:else if ui.view === 'settings'}
           <div class="p-6"><SettingsPage /></div>
+        {:else if ui.view === 'help'}
+          <div class="p-6"><HelpPage /></div>
         {/if}
       </main>
 
@@ -213,6 +228,16 @@
   </div>
 
   <JobsBar />
+
+  {#if showOnboarding}
+    <Onboarding
+      onDismiss={dismissOnboarding}
+      onOpenGuide={() => {
+        dismissOnboarding()
+        ui.go('help')
+      }}
+    />
+  {/if}
 </div>
 
 <Toaster />

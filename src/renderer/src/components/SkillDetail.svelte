@@ -24,6 +24,7 @@
   import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
   import Devicon from './Devicon.svelte'
   import Icon from './Icon.svelte'
+  import InfoTip from './InfoTip.svelte'
 
   let entry = $state<CatalogEntry | null>(null)
   let audit = $state<SecurityAudit | null>(null)
@@ -377,18 +378,23 @@
       {/if}
     {/snippet}
 
-    {#snippet installRow(label: string, path: string, isSymlink: boolean)}
+    {#snippet installRow(label: string, path: string, isSymlink: boolean, isPrimary = false)}
       <li class="flex items-center gap-2">
         <span class="shrink-0">{label}</span>
         {#if isSymlink}
           <!-- Симлинк (агентская папка ссылается на общий каталог) — путь некликабелен. -->
           <span class="flex min-w-0 items-center gap-1">
             <span class="truncate text-xs opacity-50" title={path}>{path}</span>
-            <span class="badge preset-tonal shrink-0 text-[0.65rem]">{t('detail.symlink')}</span>
+            <span class="badge preset-tonal shrink-0 text-[0.65rem]">{t('detail.linkBadge')}</span>
           </span>
         {:else}
           <!-- Путь + кнопка VS Code рядом (группа хагает контент, не растягиваясь на всю ширину). -->
           <span class="flex min-w-0 items-center gap-1">
+            {#if isPrimary}
+              <span class="badge preset-tonal-primary shrink-0 text-[0.65rem]"
+                >{t('detail.original')}</span
+              >
+            {/if}
             <button
               class="truncate text-left text-xs opacity-60 hover:underline"
               title={path}
@@ -410,13 +416,20 @@
 
     {#if entry.installed && (canonicalPath || installations.length > 0)}
       <div>
-        <p class="mb-1 text-sm font-semibold">{t('detail.installedForAgents')}</p>
+        <p class="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+          {t('detail.installedForAgents')}
+          <InfoTip
+            title={t('help.tip.installedForAgents.title')}
+            body={t('help.tip.installedForAgents.body')}
+          />
+        </p>
+        <p class="mb-1.5 text-xs opacity-50">{t('detail.installExplain')}</p>
         <ul class="space-y-1 text-sm">
           {#if canonicalPath}
-            {@render installRow(t('detail.primary'), canonicalPath, false)}
+            {@render installRow(t('detail.primary'), canonicalPath, false, true)}
           {/if}
           {#each otherInstalls as inst (inst.agent)}
-            {@render installRow(inst.agent, inst.installPath, inst.isSymlink)}
+            {@render installRow(inst.agent, inst.installPath, inst.isSymlink, false)}
           {/each}
         </ul>
       </div>

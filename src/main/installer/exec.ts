@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import type { InstallScope } from '@shared/domain/config'
 import type { JobContext } from '../jobs/JobRunner'
 import { makeAppError } from '@shared/domain/error'
+import type { CliCheckResult } from '@shared/domain/install'
 import { cleanCliOutput } from './cleanCliOutput'
 import { resolveBinary, resolvedPath } from './resolvePath'
 
@@ -139,4 +140,45 @@ export function cliEnv(npmRegistry: string | null): NodeJS.ProcessEnv {
   }
   if (npmRegistry) env.npm_config_registry = npmRegistry
   return env
+}
+
+/**
+ * Проверяет работоспособность CLI (`skills --version`): резолвит бинарь в расширенном PATH,
+ * запускает с таймаутом и возвращает версию/ошибку для показа в настройках (follow-up UI).
+ */
+export function checkCliVersion(cliPath: string | null): Promise<CliCheckResult> {
+  const isWin = process.platform === 'win32'
+  const baseCmd = cliPath ?? (isWin ? 'npx.cmd' : 'npx')
+  const args = cliPath
+    ? ['--version']
+    : ['-y', `skills@${PINNED_SKILLS_VERSION}`, '--version']
+  const command = resolveBinary(baseCmd) ?? baseCmd
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      env: cliEnv(null),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: isWin,
+      timeout: 20_000
+    })
+    let out = ''
+    let err = ''
+    child.stdout.on('data', (c: Buffer) => (out += c.toString()))
+    child.stderr.on('data', (c: Buffer) => (err += c.toString()))
+    child.on('error', (e: NodeJS.ErrnoException) =>
+      resolve({
+        ok: false,
+        version: '',
+        error: e.code === 'ENOENT' ? `${baseCmd}: не найден в PATH` : e.message
+      })
+    )
+    child.on('close', (code) => {
+      const lastLine = (line: string): string =>
+        line.trim().split('\n').filter(Boolean).slice(-1)[0] ?? ''
+      if (code === 0) {
+        resolve({ ok: true, version: lastLine(cleanCliOutput(out) || cleanCliOutput(err)) || 'ok', error: '' })
+      } else {
+        resolve({ ok: false, version: '', error: lastLine(cleanCliOutput(err)) || `код ${code}` })
+      }
+    })
+  })
 }

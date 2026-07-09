@@ -10,6 +10,7 @@
   import { toasts } from '../lib/stores/toasts.svelte'
   import { ui } from '../lib/stores/ui.svelte'
   import Icon from './Icon.svelte'
+  import InfoTip from './InfoTip.svelte'
 
   const cfg = $derived(config.config)
 
@@ -139,6 +140,20 @@
     }, t('error.saveSettings'))
   }
 
+  // Проверка работоспособности CLI (`skills --version`) прямо из настроек (follow-up UI П5).
+  let cliChecking = $state(false)
+  let cliCheckResult = $state<{ ok: boolean; version: string } | null>(null)
+  function checkCli(): void {
+    cliChecking = true
+    cliCheckResult = null
+    void toasts
+      .guard(async () => {
+        const res = await api.install.checkCli()
+        cliCheckResult = { ok: res.ok, version: res.ok ? res.version : res.error }
+      }, t('error.cliCheck'))
+      .finally(() => (cliChecking = false))
+  }
+
   async function setUpdate(patch: Partial<UpdateSettings>): Promise<void> {
     await api.update.setSettings(patch)
     await config.load()
@@ -189,7 +204,10 @@
     </section>
 
     <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
-      <h3 class="h5">{t('settings.targetAgents')}</h3>
+      <h3 class="h5 flex items-center gap-1.5">
+        {t('settings.targetAgents')}
+        <InfoTip title={t('help.term.agent.title')} body={t('help.term.agent.body')} />
+      </h3>
       <p class="text-sm opacity-60">{t('settings.targetAgentsHint')}</p>
       <div class="flex flex-col gap-4">
         {#if installedAgents.length > 0}
@@ -390,13 +408,27 @@
             </span>
           {/if}
         </div>
-        <input
-          id="cli-path-input"
-          class="input"
-          placeholder={t('settings.cliPathPlaceholder')}
-          value={cfg.install.cliPath ?? ''}
-          onchange={(e) => saveCliPath(e.currentTarget.value || null)}
-        />
+        <div class="flex items-center gap-2">
+          <input
+            id="cli-path-input"
+            class="input flex-1"
+            placeholder={t('settings.cliPathPlaceholder')}
+            value={cfg.install.cliPath ?? ''}
+            onchange={(e) => saveCliPath(e.currentTarget.value || null)}
+          />
+          <button class="btn btn-sm preset-tonal shrink-0" disabled={cliChecking} onclick={checkCli}>
+            {cliChecking ? t('settings.cliChecking') : t('settings.cliCheck')}
+          </button>
+        </div>
+        {#if cliCheckResult}
+          <p
+            class="text-xs {cliCheckResult.ok ? 'text-success-600-400' : 'text-error-600-400'}"
+          >
+            {cliCheckResult.ok
+              ? t('settings.cliOk', { version: cliCheckResult.version })
+              : `${t('settings.cliFailed')}: ${cliCheckResult.version}`}
+          </p>
+        {/if}
         <p class="text-xs opacity-60">{t('settings.cliPathHint')}</p>
       </div>
       <input

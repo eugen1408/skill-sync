@@ -30,6 +30,15 @@ export interface InstallResult {
   error: AppError | null
 }
 
+/** Результат проверки работоспособности CLI (`skills --version`, follow-up UI). */
+export interface CliCheckResult {
+  ok: boolean
+  /** Версия/вывод при успехе. */
+  version: string
+  /** Текст ошибки при неуспехе. */
+  error: string
+}
+
 /** Запрос реконсиляции симлинков при изменении набора агентов (эпик Q-01). */
 export interface ReconcileAgentsRequest {
   previousAgents: string[]

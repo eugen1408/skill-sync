@@ -7,7 +7,8 @@ import type {
   ReconcilePreview,
   ReconcileOp,
   InstallPreview,
-  InstallOp
+  InstallOp,
+  CliCheckResult
 } from '@shared/domain/install'
 import type { AgentInfo } from '@shared/domain/agent'
 import { getAgent } from '@shared/domain/agent'
@@ -21,6 +22,7 @@ import type { InstallerRegistry } from './registry'
 import type { ResolvedInstall } from './types'
 import { reconcileAgents, type ReconcilableSkill } from './agentReconciler'
 import {
+  agentLinkTargets,
   agentSkillPath,
   canonicalSkillPath,
   defaultPathContext,
@@ -28,6 +30,7 @@ import {
   type PathContext
 } from './paths'
 import { isSymlink, pathExists, removePath } from './fsLink'
+import { checkCliVersion } from './exec'
 import type { CatalogEntry } from '@shared/domain/skill'
 import { removeGlobalLockEntry } from '../version'
 
@@ -94,11 +97,10 @@ export class InstallerService {
       const provider = this.deps.registry.resolve(source.type)
       const result = await provider.install(resolved, ctx)
       result.wasUpdate = entry?.installed ?? false
-      await this.deps.skillRegistry.rescanInstalled()
 
       // Гарантируем симлинки для всех целевых агентов после official CLI-установки
       // (follow-up C4): внешний `skills` CLI может не создать ссылку для части агентов
-      // (напр. codex). Идемпотентно, канон уже создан CLI.
+      // (напр. codex). Идемпотентно, канон уже создан CLI. Делаем ДО единственного rescan.
       if (source.type === 'official' && (result.status === 'ok' || result.status === 'skipped')) {
         try {
           await reconcileAgents(
@@ -107,11 +109,11 @@ export class InstallerService {
             [],
             resolved.pathCtx
           )
-          await this.deps.skillRegistry.rescanInstalled()
         } catch (e) {
           logger.warn('Реконсиляция агентов после official-установки не удалась', e)
         }
       }
+      await this.deps.skillRegistry.rescanInstalled()
       return result
     })
 
@@ -280,10 +282,10 @@ export class InstallerService {
       target: null,
       replacesRealFolder: false
     })
-    for (const agent of agents) {
+    // Те же целевые пути, что использует установка (installFromFolder) — единый источник истины.
+    for (const { agent, linkPath, isCanonical } of agentLinkTargets(pathCtx, agents, skillName)) {
       // Универсальный агент читает канон напрямую — отдельного симлинка нет.
-      if (isCanonicalAgentDir(pathCtx, agent)) continue
-      const linkPath = agentSkillPath(pathCtx, agent, skillName)
+      if (isCanonical) continue
       const exists = await pathExists(linkPath)
       const sym = exists ? await isSymlink(linkPath) : false
       const replaces = exists && !sym
@@ -327,6 +329,11 @@ export class InstallerService {
       }
     )
     return jobId
+  }
+
+  /** Проверка работоспособности настроенного CLI (`skills --version`, follow-up UI). */
+  checkCli(): Promise<CliCheckResult> {
+    return checkCliVersion(this.deps.configStore.get().install.cliPath)
   }
 
   private installedSkills(): ReconcilableSkill[] {

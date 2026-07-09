@@ -6,6 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { spawn } from 'child_process'
+import { once } from 'node:events'
 import { fetch } from 'undici'
 import { logger } from './logger'
 
@@ -98,19 +99,33 @@ export class AppUpdater {
       
       const totalBytes = Number(dlRes.headers.get('content-length')) || 0
       let downloadedBytes = 0
-      
+
       const dest = fs.createWriteStream(zipPath)
       if (!dlRes.body) throw new Error('No body in response')
-      for await (const chunk of dlRes.body as any) {
-        dest.write(chunk)
-        downloadedBytes += chunk.length
-        if (totalBytes > 0) {
-          const percent = Math.round((downloadedBytes / totalBytes) * 100)
-          this.emit({ state: 'downloading', percent, version, error: null })
+      try {
+        for await (const chunk of dlRes.body as any) {
+          downloadedBytes += chunk.length
+          // Уважаем backpressure: не буферизуем весь zip (100+ МБ) в памяти.
+          if (!dest.write(chunk)) await once(dest, 'drain')
+          if (totalBytes > 0) {
+            const percent = Math.round((downloadedBytes / totalBytes) * 100)
+            this.emit({ state: 'downloading', percent, version, error: null })
+          }
         }
+      } finally {
+        // Дожидаемся фактической записи на диск перед пометкой «загружено».
+        await new Promise<void>((resolve, reject) =>
+          dest.end((err?: Error | null) => (err ? reject(err) : resolve()))
+        )
       }
-      dest.end()
-      
+
+      // Проверяем целостность: файл должен быть непустым и совпадать с Content-Length.
+      const written = fs.statSync(zipPath).size
+      if (written === 0) throw new Error('Downloaded archive is empty')
+      if (totalBytes > 0 && written !== totalBytes) {
+        throw new Error(`Incomplete download: ${written}/${totalBytes} bytes`)
+      }
+
       this.customUpdateZipPath = zipPath
       this.emit({ state: 'downloaded', version, percent: 100, error: null })
     } catch (err) {
@@ -137,26 +152,48 @@ export class AppUpdater {
     if (this.isCustomMacUpdate && this.customUpdateZipPath) {
       const scriptPath = path.join(os.tmpdir(), 'skill-sync-install.sh')
       const exePath = app.getPath('exe')
-      const appPath = exePath.split('.app/')[0] + '.app'
-      
+      // Каноничная раскладка Electron: <Name>.app/Contents/MacOS/<exe> → .app на два уровня выше.
+      const appPath = path.resolve(path.dirname(exePath), '..', '..')
+      const bundleName = path.basename(appPath)
+
+      // Пути передаются как аргументы ($1..$3), а не интерполируются в тело — нет shell-инъекции.
+      // Порядок безопасен: сначала распаковываем во временный каталог и проверяем bundle,
+      // только потом заменяем текущий .app (со откатом при сбое) — «удаление до проверки» исключено.
       const scriptContent = `#!/bin/bash
+set -euo pipefail
 sleep 2
-echo "Removing old app..."
-rm -rf "${appPath}"
+ZIP="$1"; APP="$2"; NAME="$3"
+STAGE="$(mktemp -d)"
 echo "Unzipping new app..."
-unzip -q "${this.customUpdateZipPath}" -d "$(dirname "${appPath}")"
+unzip -q "$ZIP" -d "$STAGE"
+if [ ! -d "$STAGE/$NAME" ]; then
+  echo "New app bundle not found in archive: $NAME" >&2
+  rm -rf "$STAGE"
+  exit 1
+fi
+echo "Swapping app..."
+BACKUP="$APP.bak.$$"
+mv "$APP" "$BACKUP" 2>/dev/null || true
+if ! mv "$STAGE/$NAME" "$APP"; then
+  echo "Swap failed, rolling back" >&2
+  rm -rf "$APP"
+  mv "$BACKUP" "$APP" 2>/dev/null || true
+  rm -rf "$STAGE"
+  exit 1
+fi
+rm -rf "$BACKUP" "$STAGE" 2>/dev/null || true
 echo "Removing quarantine..."
-xattr -rd com.apple.quarantine "${appPath}"
+xattr -rd com.apple.quarantine "$APP" 2>/dev/null || true
 echo "Relaunching..."
-open "${appPath}"
+open "$APP"
 `
       fs.writeFileSync(scriptPath, scriptContent, { mode: 0o755 })
-      
-      spawn('bash', [scriptPath], {
+
+      spawn('bash', [scriptPath, this.customUpdateZipPath, appPath, bundleName], {
         detached: true,
         stdio: 'ignore'
       }).unref()
-      
+
       app.quit()
       return
     }

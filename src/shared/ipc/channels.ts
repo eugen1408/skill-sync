@@ -50,6 +50,7 @@ export const IpcInvoke = {
     reconcileAgents: 'install:reconcileAgents',
     previewReconcile: 'install:previewReconcile',
     previewInstall: 'install:previewInstall',
+    checkCli: 'install:checkCli',
     getInstalledAgents: 'install:getInstalledAgents'
   },
   shell: {

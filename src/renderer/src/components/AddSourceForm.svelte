@@ -3,6 +3,7 @@
   import { api } from '../lib/api'
   import { sources } from '../lib/stores/sources.svelte'
   import { t } from '../lib/i18n.svelte'
+  import InfoTip from './InfoTip.svelte'
 
   let type = $state<'git' | 'local'>('git')
   let gitInput = $state('')
@@ -72,7 +73,10 @@
 </script>
 
 <form class="card preset-outlined-surface-200-800 space-y-3 p-4" onsubmit={submit}>
-  <p class="font-semibold">{t('addSource.title')}</p>
+  <p class="flex items-center gap-1.5 font-semibold">
+    {t('addSource.title')}
+    <InfoTip title={t('help.term.source.title')} body={t('help.term.source.body')} />
+  </p>
 
   <div class="flex gap-2">
     <button

@@ -1,7 +1,7 @@
 import type { InstallResult, AgentInstallOutcome, InstallStatus } from '@shared/domain/install'
 import type { ResolvedInstall } from './types'
 import type { JobContext } from '../jobs/JobRunner'
-import { canonicalSkillPath, agentSkillPath, isCanonicalAgentDir } from './paths'
+import { canonicalSkillPath, agentLinkTargets } from './paths'
 import { copyInto, linkOrCopy, pathExists } from './fsLink'
 
 function aggregate(outcomes: AgentInstallOutcome[]): InstallStatus {
@@ -21,13 +21,15 @@ export async function installFromFolder(
   ctx: JobContext
 ): Promise<InstallResult> {
   const canonical = canonicalSkillPath(resolved.pathCtx, resolved.skillName)
+  // Единый источник целевых путей агентов (тот же, что использует previewInstall).
+  const targets = agentLinkTargets(resolved.pathCtx, resolved.agents, resolved.skillName)
 
   if (!resolved.request.force && (await pathExists(canonical))) {
     ctx.log('out', `Уже установлен: ${resolved.skillName}`)
-    const outcomes = resolved.agents.map<AgentInstallOutcome>((a) => ({
-      agent: a.id,
+    const outcomes = targets.map<AgentInstallOutcome>(({ agent, linkPath, isCanonical }) => ({
+      agent: agent.id,
       status: 'skipped',
-      installPath: agentSkillPath(resolved.pathCtx, a, resolved.skillName)
+      installPath: isCanonical ? canonical : linkPath
     }))
     return {
       skillId: resolved.request.skillId,
@@ -43,13 +45,12 @@ export async function installFromFolder(
 
   const outcomes: AgentInstallOutcome[] = []
   let done = 0
-  for (const agent of resolved.agents) {
+  for (const { agent, linkPath, isCanonical } of targets) {
     ctx.throwIfCancelled()
     // Универсальный агент: его каталог и есть канон — skill уже на месте, симлинк не нужен.
-    if (isCanonicalAgentDir(resolved.pathCtx, agent)) {
+    if (isCanonical) {
       outcomes.push({ agent: agent.id, status: 'ok', installPath: canonical })
     } else {
-      const linkPath = agentSkillPath(resolved.pathCtx, agent, resolved.skillName)
       try {
         await linkOrCopy(canonical, linkPath)
         outcomes.push({ agent: agent.id, status: 'ok', installPath: linkPath })
@@ -58,7 +59,7 @@ export async function installFromFolder(
       }
     }
     done += 1
-    ctx.progress(20 + Math.round((done / resolved.agents.length) * 80), `Агент: ${agent.label}`)
+    ctx.progress(20 + Math.round((done / targets.length) * 80), `Агент: ${agent.label}`)
   }
 
   return {

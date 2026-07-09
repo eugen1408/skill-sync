@@ -51,3 +51,26 @@ export function agentSkillPath(ctx: PathContext, agent: AgentInfo, skillName: st
 export function isCanonicalAgentDir(ctx: PathContext, agent: AgentInfo): boolean {
   return agentSkillsDir(ctx, agent) === canonicalSkillsDir(ctx)
 }
+
+/** Целевой путь симлинка агента + признак «универсального» (канонического) каталога. */
+export interface AgentLinkTarget {
+  agent: AgentInfo
+  linkPath: string
+  isCanonical: boolean
+}
+
+/**
+ * Единый источник истины по целевым путям агентов для skill: используется и установкой
+ * (installFromFolder), и предпросмотром (previewInstall), чтобы preview не расходился с ФС.
+ */
+export function agentLinkTargets(
+  ctx: PathContext,
+  agents: AgentInfo[],
+  skillName: string
+): AgentLinkTarget[] {
+  return agents.map((agent) => ({
+    agent,
+    linkPath: agentSkillPath(ctx, agent, skillName),
+    isCanonical: isCanonicalAgentDir(ctx, agent)
+  }))
+}

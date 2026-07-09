@@ -45,6 +45,8 @@ export interface AppUpdateSettings {
 export interface UiSettings {
   /** Язык интерфейса: `system` — по локали ОС. */
   language: LocalePref
+  /** Показан ли онбординг первого запуска (follow-up UI). */
+  onboardingDismissed: boolean
 }
 
 export interface AppConfig {
@@ -86,7 +88,8 @@ export function defaultConfig(): AppConfig {
       autoDownload: true
     },
     ui: {
-      language: 'system'
+      language: 'system',
+      onboardingDismissed: false
     }
   }
 }

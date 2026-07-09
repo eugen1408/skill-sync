@@ -7,7 +7,8 @@ import type {
   InstallResult,
   ReconcileAgentsRequest,
   ReconcilePreview,
-  InstallPreview
+  InstallPreview,
+  CliCheckResult
 } from '../domain/install'
 import type { UpdateSettings } from '../domain/config'
 import type { UpdateCheckResult } from '../domain/update'
@@ -139,6 +140,8 @@ export interface IpcApi {
     previewReconcile(request: ReconcileAgentsRequest): Promise<ReconcilePreview>
     /** Предпросмотр установки/переустановки: изменения структуры файлов без применения. */
     previewInstall(request: InstallRequest): Promise<InstallPreview>
+    /** Проверяет работоспособность настроенного CLI (`skills --version`). */
+    checkCli(): Promise<CliCheckResult>
     /** Возвращает список id установленных агентов по наличию их глобального конфига */
     getInstalledAgents(): Promise<string[]>
   }

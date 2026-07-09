@@ -52,8 +52,9 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
 <div class="flex flex-col-reverse xl:flex-row gap-6">
   <div class="flex-[2] min-w-0 space-y-2">
     {#if sources.items.length === 0}
-      <div class="card preset-outlined-surface-200-800 p-8 text-center opacity-70">
-        {t('sources.empty')}
+      <div class="card preset-outlined-surface-200-800 space-y-2 p-8 text-center">
+        <p class="opacity-70">{t('sources.empty')}</p>
+        <p class="text-sm opacity-50">{t('sources.emptyHint')}</p>
       </div>
     {:else}
       {#each groupedSources as [domain, group] (domain)}

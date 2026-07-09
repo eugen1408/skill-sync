@@ -18,6 +18,7 @@
   import Devicon from './Devicon.svelte'
   import Icon from './Icon.svelte'
   import Favicon from './Favicon.svelte'
+  import InfoTip from './InfoTip.svelte'
   import FilterMenu from './FilterMenu.svelte'
 
   const STATUS_VALUES: CatalogStatusFilter[] = ['installed', 'not_installed', 'update_available']
@@ -53,6 +54,8 @@
   const visible = $derived(items.slice(win.start, win.end))
 
   const groupedCatalog = $derived.by(() => {
+    // Индексируем источники по id один раз — иначе O(items × sources) на каждый пересчёт.
+    const sourceById = new Map(sources.items.map((s) => [s.id, s]))
     const map = new Map<string, CatalogEntry[]>()
     for (const item of items) {
       let domain = 'other'
@@ -61,7 +64,7 @@
       } else if (item.sourceId === 'installed') {
         domain = 'local'
       } else {
-        const source = sources.items.find((s) => s.id === item.sourceId)
+        const source = sourceById.get(item.sourceId)
         if (source) domain = getSourceDomain(source)
       }
       if (!map.has(domain)) map.set(domain, [])
@@ -162,6 +165,7 @@
       {t('catalog.refresh')}
     </button>
     <span class="text-sm opacity-60">{t('catalog.total', { count: catalog.result.total })}</span>
+    <InfoTip title={t('help.tip.catalog.title')} body={t('help.tip.catalog.body')} />
   </div>
 
   {#if initialLoading}
@@ -181,8 +185,12 @@
       {/each}
     </div>
   {:else if items.length === 0}
-    <div class="card preset-outlined-surface-200-800 p-8 text-center opacity-70 mx-6 mb-6">
-      {t('catalog.empty')}
+    <div class="card preset-outlined-surface-200-800 mx-6 mb-6 space-y-3 p-8 text-center">
+      <p class="opacity-70">{t('catalog.empty')}</p>
+      <p class="text-sm opacity-50">{t('catalog.emptyHint')}</p>
+      <button class="btn btn-sm preset-filled-primary-500" onclick={() => ui.go('sources')}>
+        {t('catalog.goToSources')}
+      </button>
     </div>
   {:else}
     <div

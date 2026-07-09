@@ -331,7 +331,79 @@ const en = {
   'tray.tooltipCount': 'Skill Sync ({count} {word})',
   'tray.updWordOne': 'update',
   'tray.updWordFew': 'updates',
-  'tray.updWordMany': 'updates'
+  'tray.updWordMany': 'updates',
+
+  // Навигация — помощь
+  'nav.help': 'Help',
+
+  // Глоссарий/подсказки (контекстные «?» и раздел Help)
+  'help.term.source.title': 'Source',
+  'help.term.source.body':
+    'Where skills come from: a local folder, a Git repository, or skills.sh. A source is not the same as an installed skill — it just lists what is available to install.',
+  'help.term.installed.title': 'Installed skill',
+  'help.term.installed.body':
+    'A skill that has been placed on disk for your agents. The catalog shows both available (from sources) and installed skills.',
+  'help.term.canonical.title': 'Main copy',
+  'help.term.canonical.body':
+    'The real skill files live once in ~/.agents/skills/<name>. This is the single source of truth.',
+  'help.term.symlink.title': 'Symlink',
+  'help.term.symlink.body':
+    'A link, not a copy. Each agent folder (e.g. ~/.claude/skills, ~/.codex/skills) contains a link pointing to the main copy — that is why one install can touch several folders.',
+  'help.term.agent.title': 'Target agent',
+  'help.term.agent.body':
+    'Which tools (Claude Code, Codex, Cursor…) a skill is installed for. Installing creates a link in each selected agent’s folder.',
+  'help.tip.catalog.title': 'Catalog',
+  'help.tip.catalog.body':
+    'All skills from your sources plus skills.sh. Statuses show whether a skill is installed, has an update, or is not installed yet.',
+  'help.tip.installedForAgents.title': 'Installed for agents',
+  'help.tip.installedForAgents.body':
+    'The main copy lives in ~/.agents/skills. Each agent gets a symlink to it — so editing the skill in one place affects every agent.',
+
+  // Онбординг первого запуска
+  'onboarding.title': 'Getting started with Skill Sync',
+  'onboarding.intro': 'A quick tour of how skills, sources and agents fit together.',
+  'onboarding.step.source.title': '1. Add a source',
+  'onboarding.step.source.body':
+    'Connect a local folder, a Git repo, or use skills.sh — this is where skills come from.',
+  'onboarding.step.catalog.title': '2. Browse the catalog',
+  'onboarding.step.catalog.body':
+    'See available and installed skills, search, and open a skill for details.',
+  'onboarding.step.install.title': '3. Install a skill',
+  'onboarding.step.install.body':
+    'Before installing you’ll see which agents it targets and any file changes.',
+  'onboarding.step.agents.title': '4. Pick target agents',
+  'onboarding.step.agents.body':
+    'In Settings, choose which agents (Claude Code, Codex…) receive skills.',
+  'onboarding.fileModel.title': 'Where files live',
+  'onboarding.fileModel.body':
+    'Source (folder / Git / skills.sh)\n   ↓ install\n~/.agents/skills/<name>   ← the real files (main copy)\n   ↓ symlinks\n~/.claude/skills/<name>, ~/.codex/skills/<name>   ← links for each agent',
+  'onboarding.openGuide': 'Open full guide',
+  'onboarding.dismiss': 'Got it',
+
+  // Раздел Help
+  'help.title': 'Help',
+  'help.gettingStartedTitle': 'Getting started',
+  'help.glossaryTitle': 'Glossary',
+  'help.fileModelTitle': 'Where files live',
+
+  // Карточка: оригинал vs ссылка
+  'detail.original': 'original',
+  'detail.linkBadge': 'link',
+  'detail.installExplain':
+    'The real files live in ~/.agents/skills; each agent folder holds a link to them.',
+
+  // Пустые состояния (действия)
+  'sources.emptyHint':
+    'Sources are where skills come from — a local folder, a Git repo, or skills.sh. Add your first source using the form.',
+  'catalog.emptyHint': 'The catalog fills up once you connect a source.',
+  'catalog.goToSources': 'Add a source',
+
+  // Проверка CLI
+  'settings.cliCheck': 'Test',
+  'settings.cliChecking': 'Checking…',
+  'settings.cliOk': 'Works: {version}',
+  'settings.cliFailed': 'Not working',
+  'error.cliCheck': 'Failed to check the CLI'
 }
 
 const ru: Record<keyof typeof en, string> = {
@@ -640,7 +712,79 @@ const ru: Record<keyof typeof en, string> = {
   'tray.tooltipCount': 'Skill Sync ({count} {word})',
   'tray.updWordOne': 'обновление',
   'tray.updWordFew': 'обновления',
-  'tray.updWordMany': 'обновлений'
+  'tray.updWordMany': 'обновлений',
+
+  // Навигация — помощь
+  'nav.help': 'Помощь',
+
+  // Глоссарий/подсказки
+  'help.term.source.title': 'Источник',
+  'help.term.source.body':
+    'Откуда берутся skills: локальная папка, Git-репозиторий или skills.sh. Источник — это не то же самое, что установленный skill: он лишь показывает, что доступно для установки.',
+  'help.term.installed.title': 'Установленный skill',
+  'help.term.installed.body':
+    'Skill, размещённый на диске для ваших агентов. В каталоге видны и доступные (из источников), и установленные skills.',
+  'help.term.canonical.title': 'Основная копия',
+  'help.term.canonical.body':
+    'Реальные файлы skill лежат один раз в ~/.agents/skills/<имя>. Это единый источник истины.',
+  'help.term.symlink.title': 'Симлинк',
+  'help.term.symlink.body':
+    'Ссылка, а не копия. В каталоге каждого агента (напр. ~/.claude/skills, ~/.codex/skills) лежит ссылка на основную копию — поэтому одна установка затрагивает несколько папок.',
+  'help.term.agent.title': 'Целевой агент',
+  'help.term.agent.body':
+    'Для каких инструментов (Claude Code, Codex, Cursor…) устанавливается skill. При установке в папке каждого выбранного агента создаётся ссылка.',
+  'help.tip.catalog.title': 'Каталог',
+  'help.tip.catalog.body':
+    'Все skills из ваших источников плюс skills.sh. Статусы показывают, установлен ли skill, есть ли обновление или он ещё не установлен.',
+  'help.tip.installedForAgents.title': 'Установлен для агентов',
+  'help.tip.installedForAgents.body':
+    'Основная копия лежит в ~/.agents/skills. Каждому агенту создаётся симлинк на неё — поэтому правка skill в одном месте действует для всех агентов.',
+
+  // Онбординг первого запуска
+  'onboarding.title': 'Знакомство со Skill Sync',
+  'onboarding.intro': 'Короткий обзор: как связаны skills, источники и агенты.',
+  'onboarding.step.source.title': '1. Добавьте источник',
+  'onboarding.step.source.body':
+    'Подключите локальную папку, Git-репозиторий или используйте skills.sh — отсюда берутся skills.',
+  'onboarding.step.catalog.title': '2. Откройте каталог',
+  'onboarding.step.catalog.body':
+    'Смотрите доступные и установленные skills, ищите и открывайте карточку skill.',
+  'onboarding.step.install.title': '3. Установите skill',
+  'onboarding.step.install.body':
+    'Перед установкой вы увидите, для каких агентов он ставится и какие изменения в файлах произойдут.',
+  'onboarding.step.agents.title': '4. Выберите целевых агентов',
+  'onboarding.step.agents.body':
+    'В Настройках выберите, каким агентам (Claude Code, Codex…) достаются skills.',
+  'onboarding.fileModel.title': 'Где лежат файлы',
+  'onboarding.fileModel.body':
+    'Источник (папка / Git / skills.sh)\n   ↓ установка\n~/.agents/skills/<имя>   ← реальные файлы (основная копия)\n   ↓ симлинки\n~/.claude/skills/<имя>, ~/.codex/skills/<имя>   ← ссылки для каждого агента',
+  'onboarding.openGuide': 'Открыть полный гайд',
+  'onboarding.dismiss': 'Понятно',
+
+  // Раздел Help
+  'help.title': 'Помощь',
+  'help.gettingStartedTitle': 'С чего начать',
+  'help.glossaryTitle': 'Глоссарий',
+  'help.fileModelTitle': 'Где лежат файлы',
+
+  // Карточка: оригинал vs ссылка
+  'detail.original': 'оригинал',
+  'detail.linkBadge': 'ссылка',
+  'detail.installExplain':
+    'Реальные файлы — в ~/.agents/skills; в каталоге каждого агента лежит ссылка на них.',
+
+  // Пустые состояния (действия)
+  'sources.emptyHint':
+    'Источники — это откуда берутся skills: локальная папка, Git-репозиторий или skills.sh. Добавьте первый источник через форму.',
+  'catalog.emptyHint': 'Каталог заполнится, как только вы подключите источник.',
+  'catalog.goToSources': 'Добавить источник',
+
+  // Проверка CLI
+  'settings.cliCheck': 'Проверить',
+  'settings.cliChecking': 'Проверка…',
+  'settings.cliOk': 'Работает: {version}',
+  'settings.cliFailed': 'Не работает',
+  'error.cliCheck': 'Не удалось проверить CLI'
 }
 
 export type MessageKey = keyof typeof en

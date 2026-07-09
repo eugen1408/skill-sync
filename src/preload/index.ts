@@ -74,6 +74,7 @@ const api: IpcApi = {
       ipcRenderer.invoke(IpcInvoke.install.previewReconcile, request),
     previewInstall: (request: InstallRequest) =>
       ipcRenderer.invoke(IpcInvoke.install.previewInstall, request),
+    checkCli: () => ipcRenderer.invoke(IpcInvoke.install.checkCli),
     getInstalledAgents: () => ipcRenderer.invoke(IpcInvoke.install.getInstalledAgents)
   },
   shell: {

@@ -1,4 +1,4 @@
-export type View = 'catalog' | 'sources' | 'notifications' | 'settings'
+export type View = 'catalog' | 'sources' | 'notifications' | 'settings' | 'help'
 
 class UiStore {
   view = $state<View>('catalog')

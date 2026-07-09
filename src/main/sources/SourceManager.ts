@@ -187,7 +187,8 @@ export class SourceManager {
       ...s,
       config: {
         ...s.config,
-        hiddenSkills: [...(s.config.hiddenSkills ?? []), skillName]
+        // Дедуп: повторное скрытие того же skill не должно плодить дубликаты.
+        hiddenSkills: [...new Set([...(s.config.hiddenSkills ?? []), skillName])]
       }
     }))
   }
