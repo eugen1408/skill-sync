@@ -18,6 +18,7 @@ import type { JobRunner, JobContext } from '../jobs/JobRunner'
 import type { SourceManager } from '../sources'
 import type { SkillRegistry } from '../registry'
 import { logger } from '../logger'
+import { resolveLocale, mt } from '../i18n'
 import type { InstallerRegistry } from './registry'
 import type { ResolvedInstall } from './types'
 import { reconcileAgents, type ReconcilableSkill } from './agentReconciler'
@@ -315,8 +316,12 @@ export class InstallerService {
     const { jobId } = this.deps.jobRunner.start<ReconcileSummary>(
       'install.reconcileAgents',
       async (ctx) => {
+        const locale = resolveLocale(this.deps.config.read().ui.language)
         const skills = this.installedSkills()
-        ctx.progress(null, `Реконсиляция: +${added.length} / -${removed.length} агентов`)
+        ctx.progress(
+          null,
+          mt(locale, 'reconcile.progress', { added: added.length, removed: removed.length })
+        )
         const summary = await reconcileAgents(
           skills,
           added,

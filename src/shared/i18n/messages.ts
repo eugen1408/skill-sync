@@ -92,7 +92,7 @@ const en = {
   'detail.collapse': 'Collapse',
   'detail.descriptionFrom': 'Description: skills.sh',
   'detail.installedForAgents': 'Installed for agents',
-  'detail.primary': 'Primary',
+  'detail.primary': 'Common',
   'detail.symlink': 'symlink',
   'detail.copyTitle': 'Copy: {value}',
   'detail.openInVscode': 'Open in VS Code',
@@ -292,6 +292,7 @@ const en = {
   'reconcile.opLink': '+ {skill} → {path}',
   'reconcile.opUnlink': '− {skill} (remove link {path})',
   'reconcile.andMore': '…and {n} more',
+  'reconcile.progress': 'Reconciling: +{added} / -{removed} agents',
   'error.applyAgents': 'Failed to apply the agent set',
 
   // Сброс приложения
@@ -672,6 +673,7 @@ const ru: Record<keyof typeof en, string> = {
   'reconcile.opLink': '+ {skill} → {path}',
   'reconcile.opUnlink': '− {skill} (снять ссылку {path})',
   'reconcile.andMore': '…и ещё {n}',
+  'reconcile.progress': 'Реконсиляция: +{added} / -{removed} агентов',
   'error.applyAgents': 'Не удалось применить набор агентов',
 
   'reset.confirmMessage': 'Сбросить все настройки и кэш приложения?',

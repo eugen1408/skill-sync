@@ -20,7 +20,7 @@
     formatDate
   } from '../lib/labels'
   import { t } from '../lib/i18n.svelte'
-  import { getAgent } from '@shared/domain/agent'
+  import { getAgent, agentDir, KNOWN_AGENTS } from '@shared/domain/agent'
   import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
   import Devicon from './Devicon.svelte'
   import Icon from './Icon.svelte'
@@ -167,11 +167,32 @@
     void installWithAuditGuard(entry, cfg, true)
   }
 
+  type TargetAgentLabel = { label: string; hint?: string }
+
   // Целевые агенты, для которых пойдёт установка (по умолчанию из настроек) — показываем
   // явно, чтобы пользователь не устанавливал не туда (follow-up C1).
-  const targetAgentLabels = $derived(
-    (config.config?.install.targetAgents ?? []).map((id) => getAgent(id)?.label ?? id).join(', ')
-  )
+  const targetAgentLabels = $derived.by<TargetAgentLabel[]>(() => {
+    const explicitIds = config.config?.install.targetAgents ?? []
+    const result: TargetAgentLabel[] = []
+    
+    // Всегда показываем "Основные" (т.к. CLI всегда ставит скиллы в .agents/skills как канонический путь)
+    result.push({
+      label: t('detail.primary'),
+      hint: 'Amp, Cline, Dexto, Kimi Code CLI, Loaf, Replit, Universal, Warp, Zed'
+    })
+    
+    const primaryAgents = ['amp', 'cline', 'dexto', 'kimi-code-cli', 'loaf', 'replit', 'universal', 'warp', 'zed']
+    
+    // Добавляем выбранных агентов, которые не входят в список "Основных"
+    for (const id of explicitIds) {
+      if (!primaryAgents.includes(id)) {
+        const a = getAgent(id)
+        result.push({ label: a ? a.label : id })
+      }
+    }
+    
+    return result
+  })
 </script>
 
 {#if entry}
@@ -433,8 +454,21 @@
     {/if}
 
     {#if !entry.installed && entry.sourceId !== 'installed'}
+      {@const parts = t('install.willInstallFor', { agents: '|||' }).split('|||')}
       <p class="mt-auto pt-2 text-xs opacity-70">
-        {t('install.willInstallFor', { agents: targetAgentLabels || t('common.dash') })}
+        {parts[0]}
+        {#each targetAgentLabels as item, i}
+          <span class="inline-flex items-center align-bottom gap-0.5">
+            <span>{item.label}</span>
+            {#if item.hint}
+              <InfoTip body={item.hint} />
+            {/if}
+          </span>{#if i < targetAgentLabels.length - 1},&nbsp;{/if}
+        {/each}
+        {#if targetAgentLabels.length === 0}
+          {t('common.dash')}
+        {/if}
+        {parts[1] || ''}
         <button
           class="ml-1 underline decoration-dotted hover:opacity-100"
           onclick={() => ui.go('settings')}
