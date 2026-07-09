@@ -387,11 +387,9 @@ const en = {
   'help.glossaryTitle': 'Glossary',
   'help.fileModelTitle': 'Where files live',
 
-  // Карточка: оригинал vs ссылка
+  // Карточка: оригинал vs симлинк
   'detail.original': 'original',
-  'detail.linkBadge': 'link',
-  'detail.installExplain':
-    'The real files live in ~/.agents/skills; each agent folder holds a link to them.',
+  'detail.linkBadge': 'symlink',
 
   // Пустые состояния (действия)
   'sources.emptyHint':
@@ -768,9 +766,7 @@ const ru: Record<keyof typeof en, string> = {
 
   // Карточка: оригинал vs ссылка
   'detail.original': 'оригинал',
-  'detail.linkBadge': 'ссылка',
-  'detail.installExplain':
-    'Реальные файлы — в ~/.agents/skills; в каталоге каждого агента лежит ссылка на них.',
+  'detail.linkBadge': 'симлинк',
 
   // Пустые состояния (действия)
   'sources.emptyHint':

@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises'
+import { readdir, lstat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { KNOWN_AGENTS } from '@shared/domain/agent'
@@ -27,6 +27,10 @@ export async function scanInstalledSkills(
     const entries = await readdir(skillsDir, { withFileTypes: true }).catch(() => null)
     if (!entries) continue
 
+    const cleanDir = skillsDir.endsWith('/') ? skillsDir.slice(0, -1) : skillsDir
+    const stat = await lstat(cleanDir).catch(() => null)
+    const parentIsSymlink = stat?.isSymbolicLink() ?? false
+
     for (const entry of entries) {
       if (!entry.isDirectory() && !entry.isSymbolicLink()) continue
       if (entry.name.startsWith('.')) continue // служебные каталоги (напр. .system)
@@ -42,7 +46,7 @@ export async function scanInstalledSkills(
         // используем его как версию установки, когда явного ref нет (иначе поле всегда пустое).
         installedVersion: rec?.ref || rec?.skillFolderHash || null,
         installPath: join(skillsDir, entry.name),
-        isSymlink: entry.isSymbolicLink()
+        isSymlink: entry.isSymbolicLink() || parentIsSymlink
       }
       const list = result.get(key)
       if (list) list.push(installation)

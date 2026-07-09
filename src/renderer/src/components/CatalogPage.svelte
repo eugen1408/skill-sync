@@ -165,7 +165,7 @@
       {t('catalog.refresh')}
     </button>
     <span class="text-sm opacity-60">{t('catalog.total', { count: catalog.result.total })}</span>
-    <InfoTip title={t('help.tip.catalog.title')} body={t('help.tip.catalog.body')} />
+    <InfoTip title={t('help.tip.catalog.title')} body={t('help.tip.catalog.body')} align="right" />
   </div>
 
   {#if initialLoading}

@@ -263,9 +263,9 @@
       {/if}
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">{t('detail.status')}</dt>
-        <dd class="inline-flex items-center gap-1" title={updateStatusHint(entry)}>
+        <dd class="inline-flex items-center gap-1">
           {updateStatusLabel(entry.updateStatus)}
-          <Icon name="info" size={13} class="opacity-50" />
+          <InfoTip body={updateStatusHint(entry)} align="right" />
         </dd>
       </div>
       <div class="flex justify-between gap-4">
@@ -381,20 +381,12 @@
     {#snippet installRow(label: string, path: string, isSymlink: boolean, isPrimary = false)}
       <li class="flex items-center gap-2">
         <span class="shrink-0">{label}</span>
-        {#if isSymlink}
-          <!-- Симлинк (агентская папка ссылается на общий каталог) — путь некликабелен. -->
-          <span class="flex min-w-0 items-center gap-1">
-            <span class="truncate text-xs opacity-50" title={path}>{path}</span>
-            <span class="badge preset-tonal shrink-0 text-[0.65rem]">{t('detail.linkBadge')}</span>
-          </span>
-        {:else}
-          <!-- Путь + кнопка VS Code рядом (группа хагает контент, не растягиваясь на всю ширину). -->
-          <span class="flex min-w-0 items-center gap-1">
-            {#if isPrimary}
-              <span class="badge preset-tonal-primary shrink-0 text-[0.65rem]"
-                >{t('detail.original')}</span
-              >
-            {/if}
+        <span class="flex min-w-0 items-center gap-1">
+          {#if isSymlink}
+            <span class="truncate text-left text-xs opacity-60" title={path}>
+              {path}
+            </span>
+          {:else}
             <button
               class="truncate text-left text-xs opacity-60 hover:underline"
               title={path}
@@ -409,8 +401,14 @@
             >
               <Icon name="vscode" size={15} />
             </button>
-          </span>
-        {/if}
+          {/if}
+          
+          {#if isPrimary}
+            <span class="badge preset-tonal-primary shrink-0 text-[0.65rem]">{t('detail.original')}</span>
+          {:else if isSymlink}
+            <span class="badge preset-tonal shrink-0 text-[0.65rem]">{t('detail.linkBadge')}</span>
+          {/if}
+        </span>
       </li>
     {/snippet}
 
@@ -423,7 +421,6 @@
             body={t('help.tip.installedForAgents.body')}
           />
         </p>
-        <p class="mb-1.5 text-xs opacity-50">{t('detail.installExplain')}</p>
         <ul class="space-y-1 text-sm">
           {#if canonicalPath}
             {@render installRow(t('detail.primary'), canonicalPath, false, true)}

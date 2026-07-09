@@ -46,7 +46,8 @@
   </button>
   {#if open}
     <div
-      class="absolute z-20 mt-1 min-w-52 rounded border border-surface-200-800 bg-surface-100-900 p-1 shadow-xl"
+      class="absolute mt-1 min-w-52 rounded border border-surface-200-800 bg-surface-100-900 p-1 shadow-xl"
+      style="z-index: 999;"
     >
       {#if options.length === 0}
         <p class="px-2 py-1 text-sm opacity-50">—</p>
