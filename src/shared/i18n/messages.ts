@@ -107,7 +107,8 @@ const en = {
   'statusHint.update_available': 'A newer version is available.',
   'statusHint.not_installed': 'The skill is not installed.',
   'statusHint.unknown.official': 'skills.sh does not report a version for this skill.',
-  'statusHint.unknown.orphan': 'Installed, but its source is unknown — the version cannot be determined.',
+  'statusHint.unknown.orphan':
+    'Installed, but its source is unknown — the version cannot be determined.',
   'statusHint.unknown.notChecked': 'Updates have not been checked yet.',
   'statusHint.unknown.generic': 'This source cannot determine the latest version.',
 
@@ -447,8 +448,7 @@ const ru: Record<keyof typeof en, string> = {
   'catalog.groupBySource': 'Группировать по источникам',
   'catalog.installWordOne': 'установка',
   'catalog.total': 'Всего: {count}',
-  'catalog.empty':
-    'Ничего не найдено. Добавьте свои источники скилов или воспользуйтесь поиском.',
+  'catalog.empty': 'Ничего не найдено. Добавьте свои источники скилов или воспользуйтесь поиском.',
   'catalog.filterStatus': 'Статус',
   'catalog.filterSources': 'Источники',
 
@@ -499,8 +499,7 @@ const ru: Record<keyof typeof en, string> = {
   'statusHint.update_available': 'Доступна новая версия.',
   'statusHint.not_installed': 'Skill не установлен.',
   'statusHint.unknown.official': 'skills.sh не сообщает версию для этого skill.',
-  'statusHint.unknown.orphan':
-    'Установлен, но источник неизвестен — версию определить нельзя.',
+  'statusHint.unknown.orphan': 'Установлен, но источник неизвестен — версию определить нельзя.',
   'statusHint.unknown.notChecked': 'Проверка обновлений ещё не выполнялась.',
   'statusHint.unknown.generic': 'Этот источник не умеет определять последнюю версию.',
 
@@ -729,7 +728,7 @@ const ru: Record<keyof typeof en, string> = {
     'Реальные файлы skill лежат один раз в ~/.agents/skills/<имя>. Это единый источник истины.',
   'help.term.symlink.title': 'Симлинк',
   'help.term.symlink.body':
-    'Ссылка, а не копия. В каталоге каждого агента (напр. ~/.claude/skills, ~/.codex/skills) лежит ссылка на основную копию — поэтому одна установка затрагивает несколько папок.',
+    'Ссылка вместо копии. В каталоге каждого агента (напр. ~/.claude/skills, ~/.codex/skills) лежит ссылка на основную копию — поэтому одна установка затрагивает несколько папок.',
   'help.term.agent.title': 'Целевой агент',
   'help.term.agent.body':
     'Для каких инструментов (Claude Code, Codex, Cursor…) устанавливается skill. При установке в папке каждого выбранного агента создаётся ссылка.',
