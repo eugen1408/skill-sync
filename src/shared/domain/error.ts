@@ -35,6 +35,8 @@ export interface AppError {
   message: string
   cause: string | null
   details?: AppErrorDetails
+  /** Стектрейс исходной ошибки (main-процесс) — для показа в DevTools-консоли renderer'а. */
+  stack?: string
 }
 
 export function makeAppError(
@@ -43,10 +45,14 @@ export function makeAppError(
   cause?: unknown,
   details?: AppErrorDetails
 ): AppError {
+  // Стек берём у исходной причины (если это Error), иначе — текущий, чтобы точка возникновения
+  // ошибки не терялась при сериализации в renderer.
+  const stack = cause instanceof Error && cause.stack ? cause.stack : new Error(message).stack
   return {
     code,
     message,
     cause: cause == null ? null : cause instanceof Error ? cause.message : String(cause),
-    ...(details ? { details } : {})
+    ...(details ? { details } : {}),
+    ...(stack ? { stack } : {})
   }
 }

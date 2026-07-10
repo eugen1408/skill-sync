@@ -1,9 +1,16 @@
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-type Level = 'debug' | 'info' | 'warn' | 'error'
+export type Level = 'debug' | 'info' | 'warn' | 'error'
 
 const LEVEL_ORDER: Record<Level, number> = { debug: 0, info: 1, warn: 2, error: 3 }
+
+const LEVELS: readonly Level[] = ['debug', 'info', 'warn', 'error']
+
+/** Валидирует строку уровня логирования (напр. из env), иначе null. */
+export function parseLevel(value: string | undefined | null): Level | null {
+  return value && (LEVELS as readonly string[]).includes(value) ? (value as Level) : null
+}
 
 let logFile: string | null = null
 let minLevel: Level = 'info'

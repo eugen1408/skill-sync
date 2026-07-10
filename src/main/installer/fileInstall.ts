@@ -59,7 +59,10 @@ export async function installFromFolder(
       }
     }
     done += 1
-    ctx.progress(20 + Math.round((done / targets.length) * 80), `Агент: ${agent.label}`)
+    // Канонический каталог `.agents/skills` общий для универсальных агентов (Warp, Zed, Universal…):
+    // показываем обобщённое «Основные агенты» вместо имени конкретного агента.
+    const label = isCanonical ? 'Основные агенты' : `Агент: ${agent.label}`
+    ctx.progress(20 + Math.round((done / targets.length) * 80), label)
   }
 
   return {

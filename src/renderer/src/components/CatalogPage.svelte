@@ -50,6 +50,12 @@
   const rowH = $derived(compact ? 132 : 96)
 
   const items = $derived(catalog.result.items)
+  // Число skills с доступным обновлением — для доступности кнопки «Обновить все».
+  const updatesAvailable = $derived(
+    items.filter((e) => e.updateStatus === 'update_available').length
+  )
+  // Идёт пакетное обновление (та же операция, что и в меню трея) — блокируем повторный запуск.
+  const updateRunning = $derived(jobs.active.some((j) => j.kind === 'update.run'))
   const win = $derived(computeWindow(scrollTop, viewportH, rowH, items.length))
   const visible = $derived(items.slice(win.start, win.end))
 
@@ -155,8 +161,19 @@
         {t('catalog.groupBySource')}
       </button>
     </div>
+    {#if updatesAvailable > 0}
+      <button
+        class="btn btn-sm preset-filled-primary-500 ml-auto gap-1"
+        onclick={() => void toasts.guard(() => api.update.runAll(), t('error.updateStart'))}
+        disabled={updateRunning}
+        title={t('catalog.updateAllTitle')}
+      >
+        <Icon name="download" class={updateRunning ? 'animate-spin' : ''} />
+        {t('catalog.updateAll')} ({updatesAvailable})
+      </button>
+    {/if}
     <button
-      class="btn btn-sm preset-tonal ml-auto gap-1"
+      class="btn btn-sm preset-tonal gap-1 {updatesAvailable > 0 ? '' : 'ml-auto'}"
       onclick={() => void catalog.refresh()}
       disabled={catalog.loading}
       title={t('catalog.refreshTitle')}

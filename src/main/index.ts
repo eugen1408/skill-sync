@@ -24,7 +24,7 @@ import { SecretStore, GITHUB_TOKEN_KEY, applyGithubTokenEnv } from './secrets/Se
 import { applyProxy } from './net/proxy'
 import { registerIpc } from './ipc/register'
 import { buildCsp } from './csp'
-import { initLogger, logger } from './logger'
+import { initLogger, logger, parseLevel } from './logger'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -174,7 +174,10 @@ ipcMain.handle(IpcInvoke.app.consumePendingDeeplinks, (): DeeplinkEvent[] => {
 })
 
 app.whenReady().then(() => {
-  initLogger(join(app.getPath('userData'), 'logs'))
+  // В dev (не запакован) по умолчанию подробные debug-логи; LOG_LEVEL их переопределяет.
+  const logLevel = parseLevel(process.env.LOG_LEVEL) ?? (app.isPackaged ? 'info' : 'debug')
+  initLogger(join(app.getPath('userData'), 'logs'), logLevel)
+  logger.info(`Уровень логирования: ${logLevel}${app.isPackaged ? '' : ' (dev)'}`)
 
   // Расширяем PATH из login-shell + стандартных каталогов: GUI-приложение macOS не наследует
   // shell-PATH, из-за чего npx/skills из /opt/homebrew/bin не находятся (follow-up A2).

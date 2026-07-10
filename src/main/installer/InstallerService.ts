@@ -316,7 +316,7 @@ export class InstallerService {
     const { jobId } = this.deps.jobRunner.start<ReconcileSummary>(
       'install.reconcileAgents',
       async (ctx) => {
-        const locale = resolveLocale(this.deps.config.read().ui.language)
+        const locale = resolveLocale(this.deps.configStore.get().ui.language)
         const skills = this.installedSkills()
         ctx.progress(
           null,

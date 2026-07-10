@@ -68,6 +68,182 @@ describe('SkillFolderHashStrategy', () => {
     expect(s.compare('SAME', 'SAME')).toBe(false)
   })
 
+  it('запиненный тег: latest считается по HEAD, обновление папки без смены тега видно', async () => {
+    const seen: string[] = []
+    const ports = fakePorts({
+      github: {
+        getFolderTreeSha: async (_o, _r, ref) => {
+          seen.push(ref)
+          return 'HEADSHA'
+        }
+      }
+    })
+    const s = new SkillFolderHashStrategy(ports)
+    const c = ctx({
+      lockEntry: { source: 'o/r', sourceType: 'github', ref: 'v1.0.0', skillFolderHash: 'OLDSHA' },
+      repo: { url: 'https://github.com/o/r', ref: 'v1.0.0', skillPath: 'skills/x/SKILL.md' }
+    })
+    expect(await s.resolveInstalled(c)).toBe('OLDSHA')
+    expect(await s.resolveLatest(c)).toBe('HEADSHA')
+    expect(seen).toEqual(['HEAD']) // не 'v1.0.0'
+    expect(s.compare('OLDSHA', 'HEADSHA')).toBe(true)
+  })
+
+  it('запиненный коммит-SHA также резолвит latest по HEAD', async () => {
+    const seen: string[] = []
+    const ports = fakePorts({
+      github: {
+        getFolderTreeSha: async (_o, _r, ref) => {
+          seen.push(ref)
+          return 'HEADSHA'
+        }
+      }
+    })
+    const s = new SkillFolderHashStrategy(ports)
+    const c = ctx({
+      repo: { url: 'https://github.com/o/r', ref: 'a1b2c3d4e5', skillPath: 'skills/x/SKILL.md' }
+    })
+    await s.resolveLatest(c)
+    expect(seen).toEqual(['HEAD'])
+  })
+
+  it('подвижная ветка трекается как есть (ref не подменяется)', async () => {
+    const seen: string[] = []
+    const ports = fakePorts({
+      github: {
+        getFolderTreeSha: async (_o, _r, ref) => {
+          seen.push(ref)
+          return 'SHA'
+        }
+      }
+    })
+    const s = new SkillFolderHashStrategy(ports)
+    const c = ctx({
+      repo: { url: 'https://github.com/o/r', ref: 'develop', skillPath: 'skills/x/SKILL.md' }
+    })
+    await s.resolveLatest(c)
+    expect(seen).toEqual(['develop'])
+  })
+
+  it('git-источник с клоном: content hash установленной копии vs клон источника', async () => {
+    // Установленная копия и клон дают разный хэш → обновление есть.
+    const byDir: Record<string, string> = { '/inst': 'INSTHASH', '/clone': 'CLONEHASH' }
+    const ports = fakePorts({
+      files: {
+        computeFolderHash: async (dir: string) => byDir[dir] ?? 'X',
+        readChangelogTopVersion: async () => null
+      }
+    })
+    const s = new SkillFolderHashStrategy(ports)
+    const c = ctx({
+      installPath: '/inst',
+      lockEntry: { source: 'o/r', sourceType: 'git', skillFolderHash: '', skillPath: 'SKILL.md' },
+      repo: {
+        url: 'git@gitlab.example.ru:o/r.git',
+        ref: null,
+        skillPath: 'SKILL.md',
+        localDir: '/clone'
+      }
+    })
+    expect(s.isApplicable(c)).toBe(true)
+    expect(await s.resolveInstalled(c)).toBe('INSTHASH')
+    expect(await s.resolveLatest(c)).toBe('CLONEHASH')
+    expect(s.compare('INSTHASH', 'CLONEHASH')).toBe(true)
+  })
+
+  it('git-источник с клоном: одинаковый контент → обновления нет', async () => {
+    const ports = fakePorts({
+      files: { computeFolderHash: async () => 'SAME', readChangelogTopVersion: async () => null }
+    })
+    const s = new SkillFolderHashStrategy(ports)
+    const c = ctx({
+      installPath: '/inst',
+      repo: {
+        url: 'git@gitlab.example.ru:o/r.git',
+        ref: null,
+        skillPath: 'SKILL.md',
+        localDir: '/clone'
+      }
+    })
+    expect(s.compare(await s.resolveInstalled(c), await s.resolveLatest(c))).toBe(false)
+  })
+
+  it('git-источник: устаревший lock.skillFolderHash игнорируется, installed берётся с диска', async () => {
+    // Регресс: раньше resolveInstalled возвращал замороженный lock.skillFolderHash (посчитан
+    // другим алгоритмом CLI), а latest — computeFolderHash клона → вечное «есть обновление».
+    const byDir: Record<string, string> = { '/inst': 'DISK', '/clone': 'DISK' }
+    const ports = fakePorts({
+      files: {
+        computeFolderHash: async (dir: string) => byDir[dir] ?? 'X',
+        readChangelogTopVersion: async () => null
+      }
+    })
+    const s = new SkillFolderHashStrategy(ports)
+    const c = ctx({
+      installPath: '/inst',
+      lockEntry: {
+        source: 'o/r',
+        sourceType: 'git',
+        skillFolderHash: 'STALE_CLI_HASH',
+        skillPath: 'SKILL.md'
+      },
+      repo: { url: 'git@gitlab.example.ru:o/r.git', ref: null, skillPath: 'SKILL.md', localDir: '/clone' }
+    })
+    expect(await s.resolveInstalled(c)).toBe('DISK') // не 'STALE_CLI_HASH'
+    expect(await s.resolveLatest(c)).toBe('DISK')
+    expect(s.compare('DISK', 'DISK')).toBe(false)
+  })
+
+  it('github-репозиторий как git-источник с клоном: обе стороны — tree SHA (не content hash)', async () => {
+    // Регресс: analyst — github-URL, добавленный как git (есть клон/localDir). resolveLatest шёл
+    // по github-ветке (tree SHA), а resolveInstalled — по content hash → вечное «есть обновление».
+    const calls: string[] = []
+    const ports = fakePorts({
+      github: {
+        getFolderTreeSha: async () => {
+          calls.push('tree')
+          return 'TREESHA'
+        }
+      },
+      files: {
+        computeFolderHash: async () => {
+          calls.push('content')
+          return 'CONTENTHASH'
+        },
+        readChangelogTopVersion: async () => null
+      }
+    })
+    const s = new SkillFolderHashStrategy(ports)
+    const c = ctx({
+      installPath: '/inst',
+      lockEntry: {
+        source: 'eugen1408/analyst',
+        sourceType: 'github',
+        skillFolderHash: 'TREESHA',
+        skillPath: 'SKILL.md'
+      },
+      repo: {
+        url: 'https://github.com/eugen1408/analyst.git',
+        ref: null,
+        skillPath: 'SKILL.md',
+        localDir: '/clone' // клон есть, но github-ветка должна победить
+      }
+    })
+    expect(await s.resolveInstalled(c)).toBe('TREESHA') // из lock, не computeFolderHash
+    expect(await s.resolveLatest(c)).toBe('TREESHA')
+    expect(s.compare('TREESHA', 'TREESHA')).toBe(false)
+    expect(calls).not.toContain('content') // content hash не считался
+  })
+
+  it('git-источник без клона неприменим (нет base для сравнения)', () => {
+    const s = new SkillFolderHashStrategy(fakePorts())
+    const c = ctx({
+      installPath: '/inst',
+      repo: { url: 'git@gitlab.example.ru:o/r.git', ref: null, skillPath: 'SKILL.md' }
+    })
+    expect(s.isApplicable(c)).toBe(false)
+  })
+
   it('локальный источник использует computedHash содержимого', async () => {
     const ports = fakePorts({
       files: { computeFolderHash: async () => 'H', readChangelogTopVersion: async () => null }

@@ -6,6 +6,7 @@ import type { Source } from '@shared/domain/source'
 import type { IndexContext } from './types'
 import { makeAppError } from '@shared/domain/error'
 import { resolvedPath } from '../installer/resolvePath'
+import { KeyedQueue } from '../util/keyedQueue'
 
 const exec = promisify(execFile)
 const GIT_TIMEOUT = 120_000
@@ -16,6 +17,13 @@ const GIT_TIMEOUT = 120_000
  */
 export class GitCache {
   constructor(private readonly baseDir: string) {}
+
+  /**
+   * Сериализация `ensure` по source.id: несколько skills из одного репозитория делят рабочий
+   * каталог клона, а параллельные `git fetch`/`reset --hard` конфликтуют по `.git/index.lock`
+   * и падают. Из-за этого «обновить все» останавливалось после первого skill общего репозитория.
+   */
+  private readonly ensureQueue = new KeyedQueue()
 
   dirFor(source: Source): string {
     return join(this.baseDir, source.id)
@@ -31,7 +39,11 @@ export class GitCache {
   }
 
   /** Гарантирует актуальный локальный клон; возвращает каталог для обхода (с учётом subpath). */
-  async ensure(source: Source, ctx: IndexContext): Promise<string> {
+  ensure(source: Source, ctx: IndexContext): Promise<string> {
+    return this.ensureQueue.run(source.id, () => this.ensureInner(source, ctx))
+  }
+
+  private async ensureInner(source: Source, ctx: IndexContext): Promise<string> {
     const url = source.config.url?.trim()
     if (!url) throw makeAppError('SOURCE_UNAVAILABLE', 'Не задан URL Git-репозитория')
 

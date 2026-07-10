@@ -127,6 +127,9 @@ export async function computeFolderHash(dir: string): Promise<string> {
 async function walk(dir: string, out: string[]): Promise<void> {
   const entries = await readdir(dir, { withFileTypes: true })
   for (const entry of entries) {
+    // Пропускаем dot-элементы (.git, .gitignore, .github…): их нет в установленной копии
+    // skill, поэтому включение в хэш давало бы ложное расхождение install ↔ клон источника.
+    if (entry.name.startsWith('.')) continue
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue
       await walk(join(dir, entry.name), out)

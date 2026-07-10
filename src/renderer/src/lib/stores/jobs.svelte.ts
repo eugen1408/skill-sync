@@ -53,6 +53,11 @@ class JobsStore {
         job.status = 'error'
         job.error = e.error.message
         job.errorDetails = e.error.details ?? null
+        // Выводим стектрейс исходной (main-процесс) ошибки в DevTools-консоль для диагностики.
+        const err = new Error(`[${e.kind}] ${e.error.message}`)
+        if (e.error.stack) err.stack = e.error.stack
+        // eslint-disable-next-line no-console
+        console.error(err, { code: e.error.code, cause: e.error.cause, details: e.error.details })
         this.trimFinished()
       })
     )

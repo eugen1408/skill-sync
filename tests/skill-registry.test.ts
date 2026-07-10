@@ -83,6 +83,24 @@ describe('queryCatalog', () => {
     expect(page.total).toBe(3)
   })
 
+  it('сортировка update-first: обновление → актуально → установить, внутри — по популярности и алфавиту', () => {
+    const mix: CatalogEntry[] = [
+      mkEntry('s1', 'NotInstalledPopular', { installed: false, installs: 500 }),
+      mkEntry('s1', 'UpToDateB', { installed: true, hasUpdate: false, installs: 10 }),
+      mkEntry('s1', 'NeedsUpdate', { installed: true, hasUpdate: true, installs: 1 }),
+      mkEntry('s1', 'UpToDateA', { installed: true, hasUpdate: false, installs: 10 }),
+      mkEntry('s1', 'NotInstalledRare', { installed: false, installs: 5 })
+    ]
+    const items = queryCatalog(mix, q({ sort: 'update-first' })).items
+    expect(items.map((e) => e.name)).toEqual([
+      'NeedsUpdate', // требуют обновления
+      'UpToDateA', // актуально (installs равны → по алфавиту A < B)
+      'UpToDateB',
+      'NotInstalledPopular', // установить: по популярности skills.sh
+      'NotInstalledRare'
+    ])
+  })
+
   it('сортировка installs-desc: больше установок выше, без счётчика — в конце', () => {
     const withInstalls: CatalogEntry[] = [
       mkEntry('s1', 'Low', { installs: 10 }),

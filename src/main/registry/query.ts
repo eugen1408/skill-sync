@@ -27,15 +27,19 @@ function sortEntries(entries: CatalogEntry[], sort: CatalogQuery['sort']): Catal
       return [...entries].sort((a, b) => byName(b, a))
     case 'update-first':
       return [...entries].sort((a, b) => {
-        if (a.hasUpdate && !b.hasUpdate) return -1
-        if (!a.hasUpdate && b.hasUpdate) return 1
-        
+        // Группы: требуют обновления → актуально (установлено без обновления) → установить (не установлено).
+        const rank = (e: CatalogEntry): number => (e.hasUpdate ? 0 : e.installed ? 1 : 2)
+        const ra = rank(a)
+        const rb = rank(b)
+        if (ra !== rb) return ra - rb
+
+        // Внутри группы — популярность skills.sh, затем по алфавиту.
         const aInstalls = a.installs ?? -1
         const bInstalls = b.installs ?? -1
         if (aInstalls !== bInstalls) {
           return bInstalls - aInstalls
         }
-        
+
         return byName(a, b)
       })
     case 'installs-desc':
