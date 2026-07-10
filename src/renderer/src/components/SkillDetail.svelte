@@ -21,6 +21,8 @@
   } from '../lib/labels'
   import { t } from '../lib/i18n.svelte'
   import { getAgent, agentDir, KNOWN_AGENTS } from '@shared/domain/agent'
+  import { getSourceDomain } from '@shared/domain/source'
+  import { sources } from '../lib/stores/sources.svelte'
   import { installWithAuditGuard, uninstallWithConfirm } from '../lib/install'
   import Devicon from './Devicon.svelte'
   import Icon from './Icon.svelte'
@@ -145,6 +147,16 @@
   // Общий каталог .agents/skills — отдельной первой строкой «Основные» (canonicalPath из main);
   // агентские симлинки, совпадающие с ним, не дублируем.
   const otherInstalls = $derived(installations.filter((i) => i.installPath !== canonicalPath))
+  
+  const detailedSource = $derived.by(() => {
+    if (!entry) return ''
+    const baseLabel = sourceTypeLabel(entry.sourceType)
+    if (entry.sourceType !== 'git') return baseLabel
+    const source = sources.items.find((s) => s.id === entry.sourceId)
+    if (!source) return baseLabel
+    const domain = getSourceDomain(source)
+    return `${baseLabel} ${domain}/${source.name}`
+  })
 
   async function copyText(text: string): Promise<void> {
     try {
@@ -274,7 +286,7 @@
     <dl class="space-y-2 text-sm">
       <div class="flex justify-between gap-4">
         <dt class="shrink-0 opacity-60">{t('detail.source')}</dt>
-        <dd>{sourceTypeLabel(entry.sourceType)}</dd>
+        <dd>{detailedSource}</dd>
       </div>
       {#if entry.installs != null}
         <div class="flex justify-between gap-4">

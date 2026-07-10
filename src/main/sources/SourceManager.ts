@@ -26,6 +26,8 @@ function basename(p: string): string {
   )
 }
 
+import { formatRepoName } from '@shared/domain/gitSource'
+
 function defaultName(input: AddSourceInput): string {
   if (input.name.trim()) return input.name.trim()
   if (input.type === 'local') {
@@ -35,7 +37,7 @@ function defaultName(input: AddSourceInput): string {
   }
   if (input.type === 'git') {
     return input.config.url 
-      ? basename(input.config.url.replace(/\.git$/i, '')) 
+      ? formatRepoName(input.config.url) 
       : mt(resolveLocale('system'), 'source.defaultGitName' as any)
   }
   return 'skills.sh'
@@ -63,6 +65,22 @@ export class SourceManager {
 
   /** Запускает watch для включённых локальных источников с watch=true. */
   init(): void {
+    let changed = false
+    const migratedSources = this.list().map((source) => {
+      if (source.type === 'git' && source.config.url) {
+        const correctName = formatRepoName(source.config.url)
+        if (source.name !== correctName) {
+          changed = true
+          return { ...source, name: correctName }
+        }
+      }
+      return source
+    })
+
+    if (changed) {
+      this.configStore.update({ sources: migratedSources })
+    }
+
     for (const source of this.list()) {
       this.syncWatch(source)
     }

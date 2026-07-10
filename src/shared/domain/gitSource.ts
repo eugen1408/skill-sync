@@ -18,9 +18,18 @@ const TREE_RE = /^(https?:\/\/[^\s]+?)\/(?:-\/)?(?:tree|blob)\/([^/]+)(?:\/(.+?)
 const SCP_RE = /^(?:git@|ssh:\/\/)/i
 const SHORTHAND_RE = /^[\w.-]+\/[\w.-]+$/
 
-function basename(url: string): string {
-  const part = url.split(/[/:]/).filter(Boolean).pop() ?? ''
-  return part.replace(/\.git$/i, '')
+export function formatRepoName(url: string): string {
+  let s = url.trim().replace(/\.git$/i, '').replace(/\/+$/, '')
+  if (/^https?:\/\//i.test(s)) {
+    try {
+      return new URL(s).pathname.replace(/^\/+/, '')
+    } catch {}
+  }
+  const mSsh = /^(?:[^@/]+@)([^:/]+)[:/](.+)$/i.exec(s)
+  if (mSsh) return mSsh[2]
+  const mSshProto = /^ssh:\/\/(?:[^@/]+@)?([^:/]+)[:/](.+)$/i.exec(s)
+  if (mSshProto) return mSshProto[2]
+  return s
 }
 
 /**
@@ -53,7 +62,7 @@ export function parseGitSourceInput(raw: string): ParsedGitSource | null {
       ref: null,
       subpath: null,
       authMode: 'https',
-      name: basename(s)
+      name: formatRepoName(s)
     }
   }
 
@@ -72,7 +81,7 @@ export function parseGitSourceInput(raw: string): ParsedGitSource | null {
   }
 
   url = url.replace(/\/+$/, '')
-  const name = basename(url)
+  const name = formatRepoName(url)
   if (!name) return null
   return { url, ref, subpath, authMode, name }
 }

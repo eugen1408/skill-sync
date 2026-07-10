@@ -18,6 +18,7 @@ import { logger } from '../logger'
 import { mapWithConcurrency } from '../util/pool'
 import { resolveConcurrency } from '../util/concurrency'
 import { buildResolveContext } from './resolveContext'
+import { resolveLocale, mt } from '../i18n'
 
 export interface UpdateEngineDeps {
   jobRunner: JobRunner
@@ -141,22 +142,24 @@ export class UpdateEngine {
         if (toUpdate.length > 0) {
           this.deps.jobRunner.start('update.run', async (runCtx) => {
             const summary = await this.runEntries(toUpdate, runCtx, true)
-            let msg = `Обновлено: ${summary.ok}. Ошибок: ${summary.failed}.`
+            const locale = resolveLocale(this.deps.configStore.get().ui.language)
+            let msg = mt(locale, 'jobs.update.autoResult' as any, { ok: summary.ok, failed: summary.failed })
             if (skippedOfficial.length > 0) {
-              msg += ` Пропущено из-за риска (Medium+): ${skippedOfficial.map((e) => e.name).join(', ')}.`
+              msg += mt(locale, 'jobs.update.autoSkippedRisk' as any, { names: skippedOfficial.map((e) => e.name).join(', ') })
             }
             this.deps.notifications.add({
               type: 'update_success',
-              title: 'Автообновление завершено',
+              title: mt(locale, 'jobs.update.autoCompleted' as any),
               message: msg
             })
             return summary
           })
         } else if (skippedOfficial.length > 0) {
+          const locale = resolveLocale(this.deps.configStore.get().ui.language)
           this.deps.notifications.add({
             type: 'update_available',
-            title: 'Автообновление пропущено',
-            message: `Доступны обновления, но пропущены из-за риска: ${skippedOfficial.map((e) => e.name).join(', ')}.`
+            title: mt(locale, 'jobs.update.autoSkipped' as any),
+            message: mt(locale, 'jobs.update.autoSkippedMsg' as any, { names: skippedOfficial.map((e) => e.name).join(', ') })
           })
         }
       }
@@ -220,7 +223,11 @@ export class UpdateEngine {
       if (ctx.signal.aborted) return null
       const result = await this.checkEntry(entry, checkedAt)
       done += 1
-      ctx.progress(Math.round((done / Math.max(1, entries.length)) * 100), `Проверено ${done}`)
+      const locale = resolveLocale(this.deps.configStore.get().ui.language)
+      ctx.progress(
+        Math.round((done / Math.max(1, entries.length)) * 100),
+        mt(locale, 'jobs.update.checkedCount' as any, { count: done })
+      )
       return result
     })
 
@@ -247,10 +254,11 @@ export class UpdateEngine {
     }
 
     if (info.hasUpdate) {
+      const locale = resolveLocale(this.deps.configStore.get().ui.language)
       this.deps.notifications.add(
         {
           type: 'update_available',
-          title: 'Доступна новая версия',
+          title: mt(locale, 'jobs.update.newVersionTitle' as any),
           message: `${entry.name}: ${info.installedVersion ?? '—'} → ${info.latestVersion ?? '—'}`,
           skillId: entry.id,
           sourceId: entry.sourceId
@@ -299,17 +307,18 @@ export class UpdateEngine {
       }
       const result = await this.deps.installer.startInstall(request).promise
       done += 1
+      const locale = resolveLocale(this.deps.configStore.get().ui.language)
       ctx.progress(
         Math.round((done / Math.max(1, entries.length)) * 100),
-        `Обновлено ${done}/${entries.length}`
+        mt(locale, 'jobs.update.runProgress' as any, { done, total: entries.length })
       )
 
       if (!result || result.status === 'failed') {
         if (!silent) {
           this.deps.notifications.add({
             type: 'update_error',
-            title: 'Ошибка обновления',
-            message: `Не удалось обновить ${entry.name}`,
+            title: mt(locale, 'jobs.update.errorTitle' as any),
+            message: mt(locale, 'jobs.update.errorMsg' as any, { name: entry.name }),
             skillId: entry.id
           })
         }
@@ -319,8 +328,8 @@ export class UpdateEngine {
       if (!silent) {
         this.deps.notifications.add({
           type: 'update_success',
-          title: 'Обновление установлено',
-          message: `${entry.name} обновлён`,
+          title: mt(locale, 'jobs.update.successTitle' as any),
+          message: mt(locale, 'jobs.update.successMsg' as any, { name: entry.name }),
           skillId: entry.id
         })
       }
