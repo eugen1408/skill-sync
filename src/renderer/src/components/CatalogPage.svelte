@@ -202,7 +202,9 @@
       {#if catalog.groupBySource}
         {#each groupedCatalog as [domain, groupEntries] (domain)}
           <div class="card preset-outlined-surface-200-800 p-0 overflow-hidden mb-4">
-            <details class="group" open>
+            <details class="group" 
+                     open={ui.catalogGroupsOpen[domain] !== false}
+                     ontoggle={(e) => ui.catalogGroupsOpen[domain] = e.currentTarget.open}>
               <summary
                 class="flex items-center justify-between p-4 cursor-pointer hover:preset-tonal-surface"
               >

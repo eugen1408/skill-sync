@@ -38,6 +38,8 @@ function fakeSourceManager(
   const manager = {
     list: () => sources,
     listSkills: (id: string) => skillsBySource[id] ?? [],
+    hasIndexed: () => true,
+    get: (id: string) => sources.find((s) => s.id === id),
     onIndexed: (cb: (r: IndexResult) => void) => {
       listener = cb
       return () => {

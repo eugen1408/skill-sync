@@ -141,8 +141,9 @@ export function registerIpc(deps: IpcDeps): void {
 
   ipcMain.handle(IpcInvoke.source.list, () => sourceManager.list())
   ipcMain.handle(IpcInvoke.source.add, (_e, input: AddSourceInput) => sourceManager.add(input))
-  ipcMain.handle(IpcInvoke.source.remove, (_e, id: string) => {
+  ipcMain.handle(IpcInvoke.source.remove, async (_e, id: string) => {
     sourceManager.remove(id)
+    await skillRegistry.refreshIndex()
   })
   ipcMain.handle(IpcInvoke.source.setEnabled, (_e, id: string, enabled: boolean) =>
     sourceManager.setEnabled(id, enabled)

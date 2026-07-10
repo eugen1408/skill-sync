@@ -4,6 +4,7 @@
   import { sources } from '../lib/stores/sources.svelte'
   import { t } from '../lib/i18n.svelte'
   import InfoTip from './InfoTip.svelte'
+  import Icon from './Icon.svelte'
 
   let type = $state<'git' | 'local'>('git')
   let gitInput = $state('')
@@ -96,12 +97,18 @@
   </div>
 
   {#if type === 'git'}
-    <input
-      class="input"
-      placeholder={t('addSource.gitPlaceholder')}
-      bind:value={gitInput}
-      required
-    />
+    <div class="space-y-1">
+      <input
+        class="input"
+        placeholder={t('addSource.gitPlaceholder')}
+        bind:value={gitInput}
+        required
+      />
+      <p class="text-xs opacity-60 flex items-start gap-1">
+        <Icon name="info" class="shrink-0 mt-[2px]" size={12} />
+        {t('addSource.gitAuthHint')}
+      </p>
+    </div>
     {#if parsed}
       <dl class="space-y-1 rounded bg-surface-100-900 p-2 text-xs">
         <div class="flex justify-between gap-2">

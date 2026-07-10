@@ -6,6 +6,7 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
   import { sources } from '../lib/stores/sources.svelte'
   import { config } from '../lib/stores/config.svelte'
   import { toasts } from '../lib/stores/toasts.svelte'
+  import { ui } from '../lib/stores/ui.svelte'
   import { sourceTypeLabel, sourceStatusLabel } from '../lib/labels'
   import { t } from '../lib/i18n.svelte'
   import Icon from './Icon.svelte'
@@ -59,7 +60,9 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
     {:else}
       {#each groupedSources as [domain, group] (domain)}
         <div class="card preset-outlined-surface-200-800 p-0 overflow-hidden">
-          <details class="group" open>
+          <details class="group" 
+                   open={ui.sourcesGroupsOpen[domain] !== false}
+                   ontoggle={(e) => ui.sourcesGroupsOpen[domain] = e.currentTarget.open}>
             <summary
               class="flex items-center justify-between p-4 cursor-pointer hover:preset-tonal-surface"
             >

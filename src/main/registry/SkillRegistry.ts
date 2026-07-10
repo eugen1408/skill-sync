@@ -250,9 +250,20 @@ export class SkillRegistry {
     prevEntries: Map<string, CatalogEntry>
   ): CatalogEntry {
     const id = catalogEntryId(source.id, raw.name)
-    const prev = prevEntries.get(id)
-    const installations = this.installed.get(normalizeSkillKey(raw.name)) ?? []
+    let prev = prevEntries.get(id)
+    const slug = normalizeSkillKey(raw.name)
+    const installations = this.installed.get(slug) ?? []
     const installed = installations.length > 0
+
+    if (!prev && installed) {
+      for (const e of prevEntries.values()) {
+        if (normalizeSkillKey(e.name) === slug && e.installed) {
+          prev = e
+          break
+        }
+      }
+    }
+
     return {
       id,
       name: raw.name,
@@ -357,7 +368,17 @@ export class SkillRegistry {
     installations: AgentInstallation[],
     prevEntries: Map<string, CatalogEntry>
   ): CatalogEntry {
-    const prev = prevEntries.get(id)
+    let prev = prevEntries.get(id)
+    if (!prev) {
+      const slug = normalizeSkillKey(name)
+      for (const e of prevEntries.values()) {
+        if (normalizeSkillKey(e.name) === slug && e.installed) {
+          prev = e
+          break
+        }
+      }
+    }
+
     return {
       id,
       name,

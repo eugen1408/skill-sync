@@ -178,6 +178,7 @@ const en = {
   'addSource.add': 'Add',
   'addSource.parseErrorThrow': 'Failed to parse repository link',
   'addSource.selectFolder': 'Select a folder',
+  'addSource.gitAuthHint': 'System git authorization is used. If you are not logged in, please log in via your terminal or use an SSH certificate.',
 
   // Уведомления
   'notifications.title': 'Notifications',
@@ -562,6 +563,7 @@ const ru: Record<keyof typeof en, string> = {
   'addSource.add': 'Добавить',
   'addSource.parseErrorThrow': 'Не удалось разобрать ссылку на репозиторий',
   'addSource.selectFolder': 'Выберите каталог',
+  'addSource.gitAuthHint': 'Используется системная git авторизация. Если вы не авторизованы, выполните вход через терминал или используйте SSH сертификат.',
 
   'notifications.title': 'Уведомления',
   'notifications.markAllRead': 'Прочитать все',
