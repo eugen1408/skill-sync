@@ -168,7 +168,7 @@
         disabled={updateRunning}
         title={t('catalog.updateAllTitle')}
       >
-        <Icon name="download" class={updateRunning ? 'animate-spin' : ''} />
+        <Icon name={updateRunning ? 'refresh' : 'download'} class={updateRunning ? 'animate-spin' : ''} />
         {t('catalog.updateAll')} ({updatesAvailable})
       </button>
     {/if}

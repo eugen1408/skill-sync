@@ -221,7 +221,7 @@ export class UpdateEngine {
 
     const raw = await mapWithConcurrency(entries, CHECK_CONCURRENCY, async (entry) => {
       if (ctx.signal.aborted) return null
-      const result = await this.checkEntry(entry, checkedAt)
+      const result = await this.checkEntry(entry, checkedAt, ctx)
       done += 1
       const locale = resolveLocale(this.deps.configStore.get().ui.language)
       ctx.progress(
@@ -236,12 +236,20 @@ export class UpdateEngine {
     return { checkedAt, updatesAvailable, entries: results }
   }
 
-  private async checkEntry(entry: CatalogEntry, checkedAt: string): Promise<UpdateCheckEntry> {
+  private async checkEntry(entry: CatalogEntry, checkedAt: string, ctx: JobContext): Promise<UpdateCheckEntry | null> {
     const source = this.deps.sourceManager.get(entry.sourceId)
     const lockEntry = await findLockEntry(entry.name)
-    // Для git-источника — путь существующего клона (без сети): включает path-scoped git log
-    // и чтение CHANGELOG из клона вместо деградации к ls-remote HEAD (follow-up [6]).
-    const gitLocalDir = source?.type === 'git' ? await this.deps.gitCache.existingDir(source) : null
+    // Для git-источника — фетчим свежие коммиты перед проверкой (follow-up).
+    // Если фетч падает (сеть/доступы), пропускаем проверку (обновление не подтверждено).
+    let gitLocalDir: string | null = null
+    if (source?.type === 'git') {
+      try {
+        gitLocalDir = await this.deps.gitCache.ensure(source, ctx)
+      } catch (err) {
+        logger.warn(`Проверка обновления пропущена: не удалось обновить источник для ${entry.name}`, err)
+        return null
+      }
+    }
     const info = await this.deps.resolver.resolve(
       buildResolveContext(entry, source, lockEntry, gitLocalDir)
     )

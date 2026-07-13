@@ -131,7 +131,14 @@ import { OFFICIAL_SOURCE_ID, getSourceDomain } from '@shared/domain/source'
                       {/if}
                     {/if}
                     {#if source.config.localPath}
-                      <p class="text-xs opacity-60">{source.config.localPath}</p>
+                      <button
+                        class="text-xs opacity-60 hover:underline hover:opacity-100 flex items-center gap-1 cursor-pointer"
+                        title={source.config.localPath}
+                        onclick={() => void api.shell?.openPath(source.config.localPath!)}
+                      >
+                        {source.config.localPath}
+                        <Icon name="folder" size={10} />
+                      </button>
                     {/if}
                     {#if source.lastError}
                       <p class="text-xs text-error-500">{source.lastError}</p>

@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { t } from '../lib/i18n.svelte'
+  import { onMount } from 'svelte'
+  import { t, i18n } from '../lib/i18n.svelte'
+  import { api } from '../lib/api'
 
   // Раздел «Помощь»: онбординг-шаги, глоссарий и текстовая схема модели файлов.
   const steps: Array<{ title: Parameters<typeof t>[0]; body: Parameters<typeof t>[0] }> = [
@@ -16,6 +18,12 @@
     { title: 'help.term.symlink.title', body: 'help.term.symlink.body' },
     { title: 'help.term.agent.title', body: 'help.term.agent.body' }
   ]
+
+  let appVersion = $state<string>('0.0.0')
+
+  onMount(() => {
+    api.app.getVersion().then((v) => (appVersion = v))
+  })
 </script>
 
 <div class="mx-auto max-w-2xl space-y-6">
@@ -51,5 +59,45 @@
         </div>
       {/each}
     </dl>
+  </section>
+
+  <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
+    <h3 class="h5">{t('help.changelogTitle' as any)}</h3>
+    <p class="text-sm">
+      <a
+        href={`https://github.com/eugen1408/skill-sync/blob/v${appVersion}/CHANGELOG${i18n.locale === 'ru' ? '.ru' : ''}.md`}
+        target="_blank"
+        rel="noreferrer"
+        class="text-primary-500 hover:underline"
+      >
+        v{appVersion}
+      </a>
+    </p>
+  </section>
+
+  <section class="card preset-outlined-surface-200-800 space-y-3 p-4">
+    <h3 class="h5">{t('help.supportTitle' as any)}</h3>
+    <ul class="space-y-2 text-sm">
+      <li>
+        <a
+          href="https://github.com/eugen1408/skill-sync/issues"
+          target="_blank"
+          rel="noreferrer"
+          class="text-primary-500 hover:underline"
+        >
+          {t('help.supportBug' as any)}
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://github.com/eugen1408/skill-sync/discussions/categories/ideas"
+          target="_blank"
+          rel="noreferrer"
+          class="text-primary-500 hover:underline"
+        >
+          {t('help.supportIdea' as any)}
+        </a>
+      </li>
+    </ul>
   </section>
 </div>

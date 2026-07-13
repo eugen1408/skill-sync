@@ -14,7 +14,6 @@ export interface TrackedJob {
   logs: string[]
 }
 
-const MAX_FINISHED = 5
 
 class JobsStore {
   jobs = $state<TrackedJob[]>([])
@@ -82,12 +81,9 @@ class JobsStore {
     this.jobs = this.jobs.filter((j) => j.status === 'running')
   }
 
-  /** Оставляет не более MAX_FINISHED завершённых задач (без логов — убираем первыми). */
+  /** Оставляет все завершённые задачи (убрано ограничение по просьбе пользователя). */
   private trimFinished(): void {
-    const finished = this.jobs.filter((j) => j.status !== 'running')
-    if (finished.length <= MAX_FINISHED) return
-    const drop = new Set(finished.slice(0, finished.length - MAX_FINISHED).map((j) => j.jobId))
-    this.jobs = this.jobs.filter((j) => !drop.has(j.jobId))
+    // No-op
   }
 
   private ensure(jobId: string, kind: JobKind): TrackedJob {

@@ -406,6 +406,10 @@ const en = {
   'help.gettingStartedTitle': 'Getting started',
   'help.glossaryTitle': 'Glossary',
   'help.fileModelTitle': 'Where files live',
+  'help.changelogTitle': 'Changelog',
+  'help.supportTitle': 'Support & Feedback',
+  'help.supportBug': 'Something broken? Create an Issue',
+  'help.supportIdea': 'Have an idea? Suggest a feature',
 
   // Карточка: оригинал vs симлинк
   'detail.original': 'original',
@@ -803,6 +807,10 @@ const ru: Record<keyof typeof en, string> = {
   'help.gettingStartedTitle': 'С чего начать',
   'help.glossaryTitle': 'Глоссарий',
   'help.fileModelTitle': 'Где лежат файлы',
+  'help.changelogTitle': 'История изменений',
+  'help.supportTitle': 'Обратная связь',
+  'help.supportBug': 'Что-то не работает? Создайте Issue',
+  'help.supportIdea': 'Предложения по улучшению функционала',
 
   // Карточка: оригинал vs ссылка
   'detail.original': 'оригинал',

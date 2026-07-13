@@ -85,7 +85,12 @@
               {:else}
                 <span class="w-3.5"></span>
               {/if}
-              <span class="font-medium">{kindLabel(job.kind)}</span>
+              <span class="font-medium flex items-center gap-1.5">
+                {#if job.status === 'running'}
+                  <Icon name="refresh" size={12} class="animate-spin opacity-70" />
+                {/if}
+                {kindLabel(job.kind)}
+              </span>
               <span class="flex-1 truncate opacity-70">
                 {job.status === 'error' ? (job.error ?? t('common.error')) : (job.message ?? '')}
               </span>
@@ -176,9 +181,12 @@
         <span class="font-semibold opacity-70">{t('jobs.events')}</span>
         <span class="opacity-40">{jobs.visible.length}</span>
         {#if !open && latest}
-          <span class="ml-1 truncate opacity-60">
-            {kindLabel(latest.kind)} · {summary(latest)}
-          </span>
+          <div class="ml-1 flex items-center gap-1.5 truncate opacity-60">
+            {#if latest.status === 'running'}
+              <Icon name="refresh" size={12} class="animate-spin opacity-70" />
+            {/if}
+            <span>{kindLabel(latest.kind)} · {summary(latest)}</span>
+          </div>
         {/if}
       </button>
 

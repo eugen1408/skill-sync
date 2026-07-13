@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Notification, session, ipcMain } from 'electron'
+import { app, BrowserWindow, Notification, session, ipcMain, shell } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { IpcEvent, IpcInvoke } from '@shared/ipc/channels'
@@ -124,6 +124,14 @@ function createWindow(): BrowserWindow {
       e.preventDefault()
       window.hide()
     }
+  })
+
+  // Перехват открытия ссылок с target="_blank" — открываем в браузере ОС (follow-up).
+  window.webContents.setWindowOpenHandler((details) => {
+    if (/^https?:\/\//i.test(details.url)) {
+      void shell.openExternal(details.url)
+    }
+    return { action: 'deny' }
   })
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']
