@@ -11,6 +11,8 @@ export interface LockEntry {
   skillFolderHash?: string
   /** SHA-256 содержимого папки на диске (локальный `skills-lock.json`). */
   computedHash?: string
+  installedAt?: string
+  updatedAt?: string
 }
 
 /** Вход Version Resolver. */

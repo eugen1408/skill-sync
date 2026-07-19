@@ -368,6 +368,7 @@ export class UpdateEngine {
     const updatedIds = entries.filter((_, i) => outcomes[i] === 'ok').map((e) => e.id)
 
     // Обновляем global lock entry новыми версиями, если они определены через стратегии
+    const patches: Record<string, Partial<LockEntry>> = {}
     for (const [i, entry] of entries.entries()) {
       if (outcomes[i] === 'ok' && entry.latestVersion) {
         const patch: Partial<LockEntry> = {
@@ -380,9 +381,10 @@ export class UpdateEngine {
         } else if (entry.resolvedBy === 'gitCommitSha' || entry.resolvedBy === 'gitTag') {
           patch.ref = entry.latestVersion
         }
-        await updateGlobalLockEntry(entry.name, patch)
+        patches[entry.name] = patch
       }
     }
+    await updateGlobalLockEntries(patches)
 
     const fresh = updatedIds
       .map((id) => this.deps.skillRegistry.get(id))

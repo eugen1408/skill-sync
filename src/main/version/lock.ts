@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { LockEntry } from './types'
+import { logger } from '../logger'
 
 interface LockFile {
   version?: number
@@ -62,29 +63,40 @@ export async function findLockEntry(
   return global[skillName] ?? null
 }
 
-/** Обновляет поля записи skill в глобальном lock CLI. Создает запись, если ее не было. */
-export async function updateGlobalLockEntry(
-  skillName: string,
-  patch: Partial<LockEntry>
+/** Обновляет поля записей skills в глобальном lock CLI. Создает запись, если ее не было. */
+export async function updateGlobalLockEntries(
+  patches: Record<string, Partial<LockEntry>>
 ): Promise<void> {
-  const path = globalLockPath()
-  try {
-    let parsed: LockFile = {}
-    try {
-      const raw = await readFile(path, 'utf8')
-      parsed = JSON.parse(raw) as LockFile
-    } catch {
-      parsed = { version: 3, skills: {} }
-    }
-    if (!parsed.skills) parsed.skills = {}
+  if (Object.keys(patches).length === 0) return
 
+  const path = globalLockPath()
+  let parsed: LockFile = {}
+
+  try {
+    const raw = await readFile(path, 'utf8')
+    parsed = JSON.parse(raw) as LockFile
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
+      parsed = { version: 3, skills: {} }
+    } else {
+      logger.warn('Не удалось прочитать глобальный lock файл для обновления', err)
+      return
+    }
+  }
+
+  if (!parsed.skills) parsed.skills = {}
+
+  for (const [skillName, patch] of Object.entries(patches)) {
     parsed.skills[skillName] = {
       ...(parsed.skills[skillName] || ({} as any)),
       ...patch,
       updatedAt: new Date().toISOString()
     }
+  }
+
+  try {
     await writeFile(path, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
   } catch (err) {
-    // игнорируем
+    logger.warn('Не удалось сохранить глобальный lock файл после обновления', err)
   }
 }

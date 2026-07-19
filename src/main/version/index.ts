@@ -15,7 +15,7 @@ export {
   readGlobalLock,
   readLocalLock,
   removeGlobalLockEntry,
-  updateGlobalLockEntry
+  updateGlobalLockEntries
 } from './lock'
 
 /**
