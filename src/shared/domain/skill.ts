@@ -42,6 +42,7 @@ export interface CatalogEntry {
   hasUpdate: boolean
   lastCheckedAt: string | null
   updateStatus: UpdateStatus
+  resolvedBy?: string | null
   /** Идентификатор внутри источника. */
   sourceRef: string
   /** Число установок по данным skills.sh (только для official-записей); null — неизвестно. */

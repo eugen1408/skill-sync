@@ -61,3 +61,30 @@ export async function findLockEntry(
   const global = await readGlobalLock()
   return global[skillName] ?? null
 }
+
+/** Обновляет поля записи skill в глобальном lock CLI. Создает запись, если ее не было. */
+export async function updateGlobalLockEntry(
+  skillName: string,
+  patch: Partial<LockEntry>
+): Promise<void> {
+  const path = globalLockPath()
+  try {
+    let parsed: LockFile = {}
+    try {
+      const raw = await readFile(path, 'utf8')
+      parsed = JSON.parse(raw) as LockFile
+    } catch {
+      parsed = { version: 3, skills: {} }
+    }
+    if (!parsed.skills) parsed.skills = {}
+
+    parsed.skills[skillName] = {
+      ...(parsed.skills[skillName] || ({} as any)),
+      ...patch,
+      updatedAt: new Date().toISOString()
+    }
+    await writeFile(path, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
+  } catch (err) {
+    // игнорируем
+  }
+}

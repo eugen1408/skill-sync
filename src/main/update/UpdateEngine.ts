@@ -10,7 +10,7 @@ import type { SkillRegistry } from '../registry'
 import type { InstallerService } from '../installer'
 import type { ConfigStore } from '../config/ConfigStore'
 import type { VersionResolver } from '../version'
-import { findLockEntry } from '../version'
+import { findLockEntry, updateGlobalLockEntry } from '../version'
 import type { NotificationCenter } from '../notifications/NotificationCenter'
 import type { AuditService } from '../security/AuditService'
 import { getSourceDomain } from '@shared/domain/source'
@@ -114,7 +114,9 @@ export class UpdateEngine {
 
       const autoDomains = this.settings().autoUpdateDomains ?? []
       if (autoDomains.length > 0 && result.updatesAvailable > 0) {
-        const updateableIds = new Set(result.entries.filter((r) => r.hasUpdate).map((r) => r.skillId))
+        const updateableIds = new Set(
+          result.entries.filter((r) => r.hasUpdate).map((r) => r.skillId)
+        )
         const candidates = this.installedEntries().filter((e) => updateableIds.has(e.id))
 
         const toUpdate: CatalogEntry[] = []
@@ -143,9 +145,14 @@ export class UpdateEngine {
           this.deps.jobRunner.start('update.run', async (runCtx) => {
             const summary = await this.runEntries(toUpdate, runCtx, true)
             const locale = resolveLocale(this.deps.configStore.get().ui.language)
-            let msg = mt(locale, 'jobs.update.autoResult' as any, { ok: summary.ok, failed: summary.failed })
+            let msg = mt(locale, 'jobs.update.autoResult' as any, {
+              ok: summary.ok,
+              failed: summary.failed
+            })
             if (skippedOfficial.length > 0) {
-              msg += mt(locale, 'jobs.update.autoSkippedRisk' as any, { names: skippedOfficial.map((e) => e.name).join(', ') })
+              msg += mt(locale, 'jobs.update.autoSkippedRisk' as any, {
+                names: skippedOfficial.map((e) => e.name).join(', ')
+              })
             }
             this.deps.notifications.add({
               type: 'update_success',
@@ -159,7 +166,9 @@ export class UpdateEngine {
           this.deps.notifications.add({
             type: 'update_available',
             title: mt(locale, 'jobs.update.autoSkipped' as any),
-            message: mt(locale, 'jobs.update.autoSkippedMsg' as any, { names: skippedOfficial.map((e) => e.name).join(', ') })
+            message: mt(locale, 'jobs.update.autoSkippedMsg' as any, {
+              names: skippedOfficial.map((e) => e.name).join(', ')
+            })
           })
         }
       }
@@ -236,7 +245,11 @@ export class UpdateEngine {
     return { checkedAt, updatesAvailable, entries: results }
   }
 
-  private async checkEntry(entry: CatalogEntry, checkedAt: string, ctx: JobContext): Promise<UpdateCheckEntry | null> {
+  private async checkEntry(
+    entry: CatalogEntry,
+    checkedAt: string,
+    ctx: JobContext
+  ): Promise<UpdateCheckEntry | null> {
     const source = this.deps.sourceManager.get(entry.sourceId)
     const lockEntry = await findLockEntry(entry.name)
     // Для git-источника — фетчим свежие коммиты перед проверкой (follow-up).
@@ -246,7 +259,10 @@ export class UpdateEngine {
       try {
         gitLocalDir = await this.deps.gitCache.ensure(source, ctx)
       } catch (err) {
-        logger.warn(`Проверка обновления пропущена: не удалось обновить источник для ${entry.name}`, err)
+        logger.warn(
+          `Проверка обновления пропущена: не удалось обновить источник для ${entry.name}`,
+          err
+        )
         return null
       }
     }
@@ -350,6 +366,24 @@ export class UpdateEngine {
     // Переопределяем версии обновлённых skills, иначе в списке/карточке остаётся статус
     // «Есть обновление» (rescan сохраняет прежние поля версий). Берём свежие записи из реестра.
     const updatedIds = entries.filter((_, i) => outcomes[i] === 'ok').map((e) => e.id)
+
+    // Обновляем global lock entry новыми версиями, если они определены через стратегии
+    for (const [i, entry] of entries.entries()) {
+      if (outcomes[i] === 'ok' && entry.latestVersion) {
+        const patch: Partial<LockEntry> = {
+          source: entry.sourceId,
+          sourceType: entry.sourceType,
+          skillPath: entry.sourceRef
+        }
+        if (entry.resolvedBy === 'skillFolderHash') {
+          patch.skillFolderHash = entry.latestVersion
+        } else if (entry.resolvedBy === 'gitCommitSha' || entry.resolvedBy === 'gitTag') {
+          patch.ref = entry.latestVersion
+        }
+        await updateGlobalLockEntry(entry.name, patch)
+      }
+    }
+
     const fresh = updatedIds
       .map((id) => this.deps.skillRegistry.get(id))
       .filter((e): e is CatalogEntry => e !== null)

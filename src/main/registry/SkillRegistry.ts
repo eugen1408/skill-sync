@@ -119,6 +119,7 @@ export class SkillRegistry {
         installations,
         latestVersion: null,
         hasUpdate: false,
+        resolvedBy: null,
         lastCheckedAt: null,
         updateStatus: installed ? 'unknown' : 'not_installed',
         sourceRef: s.sourceRef,
@@ -153,9 +154,12 @@ export class SkillRegistry {
       installations,
       latestVersion: info.latestVersion,
       hasUpdate: info.hasUpdate,
+      resolvedBy: info.resolvedBy,
       lastCheckedAt: checkedAt,
       updateStatus: info.unknown
-        ? (entry.updateStatus === 'not_installed' ? 'unknown' : entry.updateStatus)
+        ? entry.updateStatus === 'not_installed'
+          ? 'unknown'
+          : entry.updateStatus
         : !entry.installed
           ? 'not_installed'
           : info.hasUpdate
@@ -274,11 +278,14 @@ export class SkillRegistry {
       installations,
       latestVersion: prev?.latestVersion ?? null,
       hasUpdate: prev?.hasUpdate ?? false,
+      resolvedBy: prev?.resolvedBy ?? null,
       lastCheckedAt: prev?.lastCheckedAt ?? null,
       updateStatus: !installed
         ? 'not_installed'
         : prev?.updateStatus === 'not_installed'
-          ? (source.type === 'official' ? 'unknown' : 'up_to_date')
+          ? source.type === 'official'
+            ? 'unknown'
+            : 'up_to_date'
           : (prev?.updateStatus ?? 'unknown'),
       sourceRef: raw.sourceRef,
       installs: prev?.installs ?? null
@@ -389,8 +396,14 @@ export class SkillRegistry {
       installations,
       latestVersion: prev?.latestVersion ?? null,
       hasUpdate: prev?.hasUpdate ?? false,
+      resolvedBy: prev?.resolvedBy ?? null,
       lastCheckedAt: prev?.lastCheckedAt ?? null,
-      updateStatus: prev?.updateStatus === 'not_installed' ? (sourceType === 'official' ? 'unknown' : 'up_to_date') : (prev?.updateStatus ?? 'unknown'),
+      updateStatus:
+        prev?.updateStatus === 'not_installed'
+          ? sourceType === 'official'
+            ? 'unknown'
+            : 'up_to_date'
+          : (prev?.updateStatus ?? 'unknown'),
       sourceRef,
       installs: prev?.installs ?? null
     }
